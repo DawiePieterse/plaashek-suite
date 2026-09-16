@@ -9,7 +9,7 @@ Open questions waiting for an ADR (plan §13):
 1. ~~First pilot farm, and which two field modules they carry~~ — [ADR 0001](0001-pilot-farm.md)
 2. ~~Minimum Android version — Dexie vs SQLite/OPFS~~ — closed as a side effect of [ADR 0002](0002-sync-engine.md) (PowerSync embeds SQLite/OPFS)
 3. ~~Year-one billing — invoice on WhatsApp, or pay inside Plaashek Management~~ — [ADR 0004](0004-year-one-billing.md): WhatsApp invoice only, confirming the §2.1 non-goal
-4. Kudde — real livestock model, or speculative
+4. ~~Kudde — real livestock model, or speculative~~ — [ADR 0005](0005-kudde.md): speculative, deferred with no build slot until a real livestock farm is under contract
 5. ~~The three offline windows — ticket life, revoke reach, licence grace~~ — [ADR 0003](0003-offline-windows.md): 21 / 21 / 14 days, confirmed as proposed
 6. ~~Sync engine — build or buy~~ — [ADR 0002](0002-sync-engine.md): buy (PowerSync, self-hosted)
-7. Pilot farm's pick dates, so Phase 3 and 4 miss the season — partially answered in [ADR 0001](0001-pilot-farm.md)'s update
+7. ~~Pilot farm's pick dates, so Phase 3 and 4 miss the season~~ — [ADR 0001](0001-pilot-farm.md)'s update: no 2026 rollout, Phase 4 go-live is 2027 (Jan-Aug window)

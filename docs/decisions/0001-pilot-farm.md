@@ -45,3 +45,17 @@ complete earlier. Use any spare time before Jan either hardening the build
 or starting Phase 5's next module, not pushing Phase 4 early.
 
 Revised safe window for Phase 4 go-live: Jan - Aug 2027.
+
+## Update — 16 September 2026 (rollout year confirmed)
+
+Business decision, independent of the season-risk analysis above: there is
+no rollout in 2026 at all. Phase 4 go-live is 2027, full stop — not "as
+early as Jan 2027 if Phase 1-3 finish early," but "not this year, regardless
+of build progress."
+
+This closes plan §13 Q7. It doesn't change the Jan-Aug 2027 safe window
+above (that window was already inside 2027), but it removes any reading of
+"even if Phase 1-3 complete earlier" as license to go live in late 2026 —
+that phrase only ever meant "don't rush Phase 4 itself," and did not
+contemplate a 2026 date. There is no 2026 go-live under any build-speed
+scenario.
