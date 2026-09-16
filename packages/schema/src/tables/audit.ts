@@ -1,5 +1,5 @@
 import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { farms } from "./core";
+import { farms } from "./core.js";
 
 export const auditActorType = pgEnum("audit_actor_type", ["farm", "staff"]);
 

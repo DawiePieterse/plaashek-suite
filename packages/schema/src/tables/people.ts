@@ -1,5 +1,5 @@
 import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { farms } from "./core";
+import { farms } from "./core.js";
 
 /**
  * A name to stamp records with. No login, no password, no email — plan §6.

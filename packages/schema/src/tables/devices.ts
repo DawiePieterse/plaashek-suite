@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
-import { farms } from "./core";
-import { farmMemberships, people } from "./people";
+import { farms } from "./core.js";
+import { farmMemberships, people } from "./people.js";
 
 export const devices = pgTable("devices", {
   id: uuid("id").primaryKey().defaultRandom(),

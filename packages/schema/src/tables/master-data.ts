@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, date, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { farms } from "./core";
+import { farms } from "./core.js";
 
 export const blocks = pgTable("blocks", {
   id: uuid("id").primaryKey().defaultRandom(),

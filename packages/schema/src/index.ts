@@ -1,18 +1,18 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { auditLog } from "./tables/audit";
-import { farms, organisations } from "./tables/core";
-import { deviceAssignments, deviceModules, devices, pairingTokens } from "./tables/devices";
-import { entitlements } from "./tables/entitlements";
-import { assets, blocks, camps, seasons } from "./tables/master-data";
-import { farmMemberships, people } from "./tables/people";
+import { auditLog } from "./tables/audit.js";
+import { farms, organisations } from "./tables/core.js";
+import { deviceAssignments, deviceModules, devices, pairingTokens } from "./tables/devices.js";
+import { entitlements } from "./tables/entitlements.js";
+import { assets, blocks, camps, seasons } from "./tables/master-data.js";
+import { farmMemberships, people } from "./tables/people.js";
 
-export * from "./tables/core";
-export * from "./tables/entitlements";
-export * from "./tables/people";
-export * from "./tables/devices";
-export * from "./tables/audit";
-export * from "./tables/master-data";
-export * from "./workspace-row";
+export * from "./tables/core.js";
+export * from "./tables/entitlements.js";
+export * from "./tables/people.js";
+export * from "./tables/devices.js";
+export * from "./tables/audit.js";
+export * from "./tables/master-data.js";
+export * from "./workspace-row.js";
 
 export const insertOrganisation = createInsertSchema(organisations);
 export const selectOrganisation = createSelectSchema(organisations);

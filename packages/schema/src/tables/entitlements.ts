@@ -1,5 +1,5 @@
 import { integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
-import { farms } from "./core";
+import { farms } from "./core.js";
 
 /** Plan §5. Field workers never see this; office/owner only. */
 export const entitlementStatus = pgEnum("entitlement_status", [
