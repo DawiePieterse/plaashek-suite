@@ -1,6 +1,7 @@
 import { toDataURL } from "qrcode";
 import { useEffect, useState } from "react";
 import { formatWhen, moduleName, type PairingToken } from "./api.js";
+import { t } from "./copy.js";
 
 export interface SlipDetails {
   pairingToken: PairingToken;
@@ -14,6 +15,7 @@ export interface SlipDetails {
  */
 export function PairingSlip({ slip, onClose }: { slip: SlipDetails; onClose: () => void }) {
   const [qr, setQr] = useState("");
+  const c = t();
 
   useEffect(() => {
     toDataURL(slip.pairingToken.qrUrl, { width: 320, margin: 1 }).then(setQr).catch(() => setQr(""));
@@ -23,33 +25,31 @@ export function PairingSlip({ slip, onClose }: { slip: SlipDetails; onClose: () 
     <div className="modal-backdrop">
       <div className="modal">
         <div className="slip">
-          <h2>Paringstrokie</h2>
+          <h2>{c.slipTitle}</h2>
           <dl>
-            <dt>Plaas</dt>
+            <dt>{c.slipFarm}</dt>
             <dd>{slip.farmName}</dd>
-            <dt>Persoon</dt>
+            <dt>{c.slipPerson}</dt>
             <dd>{slip.personName}</dd>
-            <dt>Program</dt>
+            <dt>{c.slipModule}</dt>
             <dd>{moduleName(slip.pairingToken.moduleCode)}</dd>
-            <dt>Gedruk</dt>
+            <dt>{c.slipPrinted}</dt>
             <dd>{formatWhen(slip.pairingToken.printedAt)}</dd>
-            <dt>Verval</dt>
+            <dt>{c.slipExpires}</dt>
             <dd>{formatWhen(slip.pairingToken.expiresAt)}</dd>
           </dl>
 
-          {qr ? <img src={qr} alt="Paring-QR" /> : <p>QR laai…</p>}
+          {qr ? <img src={qr} alt={c.slipTitle} /> : <p>{c.qrLoading}</p>}
 
-          <p className="slip-note">
-            Skandeer hierdie QR met die foon, by die kantoor waar daar sein is. Een keer geldig.
-          </p>
+          <p className="slip-note">{c.slipNote}</p>
         </div>
 
         <div className="modal-actions no-print">
           <button type="button" onClick={() => window.print()}>
-            Druk
+            {c.print}
           </button>
           <button type="button" className="link" onClick={onClose}>
-            Toemaak
+            {c.close}
           </button>
         </div>
       </div>

@@ -1,0 +1,24 @@
+import { z } from "zod";
+
+/**
+ * What a phone may say about a write. Everything identifying — farm, device,
+ * person — is stamped by the server from the ticket, never read from here.
+ */
+export const uploadRequestSchema = z.object({
+  ops: z
+    .array(
+      z.object({
+        entity: z.literal("notes"),
+        entity_id: z.string().uuid(),
+        /** The phone's clock. Plan §7: veld phones lie about the time; skew handling comes with the sync engine. */
+        client_time: z.string().datetime({ offset: true }),
+        /** Resolved on the device from its synced season (docs/seasons-and-stamping.md), null when it has none. */
+        season_id: z.string().uuid().nullable(),
+        payload: z.object({ body: z.string().min(1) }),
+      }),
+    )
+    .min(1)
+    .max(500),
+});
+
+export type UploadOp = z.infer<typeof uploadRequestSchema>["ops"][number];

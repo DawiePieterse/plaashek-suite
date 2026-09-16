@@ -1,0 +1,88 @@
+/**
+ * Phone copy in the farm's language, taken from the ticket (plan §6). A phone
+ * that has never paired has no farm yet, so it starts in Afrikaans and switches
+ * the moment a ticket lands.
+ */
+export type Lang = "af" | "en";
+
+const LANG_KEY = "plaashek.field.lang";
+
+const af = {
+  pairing: "Paar…",
+  pairFailed: "Paring het misluk",
+  notPaired: "Nog nie gepaar nie",
+  notPairedBody: "Skandeer die gedrukte QR wat die kantoor vir hierdie foon uitgedruk het.",
+  ticketExpired: "Gaan na die hek vir sein",
+  ticketExpiredBody: "Die foon het te lank sonder sein gewerk. Jou syfers is nog op die foon.",
+  noModules: "Geen programme nie",
+  noModulesBody: "Hierdie foon se programme is afgeskakel. Praat met die kantoor.",
+  strandedNotes: (count: number) =>
+    `Hierdie foon se programme is afgeskakel. ${count} nota(s) is nog op die foon en kan nie gestuur word nie — praat met die kantoor.`,
+  shellNote: "Programme kom hierna. Die foon is gepaar en die kaartjie is gestoor.",
+  noteLabel: "Wat het jy gesien?",
+  save: "Stoor",
+  savedOnPhone: "Gestoor op die foon.",
+  waitingToSend: (count: number) => `${count} wag om te stuur. Gaan na die hek vir sein.`,
+  allSent: "Alles is gestuur.",
+  back: "Terug",
+  deviceFooter: (device: string, until: string) => `Toestel ${device} · geldig tot ${until}`,
+
+  errors: {
+    not_found: "Hierdie strokie is onbekend. Vra die kantoor vir 'n nuwe een.",
+    not_licensed: "Die plaas het nie hierdie program nie. Praat met die kantoor.",
+    not_paired: "Hierdie foon is afgeskakel. Jou notas is nog op die foon — praat met die kantoor.",
+    token_used: "Hierdie program is al op die foon.",
+    token_cancelled: "Die kantoor het hierdie strokie gekanselleer.",
+    token_expired: "Die strokie het verval. Vra die kantoor om weer te druk.",
+    ticket_expired: "Gaan na die hek vir sein. Jou syfers is op die foon.",
+    unknown: "Iets het verkeerd geloop. Probeer weer.",
+    offline: "Gaan na die hek vir sein en probeer weer.",
+  } as Record<string, string>,
+};
+
+const en: typeof af = {
+  pairing: "Pairing…",
+  pairFailed: "Pairing failed",
+  notPaired: "Not paired yet",
+  notPairedBody: "Scan the printed QR the office printed for this phone.",
+  ticketExpired: "Go to the gate for signal",
+  ticketExpiredBody: "This phone has gone too long without signal. Your figures are still on the phone.",
+  noModules: "No apps",
+  noModulesBody: "This phone's apps have been switched off. Talk to the office.",
+  strandedNotes: (count: number) =>
+    `This phone's apps have been switched off. ${count} note(s) are still on the phone and cannot be sent — talk to the office.`,
+  shellNote: "Apps come next. The phone is paired and its ticket is stored.",
+  noteLabel: "What did you see?",
+  save: "Save",
+  savedOnPhone: "Saved on the phone.",
+  waitingToSend: (count: number) => `${count} waiting to send. Go to the gate for signal.`,
+  allSent: "Everything has been sent.",
+  back: "Back",
+  deviceFooter: (device: string, until: string) => `Device ${device} · valid until ${until}`,
+
+  errors: {
+    not_found: "This slip is unknown. Ask the office for a new one.",
+    not_licensed: "This farm does not have that app. Talk to the office.",
+    not_paired: "This phone has been switched off. Your notes are still on it — talk to the office.",
+    token_used: "This app is already on the phone.",
+    token_cancelled: "The office cancelled this slip.",
+    token_expired: "The slip expired. Ask the office to print it again.",
+    ticket_expired: "Go to the gate for signal. Your figures are on the phone.",
+    unknown: "Something went wrong. Try again.",
+    offline: "Go to the gate for signal and try again.",
+  },
+};
+
+const DICT = { af, en };
+
+// Optional chaining so `node --test` can import this module without a browser.
+let lang: Lang = globalThis.localStorage?.getItem(LANG_KEY) === "en" ? "en" : "af";
+
+export function setLang(next: Lang) {
+  lang = next;
+  globalThis.localStorage?.setItem(LANG_KEY, next);
+}
+
+export const t = () => DICT[lang];
+
+export const locale = () => (lang === "af" ? "af-ZA" : "en-ZA");

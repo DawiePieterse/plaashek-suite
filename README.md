@@ -14,6 +14,7 @@ a screen or a data shape by copying it in and adapting it to outbox +
 |---|---|
 | `apps/management` | Staff only. `hek.plaashek.co.za` |
 | `apps/admin` | Farm office. `admin.plaashek.co.za` |
+| `apps/field` | Pairing shell for the phones. `app.plaashek.co.za` |
 | `packages/*` | Shared schema, sync, tickets, master data |
 | `services/api` | hek-api + sync-api |
 | `services/migrations` | Postgres migrations, numbered, checked in |
@@ -31,6 +32,9 @@ a screen or a data shape by copying it in and adapting it to outbox +
   server at sync time.
 - A save is never blocked by missing config. No active season → save anyway,
   flag for the office.
+- Screen language is the farm's own (`farms.language`, `af` or `en`), picked when
+  the farm is set up. English in the database, the farm's language on screen.
+  The office reads it from the login response, the phone from its ticket.
 - Field workers never see billing copy.
 - A phone shows only modules whose QR it has scanned, even if the farm is
   licensed for more.
@@ -40,10 +44,12 @@ a screen or a data shape by copying it in and adapting it to outbox +
 ```
 pnpm install
 cp .env.example .env     # fill it in
-pnpm seed                # fake farm for testing
+pnpm migrate             # apply services/migrations
+pnpm seed                # fake farm for testing (--lang=en for an English farm)
 
 pnpm --filter @plaashek/api dev      # http://localhost:8080
 pnpm --filter @plaashek/admin dev    # http://localhost:5173
+pnpm --filter @plaashek/field dev    # http://localhost:5174 — open /pair/<token>
 ```
 
 The seed prints the office logins. API tests need `DATABASE_URL` in the

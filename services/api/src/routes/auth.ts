@@ -5,6 +5,7 @@ import type { App, AppDeps } from "../app.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { unauthorized } from "../lib/errors.js";
+import { farmLanguage } from "../lib/farm.js";
 import { loginRequestSchema } from "../schemas/auth.js";
 
 /** Compared against when the email is unknown, so a miss costs the same scrypt time as a hit. */
@@ -30,6 +31,12 @@ export function registerAuthRoutes(app: App, deps: AppDeps) {
       deps.env.staffSessionSecret,
     );
 
-    return { token, farmMembershipId: membership.id, farmId: membership.farmId, role: membership.role };
+    return {
+      token,
+      farmMembershipId: membership.id,
+      farmId: membership.farmId,
+      role: membership.role,
+      language: await farmLanguage(deps.db, membership.farmId),
+    };
   });
 }

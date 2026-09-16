@@ -16,6 +16,12 @@ the parts PowerSync deliberately doesn't do:
   (plan §6, `docs/seasons-and-stamping.md`) and the `OutboxOp` shape sent
   over the wire.
 
+**Interim, until the PowerSync service is running:** `apps/field` keeps its own
+localStorage outbox (`src/queue.ts`) and posts to `POST /sync/upload`. Same
+shape — queue locally, flush on signal, drop only what the server accepted — so
+the swap to `createPlaashekConnector` is a transport change. The server half
+(ticket auth, device floor, licence hold, attribution) is already the real one.
+
 Not in here yet, and deliberately not invented ahead of need:
 
 - Sync Rules (PowerSync Service config, per `farm_id` / `module_code`,

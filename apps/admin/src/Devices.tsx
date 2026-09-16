@@ -9,6 +9,7 @@ import {
   type PairingToken,
   type Session,
 } from "./api.js";
+import { t } from "./copy.js";
 import { PairingSlip, type SlipDetails } from "./PairingSlip.js";
 
 export function Devices({ session, onSessionExpired }: { session: Session; onSessionExpired: () => void }) {
@@ -19,6 +20,7 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
   const [busy, setBusy] = useState(false);
 
   const isAdmin = session.role === "admin";
+  const c = t();
 
   async function load() {
     try {
@@ -30,7 +32,7 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
       setDevices(deviceList.devices);
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : "Kan nie aan die bediener koppel nie.");
+      setError(caught instanceof ApiError ? caught.message : c.offline);
     }
   }
 
@@ -49,7 +51,7 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
       await load();
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : "Kan nie aan die bediener koppel nie.");
+      setError(caught instanceof ApiError ? caught.message : c.offline);
     } finally {
       setBusy(false);
     }
@@ -59,13 +61,13 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
     setSlip({ pairingToken, personName, farmName: context?.farm.name ?? "" });
   }
 
-  if (!context) return <p className="muted">Laai…</p>;
+  if (!context) return <p className="muted">{c.loading}</p>;
 
-  const personName = (device: Device) => device.assignedPerson?.personName ?? "Niemand toegewys nie";
+  const personName = (device: Device) => device.assignedPerson?.personName ?? c.nobodyAssigned;
 
   return (
     <section>
-      <h2 className="no-print">Toestelle — {context.farm.name}</h2>
+      <h2 className="no-print">{c.devicesHeading(context.farm.name)}</h2>
 
       {error && <p className="error no-print">{error}</p>}
 
@@ -82,23 +84,21 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
         />
       )}
 
-      {devices.length === 0 && <p className="muted no-print">Nog geen toestelle nie. Voeg die eerste een by.</p>}
+      {devices.length === 0 && <p className="muted no-print">{c.noDevices}</p>}
 
       <ul className="devices no-print">
         {devices.map((device) => (
           <li key={device.id}>
             <div className="device-head">
-              <strong>{device.label ?? "Toestel sonder naam"}</strong>
+              <strong>{device.label ?? c.unnamedDevice}</strong>
               <span className="muted">{personName(device)}</span>
             </div>
 
-            <p>
-              Programme: {device.modules.length ? device.modules.map(moduleName).join(", ") : "nog geen — wag vir die eerste skandering"}
-            </p>
+            <p>{c.modules(device.modules.length ? device.modules.map(moduleName).join(", ") : c.modulesNone)}</p>
 
             {device.pendingPairingTokens.map((pending) => (
               <p key={pending.id} className="pending">
-                Wag vir paring: {moduleName(pending.moduleCode)} — gedruk {formatWhen(pending.printedAt)}, verval {formatWhen(pending.expiresAt)}
+                {c.pendingPairing(moduleName(pending.moduleCode), formatWhen(pending.printedAt), formatWhen(pending.expiresAt))}
                 {isAdmin && (
                   <>
                     <button
@@ -116,7 +116,7 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
                         )
                       }
                     >
-                      Herdruk
+                      {c.reprint}
                     </button>
                     <button
                       type="button"
@@ -124,7 +124,7 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
                       disabled={busy}
                       onClick={() => run(() => api(`/pairing-tokens/${pending.id}/cancel`, { method: "POST", token: session.token }))}
                     >
-                      Kanselleer
+                      {c.cancel}
                     </button>
                   </>
                 )}
@@ -155,11 +155,11 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
                   className="danger"
                   disabled={busy}
                   onClick={() => {
-                    if (!confirm("Herroep hierdie toestel? Alle programme gaan dood by die volgende sync.")) return;
+                    if (!confirm(c.revokeConfirm)) return;
                     void run(() => api(`/devices/${device.id}/revoke`, { method: "POST", token: session.token }));
                   }}
                 >
-                  Herroep
+                  {c.revoke}
                 </button>
               </div>
             )}
@@ -184,9 +184,10 @@ function AddDeviceForm({
   const [personId, setPersonId] = useState("");
   const [moduleCode, setModuleCode] = useState("");
   const [label, setLabel] = useState("");
+  const c = t();
 
   if (context.modules.length === 0) {
-    return <p className="muted no-print">Die plaas het nog geen aktiewe lisensie nie. Kontak Plaashek.</p>;
+    return <p className="muted no-print">{c.noLicence}</p>;
   }
 
   return (
@@ -199,9 +200,9 @@ function AddDeviceForm({
       }}
     >
       <label>
-        Persoon
+        {c.person}
         <select value={personId} onChange={(e) => setPersonId(e.target.value)} required>
-          <option value="">Kies…</option>
+          <option value="">{c.choose}</option>
           {context.people.map((person) => (
             <option key={person.id} value={person.id}>
               {person.name}
@@ -211,9 +212,9 @@ function AddDeviceForm({
       </label>
 
       <label>
-        Program
+        {c.module}
         <select value={moduleCode} onChange={(e) => setModuleCode(e.target.value)} required>
-          <option value="">Kies…</option>
+          <option value="">{c.choose}</option>
           {context.modules.map((code) => (
             <option key={code} value={code}>
               {moduleName(code)}
@@ -223,12 +224,12 @@ function AddDeviceForm({
       </label>
 
       <label>
-        Naam (opsioneel)
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Pakhuis tablet" />
+        {c.labelOptional}
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={c.labelPlaceholder} />
       </label>
 
       <button type="submit" disabled={busy}>
-        Voeg toestel by en druk QR
+        {c.addDevice}
       </button>
     </form>
   );
@@ -246,9 +247,10 @@ function AddAppForm({
   onSubmit: (moduleCode: string) => void;
 }) {
   const [moduleCode, setModuleCode] = useState("");
+  const c = t();
 
   // A module already installed or already waiting for a scan has nothing to add.
-  const taken = [...device.modules, ...device.pendingPairingTokens.map((t) => t.moduleCode)];
+  const taken = [...device.modules, ...device.pendingPairingTokens.map((pending) => pending.moduleCode)];
   const available = modules.filter((code) => !taken.includes(code));
   if (available.length === 0) return null;
 
@@ -261,7 +263,7 @@ function AddAppForm({
       }}
     >
       <select value={moduleCode} onChange={(e) => setModuleCode(e.target.value)} required>
-        <option value="">Voeg program by…</option>
+        <option value="">{c.addApp}</option>
         {available.map((code) => (
           <option key={code} value={code}>
             {moduleName(code)}
@@ -269,7 +271,7 @@ function AddAppForm({
         ))}
       </select>
       <button type="submit" disabled={busy}>
-        Druk QR
+        {c.printQr}
       </button>
     </form>
   );

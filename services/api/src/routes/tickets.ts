@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { activeModuleCodes } from "../lib/entitlements.js";
 import { unauthorized } from "../lib/errors.js";
+import { activeSeasonId, farmLanguage } from "../lib/farm.js";
 import { bearerToken } from "../lib/http.js";
 
 export function registerTicketRoutes(app: App, deps: AppDeps) {
@@ -29,6 +30,9 @@ export function registerTicketRoutes(app: App, deps: AppDeps) {
       deviceId: claims.deviceId,
       farmModules: ceiling,
       deviceModules: floor,
+      // Re-read every refresh, so a farm that switches language reaches the phones already paired.
+      language: await farmLanguage(deps.db, claims.farmId),
+      seasonId: await activeSeasonId(deps.db, claims.farmId),
       signingKey: deps.keys.privateKey,
     });
 

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { api, ApiError, saveSession, type Session } from "./api.js";
+import { setLang, t } from "./copy.js";
 
 export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const c = t();
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -17,11 +19,13 @@ export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      const session = { token: result.token, farmId: result.farmId, role: result.role };
+      const session = { token: result.token, farmId: result.farmId, role: result.role, language: result.language };
+      // Before onLogin: the next render is already this farm's language.
+      setLang(session.language);
       saveSession(session);
       onLogin(session);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Kan nie aan die bediener koppel nie.");
+      setError(caught instanceof ApiError ? caught.message : c.offline);
     } finally {
       setBusy(false);
     }
@@ -29,22 +33,22 @@ export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
 
   return (
     <form className="login" onSubmit={submit}>
-      <h1>Plaashek — Plaaskantoor</h1>
+      <h1>{c.appTitle}</h1>
 
       <label>
-        E-pos
+        {c.email}
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
       </label>
 
       <label>
-        Wagwoord
+        {c.password}
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
       </label>
 
       {error && <p className="error">{error}</p>}
 
       <button type="submit" disabled={busy}>
-        {busy ? "Wag…" : "Meld aan"}
+        {busy ? c.signingIn : c.signIn}
       </button>
     </form>
   );

@@ -29,6 +29,10 @@ const ADMIN_EMAIL = "admin@toetsplaas.test";
 const OWNER_EMAIL = "eienaar@toetsplaas.test";
 const PASSWORD = "toets1234";
 
+/** The farm's screen language, chosen at setup: `pnpm seed --lang=en`. Office and phones both follow it. */
+const LANGUAGE = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("--lang=".length) ?? "af";
+if (LANGUAGE !== "af" && LANGUAGE !== "en") throw new Error(`Unknown --lang: ${LANGUAGE} (af or en)`);
+
 /** Licensed, plus one deliberately left out so the unlicensed-QR-fails test has something to fail against. */
 const LICENSED = ["veldnotas", "boord"];
 const UNLICENSED = "kudde";
@@ -79,7 +83,7 @@ async function wipeDemoData() {
 
 async function seed() {
   const [org] = await db.insert(organisations).values({ name: ORG_NAME }).returning();
-  const [farm] = await db.insert(farms).values({ organisationId: org.id, name: FARM_NAME }).returning();
+  const [farm] = await db.insert(farms).values({ organisationId: org.id, name: FARM_NAME, language: LANGUAGE }).returning();
 
   // Stamp names only — field workers never log in (plan §3.1).
   const staffNames = ["Anna April", "Piet Plaas", "Sannie Snyman", "Jan Jantjies"];
@@ -133,6 +137,7 @@ const { farm, staffPeople } = await seed();
 console.log(`Seeded "${FARM_NAME}" (farm_id ${farm.id})`);
 console.log(`  admin login: ${ADMIN_EMAIL} / ${PASSWORD}`);
 console.log(`  owner login: ${OWNER_EMAIL} / ${PASSWORD}`);
+console.log(`  language:    ${LANGUAGE}`);
 console.log(`  licensed:    ${LICENSED.join(", ")}`);
 console.log(`  unlicensed:  ${UNLICENSED}  (use this to test that pairing fails)`);
 console.log(`  people:      ${staffPeople.map((p) => `${p.name} (${p.id})`).join("\n               ")}`);

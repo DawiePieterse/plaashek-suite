@@ -11,6 +11,8 @@ test("ticket claims are the floor clipped to the ceiling", async () => {
     deviceId: "device-1",
     farmModules: ["boord", "veldnotas"],
     deviceModules: ["boord", "kudde"], // paired for kudde, but farm never bought it
+    language: "en",
+    seasonId: null,
     signingKey: privateKey,
   });
 
@@ -18,6 +20,7 @@ test("ticket claims are the floor clipped to the ceiling", async () => {
   assert.deepEqual(claims.modules, ["boord"]);
   assert.equal(claims.farmId, "farm-1");
   assert.equal(claims.deviceId, "device-1");
+  assert.equal(claims.language, "en");
 });
 
 test("verifyTicket rejects a signature from the wrong key", async () => {
@@ -29,6 +32,8 @@ test("verifyTicket rejects a signature from the wrong key", async () => {
     deviceId: "device-1",
     farmModules: ["boord"],
     deviceModules: ["boord"],
+    language: "af",
+    seasonId: null,
     signingKey: minted.privateKey,
   });
 
@@ -44,6 +49,8 @@ test("verifyTicket rejects an expired ticket (21-day ticket life, ADR 0003)", as
     deviceId: "device-1",
     farmModules: ["boord"],
     deviceModules: ["boord"],
+    language: "af",
+    seasonId: null,
     signingKey: privateKey,
     now: mintedAt,
   });

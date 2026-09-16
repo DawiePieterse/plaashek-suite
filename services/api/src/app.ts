@@ -6,6 +6,7 @@ import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerFarmRoutes } from "./routes/farm.js";
 import { registerJwksRoutes } from "./routes/jwks.js";
 import { registerPairingRoutes } from "./routes/pairing.js";
+import { registerSyncRoutes } from "./routes/sync.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
 import type { Db } from "./db.js";
 import type { Env } from "./env.js";
@@ -43,6 +44,7 @@ export function buildApp(deps: AppDeps) {
   registerDeviceRoutes(app, deps);
   registerPairingRoutes(app, deps);
   registerTicketRoutes(app, deps);
+  registerSyncRoutes(app, deps);
   registerJwksRoutes(app, deps);
 
   return app;

@@ -1,0 +1,1 @@
+ALTER TABLE "held_writes" ADD CONSTRAINT "held_writes_entity_entity_id_unique" UNIQUE("entity","entity_id");

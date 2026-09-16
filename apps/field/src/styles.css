@@ -1,0 +1,101 @@
+/* Gloves, sun, one hand (plan §8): big type, high contrast, nothing to hunt for. */
+:root {
+  font-family: system-ui, sans-serif;
+  font-size: 20px;
+  line-height: 1.4;
+  color: #1c2321;
+  background: #f6f5f2;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  min-height: 100dvh;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.modules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Every tap target is a full-width slab: gloves, one hand, no aiming. */
+.modules button,
+form button,
+.back {
+  display: block;
+  width: 100%;
+  padding: 1.5rem;
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #fff;
+  background: #1c2321;
+  border: 0;
+  border-radius: 0.75rem;
+}
+
+.modules button {
+  padding: 2rem 1.5rem;
+  font-size: 1.6rem;
+  text-align: left;
+}
+
+.back {
+  margin: 0 1.5rem 1.5rem;
+  width: auto;
+  background: none;
+  color: #1c2321;
+  text-decoration: underline;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+textarea {
+  font: inherit;
+  padding: 0.75rem;
+  border: 2px solid #1c2321;
+  border-radius: 0.5rem;
+}
+
+.saved {
+  font-weight: 600;
+}
+
+.refused {
+  padding: 0.75rem;
+  background: #fdf3d8;
+  border-radius: 0.5rem;
+}
+
+.note,
+footer {
+  color: #6b6760;
+  font-size: 0.8rem;
+}
+
+footer {
+  margin-top: auto;
+}

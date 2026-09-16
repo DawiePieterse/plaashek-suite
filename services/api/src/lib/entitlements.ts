@@ -11,3 +11,13 @@ export async function activeModuleCodes(db: Pick<Db, "select">, farmId: string):
 
   return rows.map((r) => r.moduleCode);
 }
+
+/** The licence status for one module, or null if the farm never had it (plan §5). */
+export async function moduleStatus(db: Pick<Db, "select">, farmId: string, moduleCode: string) {
+  const [row] = await db
+    .select({ status: entitlements.status })
+    .from(entitlements)
+    .where(and(eq(entitlements.farmId, farmId), eq(entitlements.moduleCode, moduleCode)));
+
+  return row?.status ?? null;
+}

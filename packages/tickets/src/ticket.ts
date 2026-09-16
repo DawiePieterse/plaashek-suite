@@ -5,12 +5,22 @@ type SigningKey = KeyLike;
 /** Plan §9: farm ceiling + device floor, verifiable offline. ADR 0003: 21 days. */
 export const TICKET_LIFE_DAYS = 21;
 
+/** Afrikaans or English, chosen when the farm is set up. */
+export type Language = "af" | "en";
+
 /** What a device's ticket says it may do — the modules its own home screen unlocks. */
 export interface TicketClaims {
   farmId: string;
   deviceId: string;
   /** Intersection of the farm's licensed modules and this device's scanned modules. */
   modules: string[];
+  /**
+   * The farm's language. Rides in the ticket because it is the only farm state
+   * a phone can read with no signal; it moves to synced farm settings when sync lands.
+   */
+  language: Language;
+  /** The farm's active season at mint time — what the phone stamps its captures with. */
+  seasonId: string | null;
   issuedAt: Date;
   expiresAt: Date;
 }
@@ -22,6 +32,8 @@ export interface MintTicketInput {
   farmModules: string[];
   /** Modules this device has scanned a pairing QR for — the floor. */
   deviceModules: string[];
+  language: Language;
+  seasonId: string | null;
   signingKey: SigningKey;
   /** Injectable for tests; defaults to the real clock. */
   now?: Date;
@@ -36,7 +48,7 @@ export async function mintTicket(input: MintTicketInput): Promise<string> {
   const now = input.now ?? new Date();
   const modules = input.deviceModules.filter((m) => input.farmModules.includes(m));
 
-  return new SignJWT({ farm_id: input.farmId, modules })
+  return new SignJWT({ farm_id: input.farmId, modules, lang: input.language, season: input.seasonId })
     .setProtectedHeader({ alg: "EdDSA" })
     .setSubject(input.deviceId)
     .setIssuedAt(now)
@@ -59,6 +71,8 @@ export async function verifyTicket(
     farmId: payload["farm_id"] as string,
     deviceId: payload.sub as string,
     modules: payload["modules"] as string[],
+    language: payload["lang"] as Language,
+    seasonId: (payload["season"] as string | null) ?? null,
     issuedAt: new Date((payload.iat as number) * 1000),
     expiresAt: new Date((payload.exp as number) * 1000),
   };

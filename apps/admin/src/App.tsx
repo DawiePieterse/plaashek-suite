@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { clearSession, loadSession, type Session } from "./api.js";
+import { t } from "./copy.js";
 import { Devices } from "./Devices.js";
 import { Login } from "./Login.js";
 
@@ -16,9 +17,9 @@ export function App() {
   return (
     <div className="app">
       <header className="no-print">
-        <h1>Plaashek — Plaaskantoor</h1>
+        <h1>{t().appTitle}</h1>
         <button type="button" className="link" onClick={signOut}>
-          Meld af
+          {t().signOut}
         </button>
       </header>
       <Devices session={session} onSessionExpired={signOut} />

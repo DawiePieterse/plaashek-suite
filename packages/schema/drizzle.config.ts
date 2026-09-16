@@ -13,7 +13,8 @@ try {
  */
 export default defineConfig({
   dialect: "postgresql",
-  schema: "./src/tables/*.ts",
+  // The built JS, not src: drizzle-kit 0.28's CJS loader can't follow our ESM ".js" specifiers.
+  schema: "./dist/tables/*.js",
   out: "../../services/migrations",
   dbCredentials: {
     url: process.env.DATABASE_URL ?? "",

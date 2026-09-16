@@ -25,6 +25,8 @@ test("ceiling excludes suspended/cancelled modules, and a minted ticket clips th
       deviceId: "device-1",
       farmModules: ceiling,
       deviceModules: ["boord", "kudde"],
+      language: "af",
+      seasonId: null,
       signingKey: privateKey,
     });
 

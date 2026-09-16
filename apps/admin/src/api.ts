@@ -1,10 +1,13 @@
 const BASE = import.meta.env["VITE_API_URL"] ?? "http://localhost:8080";
 const TOKEN_KEY = "plaashek.admin.session";
 
+import { locale, t, type Lang } from "./copy.js";
+
 export interface Session {
   token: string;
   farmId: string;
   role: "admin" | "owner";
+  language: Lang;
 }
 
 export function loadSession(): Session | null {
@@ -25,23 +28,11 @@ export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-/** Server messages are English (plan §6); the office screen is Afrikaans. */
-const MESSAGES: Record<string, string> = {
-  invalid_credentials: "Verkeerde e-pos of wagwoord.",
-  unauthenticated: "Jou sessie het verval. Meld weer aan.",
-  forbidden: "Jy het nie regte vir hierdie aksie nie.",
-  not_licensed: "Die plaas het nie 'n lisensie vir hierdie program nie.",
-  not_found: "Nie gevind nie.",
-  token_used: "Hierdie strokie is reeds geskandeer.",
-  token_cancelled: "Hierdie strokie is gekanselleer.",
-  token_expired: "Hierdie strokie het verval. Druk 'n nuwe een.",
-};
-
-/** Module codes are already the Afrikaans names (plan §4.5) — add a map only if one ever diverges. */
+/** Module codes are the module names in both languages (plan §4.5) — add a map only if one ever diverges. */
 export const moduleName = (code: string) => code.charAt(0).toUpperCase() + code.slice(1);
 
 export const formatWhen = (iso: string) =>
-  new Date(iso).toLocaleString("af-ZA", { dateStyle: "short", timeStyle: "short" });
+  new Date(iso).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" });
 
 export class ApiError extends Error {
   constructor(
@@ -63,8 +54,8 @@ export async function api<T>(path: string, init?: RequestInit & { token?: string
   });
 
   if (!response.ok) {
-    const code = ((await response.json().catch(() => null)) as { error?: { code?: string } } | null)?.error?.code ?? "onbekend";
-    throw new ApiError(code, MESSAGES[code] ?? "Iets het verkeerd geloop. Probeer weer.");
+    const code = ((await response.json().catch(() => null)) as { error?: { code?: string } } | null)?.error?.code ?? "unknown";
+    throw new ApiError(code, t().errors[code] ?? t().errors["unknown"]);
   }
 
   return (await response.json()) as T;

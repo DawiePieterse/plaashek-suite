@@ -7,6 +7,7 @@ import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
 import { activeModuleCodes } from "../lib/entitlements.js";
 import { conflict, forbidden, gone, notFound } from "../lib/errors.js";
+import { activeSeasonId, farmLanguage } from "../lib/farm.js";
 import { pairingTokenState, type PairingTokenRow } from "../lib/pairing-state.js";
 import { pairingExpiry, qrUrl, randomPairingToken } from "../lib/pairing-token.js";
 
@@ -124,6 +125,8 @@ export function registerPairingRoutes(app: App, deps: AppDeps) {
         deviceId: row.pairingToken.deviceId,
         farmModules: ceiling,
         deviceModules: floor,
+        language: await farmLanguage(tx, row.farmId),
+        seasonId: await activeSeasonId(tx, row.farmId),
         signingKey: deps.keys.privateKey,
         now,
       });
