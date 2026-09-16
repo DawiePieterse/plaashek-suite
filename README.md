@@ -41,7 +41,13 @@ a screen or a data shape by copying it in and adapting it to outbox +
 pnpm install
 cp .env.example .env     # fill it in
 pnpm seed                # fake farm for testing
+
+pnpm --filter @plaashek/api dev      # http://localhost:8080
+pnpm --filter @plaashek/admin dev    # http://localhost:5173
 ```
+
+The seed prints the office logins. API tests need `DATABASE_URL` in the
+environment — they do not read `.env`.
 
 ## Phase 1 exit checklist
 

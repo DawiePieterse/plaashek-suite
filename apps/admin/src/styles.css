@@ -1,0 +1,209 @@
+:root {
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: #1c2321;
+  background: #f6f5f2;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #1c2321;
+  border-radius: 0.3rem;
+  background: #1c2321;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.link {
+  border: 0;
+  background: none;
+  color: #1c2321;
+  text-decoration: underline;
+  padding: 0 0.4rem;
+}
+
+button.danger {
+  background: #8c2b20;
+  border-color: #8c2b20;
+}
+
+input,
+select {
+  font: inherit;
+  padding: 0.45rem;
+  border: 1px solid #b9b5ad;
+  border-radius: 0.3rem;
+  background: #fff;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.error {
+  color: #8c2b20;
+}
+
+.muted {
+  color: #6b6760;
+}
+
+.login {
+  max-width: 22rem;
+  margin: 15vh auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 0.5rem;
+}
+
+.add-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 0.5rem;
+}
+
+.devices {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.devices li {
+  padding: 1rem;
+  background: #fff;
+  border-radius: 0.5rem;
+}
+
+.device-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.device-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.device-actions form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pending {
+  padding: 0.5rem;
+  background: #fdf3d8;
+  border-radius: 0.3rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  /* Top-aligned and scrollable: centring puts Druk/Toemaak off-screen on a short window. */
+  place-items: start center;
+  overflow: auto;
+  padding: 1rem;
+  background: rgb(0 0 0 / 40%);
+}
+
+.modal {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  max-width: 24rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.slip dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.slip dt {
+  font-weight: 600;
+}
+
+.slip dd {
+  margin: 0;
+}
+
+.slip img {
+  display: block;
+  width: 16rem;
+  height: 16rem;
+}
+
+.slip-note {
+  font-size: 0.9rem;
+}
+
+/* Print exactly the slip — it is the credential that leaves the office. */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .no-print {
+    display: none;
+  }
+
+  .modal-backdrop {
+    position: static;
+    background: none;
+  }
+
+  .modal {
+    max-width: none;
+    padding: 0;
+  }
+}

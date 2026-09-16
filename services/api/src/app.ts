@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import { ZodError } from "zod";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
+import { registerFarmRoutes } from "./routes/farm.js";
 import { registerJwksRoutes } from "./routes/jwks.js";
 import { registerPairingRoutes } from "./routes/pairing.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
@@ -38,6 +39,7 @@ export function buildApp(deps: AppDeps) {
   });
 
   registerAuthRoutes(app, deps);
+  registerFarmRoutes(app, deps);
   registerDeviceRoutes(app, deps);
   registerPairingRoutes(app, deps);
   registerTicketRoutes(app, deps);
