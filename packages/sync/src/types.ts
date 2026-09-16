@@ -4,20 +4,7 @@
  */
 
 /** Every workspace row carries these fields, whatever module it belongs to. */
-export interface WorkspaceRow {
-  id: string;
-  farm_id: string;
-  module_code: string;
-  /** Resolved on the device from its synced copy of the active season. Null for season-less modules (Werkswinkel, Water). */
-  season_id: string | null;
-  /** The person assigned to the device at save time, not a logged-in user. */
-  created_by: string;
-  device_id: string;
-  created_at: string;
-  updated_at: string;
-  revoked_at: string | null;
-  rev: number;
-}
+export type { WorkspaceRow } from "@plaashek/schema";
 
 /**
  * Whether a table takes last-write-wins (a mutable record like a stock

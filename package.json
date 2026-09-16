@@ -5,7 +5,8 @@
   "description": "Plaashek Suite — management, farm admin, owner and field PWAs",
   "scripts": {
     "seed": "node infra/seed/seed.mjs",
-    "migrate": "echo 'TODO: wire to services/migrations'"
+    "db:generate": "pnpm --filter @plaashek/schema exec drizzle-kit generate",
+    "migrate": "pnpm --filter @plaashek/schema exec drizzle-kit migrate"
   },
   "engines": {
     "node": ">=20"

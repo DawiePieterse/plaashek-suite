@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc"
   },
+  "dependencies": {
+    "@plaashek/schema": "workspace:*"
+  },
   "peerDependencies": {
     "@powersync/web": "^1.39.0"
   },
