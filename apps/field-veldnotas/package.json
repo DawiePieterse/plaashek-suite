@@ -1,7 +1,0 @@
-{
-  "name": "@plaashek/field-veldnotas",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Veldnotas field PWA",
-  "main": "src/index.ts"
-}

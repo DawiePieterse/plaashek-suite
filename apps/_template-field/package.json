@@ -1,7 +1,0 @@
-{
-  "name": "@plaashek/template-field",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Template for a new field module — copy, do not edit in place",
-  "main": "src/index.ts"
-}

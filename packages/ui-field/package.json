@@ -1,7 +1,0 @@
-{
-  "name": "@plaashek/ui-field",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Field UI — glove buttons, high contrast, AF/EN",
-  "main": "src/index.ts"
-}
