@@ -131,10 +131,29 @@ label {
   gap: 0.5rem;
 }
 
-.pending {
+.pending,
+.waiting {
   padding: 0.5rem;
   background: #fdf3d8;
   border-radius: 0.3rem;
+}
+
+.seasons {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.season {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 0.5rem;
 }
 
 .modal-backdrop {

@@ -61,7 +61,8 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
     setSlip({ pairingToken, personName, farmName: context?.farm.name ?? "" });
   }
 
-  if (!context) return <p className="muted">{c.loading}</p>;
+  // Without the error here, a first load that fails sits on "Laai…" forever.
+  if (!context) return <p className={error ? "error" : "muted"}>{error || c.loading}</p>;
 
   const personName = (device: Device) => device.assignedPerson?.personName ?? c.nobodyAssigned;
 
@@ -70,6 +71,9 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
       <h2 className="no-print">{c.devicesHeading(context.farm.name)}</h2>
 
       {error && <p className="error no-print">{error}</p>}
+
+      {context.waiting.held > 0 && <p className="waiting no-print">{c.heldWaiting(context.waiting.held)}</p>}
+      {context.waiting.withoutSeason > 0 && <p className="waiting no-print">{c.withoutSeason(context.waiting.withoutSeason)}</p>}
 
       {isAdmin && (
         <AddDeviceForm

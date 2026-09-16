@@ -3,6 +3,7 @@ import { clearSession, loadSession, type Session } from "./api.js";
 import { t } from "./copy.js";
 import { Devices } from "./Devices.js";
 import { Login } from "./Login.js";
+import { Seasons } from "./Seasons.js";
 
 export function App() {
   const [session, setSession] = useState<Session | null>(loadSession);
@@ -23,6 +24,7 @@ export function App() {
         </button>
       </header>
       <Devices session={session} onSessionExpired={signOut} />
+      <Seasons session={session} onSessionExpired={signOut} />
     </div>
   );
 }

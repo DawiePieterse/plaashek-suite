@@ -65,6 +65,8 @@ export interface FarmContext {
   farm: { id: string; name: string };
   people: { id: string; name: string }[];
   modules: string[];
+  /** What the office has to act on: held captures (plan §5) and captures with no season (§6). */
+  waiting: { held: number; withoutSeason: number };
 }
 
 export interface PendingToken {
