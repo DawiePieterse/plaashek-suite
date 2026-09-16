@@ -1,0 +1,7 @@
+{
+  "name": "@plaashek/ui-office",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Office UI — desktop tables and forms",
+  "main": "src/index.ts"
+}

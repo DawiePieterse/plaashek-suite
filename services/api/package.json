@@ -1,0 +1,7 @@
+{
+  "name": "@plaashek/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "hek-api + sync-api",
+  "main": "src/index.ts"
+}

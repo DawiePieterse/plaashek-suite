@@ -1,0 +1,7 @@
+{
+  "name": "@plaashek/tickets",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sign and verify tickets — farm ceiling, device floor",
+  "main": "src/index.ts"
+}

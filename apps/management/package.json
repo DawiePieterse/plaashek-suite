@@ -1,0 +1,7 @@
+{
+  "name": "@plaashek/management",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Staff control plane — farms, module on/off, billing, revoke",
+  "main": "src/index.ts"
+}
