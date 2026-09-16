@@ -1,4 +1,11 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "drizzle-kit";
+
+try {
+  process.loadEnvFile(fileURLToPath(new URL("../../.env", import.meta.url)));
+} catch {
+  // No .env (CI injects the env directly) — fall through to process.env.
+}
 
 /**
  * `generate` only reads src/tables/*.ts, no DB connection needed.

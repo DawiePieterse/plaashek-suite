@@ -4,7 +4,11 @@
   "version": "0.0.0",
   "description": "Plaashek Suite — management, farm admin, owner and field PWAs",
   "scripts": {
-    "seed": "node infra/seed/seed.mjs",
+    "build": "pnpm -r build",
+    "seed": "pnpm --filter @plaashek/api seed",
+    "prepare": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
     "db:generate": "pnpm --filter @plaashek/schema exec drizzle-kit generate",
     "migrate": "pnpm --filter @plaashek/schema exec drizzle-kit migrate"
   },

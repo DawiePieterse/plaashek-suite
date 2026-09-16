@@ -126,6 +126,24 @@ test("an expired pairing token cannot be scanned", async () => {
   });
 });
 
+test("a device cannot be stamped with another farm's person", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await setupFarm(db, "boord", "active");
+    const other = await seedFarm(db);
+    const staffToken = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+
+    const add = await app.inject({
+      method: "POST",
+      url: "/devices",
+      headers: { authorization: `Bearer ${staffToken}` },
+      payload: { personId: other.person.id, moduleCode: "boord" },
+    });
+
+    assert.equal(add.statusCode, 404);
+  });
+});
+
 test("adding a device for an unlicensed module is rejected", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);

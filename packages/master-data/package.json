@@ -1,7 +1,0 @@
-{
-  "name": "@plaashek/master-data",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Blocks, camps, people, assets, seasons",
-  "main": "src/index.ts"
-}

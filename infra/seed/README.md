@@ -3,7 +3,14 @@
 A fake farm with known data, resettable in one command, so the Phase 1 exit
 checklist can be re-run in a minute instead of clicked through.
 
-Should create:
+    pnpm seed
+
+Lives in `services/api/scripts/seed.ts` — that is where the Postgres client,
+the Drizzle schema and the password hasher already are, so the seed needs no
+dependency wiring of its own. Re-running wipes and recreates everything under
+the demo organisation, so it is safe to run repeatedly.
+
+Creates:
 
 - One organisation, one farm
 - A few people (no logins — names to stamp with)

@@ -60,6 +60,15 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
       const staff = request.staff!;
       const { personId, moduleCode, label } = addDeviceRequestSchema.parse(request.body);
 
+      // The people FK only proves the person exists, not that they're this
+      // farm's — without this, one farm could stamp devices with another's
+      // person (plan §6: no cross-farm foreign keys).
+      const [person] = await deps.db
+        .select({ id: people.id })
+        .from(people)
+        .where(and(eq(people.id, personId), eq(people.farmId, staff.farmId)));
+      if (!person) throw notFound();
+
       const ceiling = await activeModuleCodes(deps.db, staff.farmId);
       if (!ceiling.includes(moduleCode)) {
         throw forbidden("not_licensed", `Farm is not licensed for module: ${moduleCode}`);

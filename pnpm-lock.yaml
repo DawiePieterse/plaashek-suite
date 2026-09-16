@@ -12,8 +12,6 @@ importers:
 
   apps/management: {}
 
-  packages/master-data: {}
-
   packages/schema:
     dependencies:
       drizzle-orm:

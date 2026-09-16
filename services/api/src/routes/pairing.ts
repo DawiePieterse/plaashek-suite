@@ -10,12 +10,14 @@ import { conflict, forbidden, gone, notFound } from "../lib/errors.js";
 import { pairingTokenState, type PairingTokenRow } from "../lib/pairing-state.js";
 import { pairingExpiry, qrUrl, randomPairingToken } from "../lib/pairing-token.js";
 
-async function findFarmPairingToken(db: Pick<Db, "select">, id: string, farmId: string): Promise<PairingTokenRow> {
+/** Locks the row — callers mutate it, so the pending check must not race a concurrent scan or reprint. */
+async function lockFarmPairingToken(db: Pick<Db, "select">, id: string, farmId: string): Promise<PairingTokenRow> {
   const [row] = await db
     .select({ pairingToken: pairingTokens })
     .from(pairingTokens)
     .innerJoin(devices, eq(devices.id, pairingTokens.deviceId))
-    .where(and(eq(pairingTokens.id, id), eq(devices.farmId, farmId)));
+    .where(and(eq(pairingTokens.id, id), eq(devices.farmId, farmId)))
+    .for("update");
   if (!row) throw notFound();
   return row.pairingToken;
 }
@@ -37,10 +39,10 @@ export function registerPairingRoutes(app: App, deps: AppDeps) {
       const { id } = request.params as { id: string };
       const now = new Date();
 
-      const pairingToken = await findFarmPairingToken(deps.db, id, staff.farmId);
-      requirePending(pairingToken, now);
-
       return deps.db.transaction(async (tx) => {
+        const pairingToken = await lockFarmPairingToken(tx, id, staff.farmId);
+        requirePending(pairingToken, now);
+
         await tx.update(pairingTokens).set({ cancelledAt: now }).where(eq(pairingTokens.id, id));
 
         const [fresh] = await tx
@@ -69,18 +71,20 @@ export function registerPairingRoutes(app: App, deps: AppDeps) {
       const { id } = request.params as { id: string };
       const now = new Date();
 
-      const pairingToken = await findFarmPairingToken(deps.db, id, staff.farmId);
-      requirePending(pairingToken, now);
+      return deps.db.transaction(async (tx) => {
+        const pairingToken = await lockFarmPairingToken(tx, id, staff.farmId);
+        requirePending(pairingToken, now);
 
-      const [cancelled] = await deps.db
-        .update(pairingTokens)
-        .set({ cancelledAt: now })
-        .where(eq(pairingTokens.id, id))
-        .returning({ id: pairingTokens.id, cancelledAt: pairingTokens.cancelledAt });
+        const [cancelled] = await tx
+          .update(pairingTokens)
+          .set({ cancelledAt: now })
+          .where(eq(pairingTokens.id, id))
+          .returning({ id: pairingTokens.id, cancelledAt: pairingTokens.cancelledAt });
 
-      await logAudit(deps.db, { actor: staff.farmMembershipId, action: "cancel_pairing_token", target: id, farmId: staff.farmId });
+        await logAudit(tx, { actor: staff.farmMembershipId, action: "cancel_pairing_token", target: id, farmId: staff.farmId });
 
-      return { pairingToken: cancelled };
+        return { pairingToken: cancelled };
+      });
     },
   );
 
