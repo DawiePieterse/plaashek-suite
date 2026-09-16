@@ -2,11 +2,13 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.3
+**Status:** v1.4
 **Date:** 16 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
 **Changes from v1.1:** licence lifecycle restored (§5); offline windows defined and made a Phase 0 decision (§3.6); pairing token hardened (§3.4); PWA update/migration added (§8); tech stack restored (§9); backup, offboarding and audit log added (§11); explicit non-goals (§2.1); seasons defined as farm-owned master data, stamped on every record (§4.2, §6).
+
+**Changes from v1.3:** all seven §13 questions closed — see [docs/decisions/](decisions/) (ADRs 0001–0005). Sync engine is PowerSync, not a build-your-own outbox (§9, ADR 0002); Kudde schema pulled from §6 and marked deferred, no build slot (§6, §11, §14, ADR 0005); Phase 4 named to the pilot farm and its 2027 go-live window (§12, ADR 0001).
 
 ---
 
@@ -278,8 +280,8 @@ people_farm_profile
 
 notes                     veldnotas
 harvest_events            boord
-animals, movements,
-  treatments, weights     kudde
+kudde                     deferred — no schema until a real farm is
+                          contracted (ADR 0005)
 attendance_punches        span
 stock_items, stock_moves  stoor
 meter_readings            water
@@ -351,7 +353,7 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | Layer | Choice | Why |
 |---|---|---|
 | PWA | TypeScript + Vite, React or Svelte | Small bundle, good PWA tooling |
-| Local store | Dexie (IndexedDB) first; SQLite/OPFS if Boord or Kudde outgrow it | Enough for notes, crates, punches. §13 Q2 decides |
+| Local store | SQLite via PowerSync client SDK (OPFS-backed in browser) | Decided — ADR 0002 |
 | API | Node or Go behind Caddy | Simple to host and reason about |
 | DB | Postgres, ZA region | Farms, entitlements, tickets, sync cursors |
 | Media | S3-compatible in ZA (af-south-1 or local) | Photos and voice notes |
@@ -360,7 +362,7 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | Hosting | One VPS with backups; k8s only if scale demands | Matches current scale |
 | Observability | Errors carry `farm_id` and `device_id`, never field note content | Support without reading the farm's day |
 
-**Build vs buy, worth one afternoon in Phase 0:** offline sync with conflict handling is the hardest thing in this plan. PowerSync, ElectricSQL and RxDB/Replicache all solve it. Owning the protocol is defensible; so is halving Phase 1. Decide deliberately rather than by default.
+**Build vs buy — decided (ADR 0002):** buying PowerSync (self-hosted, `af-south-1`) rather than a from-scratch outbox/cursor engine. Conflict logic (LWW on scalars, append-only on events), revoke, and the lazy photo/voice channel stay ours regardless — PowerSync only removes the queue/cursor/local-storage plumbing.
 
 ---
 
@@ -396,7 +398,7 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | 3 | `eienaar` | Boord Owner | Built with Boord. Read-only |
 | 4 | `span` | — | Assigned-person stamp makes clocking work |
 | 5 | `stoor` | — | New |
-| 6 | `kudde` | Kudde if the model holds | Port vs new — §13 Q4 |
+| 6 | `kudde` | — | Deferred, no build slot — ADR 0005 |
 | 7 | `water`, `werkswinkel` | — | New |
 | 8 | `oudit` | — | Packs records. Last |
 
@@ -410,7 +412,7 @@ Solo, part-time. **Sizing health warning:** Phase 1 builds a signed-ticket syste
 
 ### Phase 0 — Decisions (1 week)
 
-Answer §13. Confirm hosts, module codes, the three offline windows (§3.6), and build-vs-buy on sync (§9).
+Answered — see [docs/decisions/](decisions/) (ADRs 0001–0005). Hosts, module codes, the three offline windows (§3.6, ADR 0003), and build-vs-buy on sync (§9, ADR 0002) are all closed.
 
 ### Phase 1 — Foundation (3–4 weeks, see warning)
 
@@ -442,9 +444,9 @@ Field harvest capture. Owner sees it after sync.
 
 **Season check:** Boord touches harvest capture. Do not run Phase 3 or Phase 4 across the pilot farm's pick. Map this against their season in Phase 0 and schedule around it.
 
-### Phase 4 — First real pilot farm
+### Phase 4 — First real pilot farm (Laughing Waters / Bekfontein, go-live Jan–Aug 2027)
 
-One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: Veldnotas, Boord, Eienaar. Do not start Span to delay this.
+One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: Veldnotas, Boord, Eienaar. Do not start Span to delay this. No 2026 go-live under any build-speed scenario — ADR 0001.
 
 ### Phase 5 — Remaining modules
 
@@ -452,15 +454,17 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 ---
 
-## 13. Open questions
+## 13. Open questions — all closed
 
-1. First pilot farm, and which two field modules they will actually carry.
-2. Minimum Android version (Dexie vs SQLite/OPFS) before Phase 2.
-3. Year-one billing: invoice on WhatsApp, or pay inside Plaashek Management?
-4. Kudde: built against real livestock, or speculative?
-5. The three offline windows (§3.6) — confirm 21 / 21 / 14 or set your own.
-6. Sync engine: build or buy (§9)?
-7. **Build scheduling only** (seasons-as-data is settled — see §4.2): when is the pilot farm's actual pick, so Phase 3 and Phase 4 don't land in the middle of it? This is a calendar question for you, not something the software answers.
+| # | Question | Decision | ADR |
+|---|---|---|---|
+| 1 | First pilot farm and modules | Laughing Waters / Bekfontein — `veldnotas`, `boord`, `eienaar` | [0001](decisions/0001-pilot-farm.md) |
+| 2 | Minimum Android version (Dexie vs SQLite/OPFS) | Moot — PowerSync ships SQLite/OPFS from day one | [0002](decisions/0002-sync-engine.md) |
+| 3 | Year-one billing | WhatsApp invoice, manual EFT, no in-app payment | [0004](decisions/0004-year-one-billing.md) |
+| 4 | Kudde: real or speculative | Deferred — no build slot until a real livestock farm is contracted | [0005](decisions/0005-kudde.md) |
+| 5 | The three offline windows (§3.6) | Confirmed as proposed — 21 / 21 / 14 days | [0003](decisions/0003-offline-windows.md) |
+| 6 | Sync engine: build or buy | Buy — self-hosted PowerSync | [0002](decisions/0002-sync-engine.md) |
+| 7 | Build scheduling against the pilot's pick | Phase 4 go-live pushed to Jan–Aug 2027, no 2026 rollout | [0001](decisions/0001-pilot-farm.md) |
 
 ---
 
@@ -481,7 +485,7 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 | Migration eats a pending outbox | Explicit Phase 1 exit test |
 | Pilot delayed for another module | Phase 4 before Span / Stoor / Kudde |
 | Pilot lands mid-pick | Schedule from the season, not the sprint |
-| Kudde spec unvalidated | New requirements until Q4 is answered |
+| Kudde spec unvalidated | Deferred by design — no build slot until a real livestock farm is contracted (ADR 0005) |
 | Season not set, or set late, when a pick starts early | Phone saves anyway and flags; office assigns from "opnames sonder seisoen." Never block a capture over config |
 | Backup never tested | Quarterly restore drill, diarised |
 
@@ -489,7 +493,7 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 ## 15. Build next
 
-1. Answer §13 — Q1, Q4, Q5, Q6 block work; Q2, Q3, Q7 can land during Phase 0.
+1. §13 answered (ADRs 0001–0005) — proceed to Phase 1.
 2. Phase 1 on one fake farm: add device → print QR → scan → one app opens → offline save → sync.
 3. Notes reuse audit for `veldnotas` only after that loop works.
 
@@ -510,4 +514,4 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 ---
 
-*End of complete build plan v1.3.*
+*End of complete build plan v1.4.*

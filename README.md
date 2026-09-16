@@ -14,14 +14,13 @@ a screen or a data shape by copying it in and adapting it to outbox +
 |---|---|
 | `apps/management` | Staff only. `hek.plaashek.co.za` |
 | `apps/admin` | Farm office. `admin.plaashek.co.za` |
-| `apps/owner` | Eienaar, read-only |
-| `apps/field-*` | Field PWAs. `app.plaashek.co.za` |
-| `apps/_template-field` | Copy this to start a new field module |
-| `packages/*` | Shared schema, sync, tickets, local store, UI |
+| `packages/*` | Shared schema, sync, tickets, master data |
 | `services/api` | hek-api + sync-api |
 | `services/migrations` | Postgres migrations, numbered, checked in |
 | `infra/seed` | Fake farm for Phase 1 exit tests |
 | `infra/backup` | Nightly script + quarterly restore drill |
+
+`apps/field-*`, `apps/owner`, and a field-app template land in Phase 2/3 (plan §11), not before — no scaffolding for a phase that hasn't started.
 
 ## Rules that are easy to break later
 
