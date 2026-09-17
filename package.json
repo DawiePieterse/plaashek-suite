@@ -6,6 +6,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "seed": "pnpm --filter @plaashek/api seed",
+    "create-staff": "pnpm --filter @plaashek/api create-staff --",
     "prepare": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

@@ -7,6 +7,7 @@ import { assets, blocks, camps, seasons } from "./tables/master-data.js";
 import { notes } from "./tables/notes.js";
 import { harvestEvents } from "./tables/harvest-events.js";
 import { farmMemberships, people } from "./tables/people.js";
+import { plaashekStaff } from "./tables/staff.js";
 
 export * from "./tables/core.js";
 export * from "./tables/entitlements.js";
@@ -16,6 +17,7 @@ export * from "./tables/audit.js";
 export * from "./tables/master-data.js";
 export * from "./tables/notes.js";
 export * from "./tables/harvest-events.js";
+export * from "./tables/staff.js";
 export * from "./workspace-row.js";
 
 export const insertOrganisation = createInsertSchema(organisations);
@@ -65,3 +67,6 @@ export const selectNote = createSelectSchema(notes);
 
 export const insertHarvestEvent = createInsertSchema(harvestEvents);
 export const selectHarvestEvent = createSelectSchema(harvestEvents);
+
+export const insertPlaashekStaff = createInsertSchema(plaashekStaff);
+export const selectPlaashekStaff = createSelectSchema(plaashekStaff);

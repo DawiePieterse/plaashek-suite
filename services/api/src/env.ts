@@ -6,6 +6,7 @@ export interface Env {
   databaseUrl: string;
   ticketSigningKeyJwk: string;
   staffSessionSecret: string;
+  managementSessionSecret: string;
   port: number;
   corsOrigins: string[];
 }
@@ -28,6 +29,7 @@ export function loadEnv(): Env {
     databaseUrl: required("DATABASE_URL"),
     ticketSigningKeyJwk: required("TICKET_SIGNING_KEY_JWK"),
     staffSessionSecret: required("STAFF_SESSION_SECRET"),
+    managementSessionSecret: required("MANAGEMENT_SESSION_SECRET"),
     port: Number(process.env["PORT"] ?? 8080),
     corsOrigins: (process.env["CORS_ORIGINS"] ?? "").split(",").filter(Boolean),
   };

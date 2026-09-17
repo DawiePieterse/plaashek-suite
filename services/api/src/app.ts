@@ -8,6 +8,7 @@ import { registerEienaarRoutes } from "./routes/eienaar.js";
 import { registerExportRoutes } from "./routes/export.js";
 import { registerFarmRoutes } from "./routes/farm.js";
 import { registerJwksRoutes } from "./routes/jwks.js";
+import { registerManagementRoutes } from "./routes/management.js";
 import { registerPairingRoutes } from "./routes/pairing.js";
 import { registerSeasonRoutes } from "./routes/seasons.js";
 import { registerSyncRoutes } from "./routes/sync.js";
@@ -56,6 +57,7 @@ export function buildApp(deps: AppDeps) {
   registerBlockRoutes(app, deps);
   registerEienaarRoutes(app, deps);
   registerExportRoutes(app, deps);
+  registerManagementRoutes(app, deps);
 
   return app;
 }

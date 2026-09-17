@@ -18,6 +18,7 @@ export async function buildTestApp(db: Db): Promise<{ app: App; deps: AppDeps }>
       databaseUrl: "unused-in-tests",
       ticketSigningKeyJwk: "unused-in-tests",
       staffSessionSecret: randomBytes(32).toString("base64"),
+      managementSessionSecret: randomBytes(32).toString("base64"),
       port: 0,
       corsOrigins: [],
     },

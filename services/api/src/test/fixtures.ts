@@ -1,6 +1,7 @@
-import { farmMemberships, farms, organisations, people } from "@plaashek/schema";
+import { farmMemberships, farms, organisations, people, plaashekStaff } from "@plaashek/schema";
 import type { Db } from "../db.js";
 import type { Role } from "../auth/staff-jwt.js";
+import { hashPassword } from "../auth/password.js";
 
 /** A minimal farm + one staff member, for tests that need a real farmMembership to sign a session for. */
 export async function seedFarm(db: Db, opts: { role?: Role; email?: string } = {}) {
@@ -13,4 +14,13 @@ export async function seedFarm(db: Db, opts: { role?: Role; email?: string } = {
     .returning();
 
   return { org, farm, person, membership };
+}
+
+/** A Plaashek Management login, for tests that need a real plaashekStaff row to sign a session for. */
+export async function seedManagementStaff(db: Db, opts: { email?: string; password?: string } = {}) {
+  const email = opts.email ?? `management-${crypto.randomUUID()}@example.com`;
+  const password = opts.password ?? "test-password";
+  const [staff] = await db.insert(plaashekStaff).values({ email, passwordHash: hashPassword(password) }).returning();
+
+  return { staff, password };
 }

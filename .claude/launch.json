@@ -27,6 +27,13 @@
       "runtimeArgs": ["--filter", "@plaashek/owner", "dev"],
       "port": 5175,
       "autoPort": true
+    },
+    {
+      "name": "management",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@plaashek/management", "dev"],
+      "port": 5177,
+      "autoPort": true
     }
   ]
 }

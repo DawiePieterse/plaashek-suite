@@ -43,6 +43,13 @@
       "when": 1789629486744,
       "tag": "0005_fuzzy_doctor_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789641853093,
+      "tag": "0006_workable_sharon_carter",
+      "breakpoints": true
     }
   ]
 }

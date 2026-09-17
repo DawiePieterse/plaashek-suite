@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.11
+**Status:** v1.12
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -23,6 +23,8 @@
 **Changes from v1.9:** CI added (`.github/workflows/ci.yml`) — build, migrate, typecheck and test on every push to main and every PR. Surfaced two latent, Node-version-dependent test bugs (`apps/field`'s and `services/api`'s test scripts each relied on a Node runtime feature not present in CI's pinned Node 20, despite passing on a newer local Node); both fixed with portable patterns already used elsewhere in the repo. Green on main as of commit `8750f60`. A branch protection rule requiring the `test` check exists on `main` but is not enforced — GitHub only enforces private-repo branch protection under a Team/Enterprise organisation account, not a personal account — left as-is, solo/part-time project, revisit if a collaborator joins.
 
 **Changes from v1.10:** Demo seed farm (`infra/seed`, `services/api/scripts/seed.ts`) renamed from the generic `Toetsplaas` to `Mooiplaas`, and its season shaped on Bekfontein's actual documented facts (ADR 0001: litchi, 1 Sep–31 Dec peak picking) instead of a generic calendar year — still fabricated demo data, not real Bekfontein data (none exists yet), just closer in shape to what Phase 4 will need. Does not close or touch any Phase 4 exit checklist item (§12) — those are all about the real farm.
+
+**Changes from v1.11:** Plaashek Management (§4.1) built for the first time — until now it was an empty stub (`apps/management/src` had no files) and the only way to create an organisation, farm or entitlement was the seed script reaching the database directly. Minimal vertical slice: `plaashek_staff` table and a cross-farm login kept on its own session secret (`MANAGEMENT_SESSION_SECRET`) so a farm office session can never authenticate here, `POST /management/login`, `GET/POST /management/farms`, `PUT /management/farms/:id/entitlements`, a thin `apps/management` UI, and `pnpm create-staff` to bootstrap the first login (console has no self-signup). Verified against Mooiplaas via automated tests (`services/api/src/routes/management.test.ts`) and a live curl walkthrough — not yet exercised through the browser UI itself (session tooling couldn't reach the local preview this pass). Does not touch or close any Phase 4 exit checklist item (§12) — those are all real Bekfontein data — but removes the tooling gap that stood in front of the first one ("Bekfontein created as a real organisation + farm row").
 
 ---
 

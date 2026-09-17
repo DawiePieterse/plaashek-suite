@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "seed": "tsx scripts/seed.ts",
+    "create-staff": "tsx scripts/create-staff.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "tsc --noEmit && tsx --test $(find src -name '*.test.ts')",
