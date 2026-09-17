@@ -4,6 +4,7 @@ import { farms, organisations } from "./tables/core.js";
 import { deviceAssignments, deviceModules, devices, pairingTokens } from "./tables/devices.js";
 import { entitlements } from "./tables/entitlements.js";
 import { assets, blocks, camps, seasons } from "./tables/master-data.js";
+import { attendancePunches } from "./tables/attendance-punches.js";
 import { notes } from "./tables/notes.js";
 import { harvestEvents } from "./tables/harvest-events.js";
 import { farmMemberships, people } from "./tables/people.js";
@@ -17,6 +18,7 @@ export * from "./tables/audit.js";
 export * from "./tables/master-data.js";
 export * from "./tables/notes.js";
 export * from "./tables/harvest-events.js";
+export * from "./tables/attendance-punches.js";
 export * from "./tables/staff.js";
 export * from "./workspace-row.js";
 
@@ -67,6 +69,9 @@ export const selectNote = createSelectSchema(notes);
 
 export const insertHarvestEvent = createInsertSchema(harvestEvents);
 export const selectHarvestEvent = createSelectSchema(harvestEvents);
+
+export const insertAttendancePunch = createInsertSchema(attendancePunches);
+export const selectAttendancePunch = createSelectSchema(attendancePunches);
 
 export const insertPlaashekStaff = createInsertSchema(plaashekStaff);
 export const selectPlaashekStaff = createSelectSchema(plaashekStaff);

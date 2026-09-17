@@ -40,14 +40,29 @@ const harvestEventOp = z.object({
   }),
 });
 
+/** Span punch (docs/span-build-scope.md): a direction and, if the phone has a fix, where it happened. The person is the stamp (ADR 0008). */
+const attendancePunchOp = z.object({
+  entity: z.literal("attendance_punches"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    direction: z.enum(["in", "out"]),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
+    location_accuracy_m: z.number().nullable().optional(),
+  }),
+});
+
 /**
  * What a phone may say about a write. Everything identifying — farm, device,
  * person — is stamped by the server from the ticket, never read from here.
  */
 export const uploadRequestSchema = z.object({
-  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp])).min(1).max(500),
+  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp])).min(1).max(500),
 });
 
 export type UploadOp = z.infer<typeof uploadRequestSchema>["ops"][number];
 export type NoteOp = z.infer<typeof noteOp>;
 export type HarvestEventOp = z.infer<typeof harvestEventOp>;
+export type AttendancePunchOp = z.infer<typeof attendancePunchOp>;

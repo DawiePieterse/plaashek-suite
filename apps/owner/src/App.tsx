@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { clearSession, loadSession, type Session } from "./api.js";
+import { Attendance } from "./Attendance.js";
 import { t } from "./copy.js";
 import { Export } from "./Export.js";
 import { Harvest } from "./Harvest.js";
@@ -28,6 +29,7 @@ export function App() {
       </header>
       <main className="app">
         <Harvest session={session} onSessionExpired={signOut} />
+        <Attendance session={session} onSessionExpired={signOut} />
         <Export session={session} />
       </main>
     </>

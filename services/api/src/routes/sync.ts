@@ -1,16 +1,17 @@
-import { deviceAssignments, deviceModules, harvestEvents, heldWrites, notes } from "@plaashek/schema";
+import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes } from "@plaashek/schema";
 import { and, desc, eq, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
-import { uploadRequestSchema, type HarvestEventOp, type NoteOp } from "../schemas/sync.js";
+import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp } from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, then boord). */
-const MODULE_CODE: Record<NoteOp["entity"] | HarvestEventOp["entity"], string> = {
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, then span). */
+const MODULE_CODE: Record<NoteOp["entity"] | HarvestEventOp["entity"] | AttendancePunchOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
+  attendance_punches: "span",
 };
 
 /**
@@ -92,8 +93,10 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
 
         if (op.entity === "notes") {
           await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else {
+        } else if (op.entity === "harvest_events") {
           await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else {
+          await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
         }
         accepted.push(op.entity_id);
       }
@@ -155,6 +158,42 @@ async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: stri
       weatherTemp: op.payload.weather_temp ?? null,
       weatherHumidity: op.payload.weather_humidity ?? null,
       weatherCondition: op.payload.weather_condition ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * A punch is the thinnest capture in the suite: a direction, and whichever
+ * person the device was assigned to at the time (ADR 0008 — the phone clocks
+ * itself). Append-only like the other two; the server never rejects a second
+ * `in` (docs/span-build-scope.md — the office reads the sequence, the phone
+ * does not argue with a worker at 05:50).
+ */
+async function applyAttendancePunch(
+  tx: Pick<Db, "select" | "insert">,
+  farmId: string,
+  deviceId: string,
+  op: AttendancePunchOp,
+  clientTime: Date,
+) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(attendancePunches)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.attendance_punches,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      direction: op.payload.direction,
+      latitude: op.payload.latitude ?? null,
+      longitude: op.payload.longitude ?? null,
+      locationAccuracyM: op.payload.location_accuracy_m ?? null,
       createdAt: clientTime,
       updatedAt: clientTime,
     })

@@ -37,6 +37,7 @@ h1 {
 /* Every tap target is a full-width slab: gloves, one hand, no aiming. */
 .modules button,
 form button,
+.big,
 .back {
   display: block;
   width: 100%;
@@ -64,6 +65,18 @@ form button,
   text-decoration: underline;
   font-size: 1rem;
   font-weight: 400;
+}
+
+/* Span: the screen is one decision, so the button is the screen (docs/span-build-scope.md). */
+.big {
+  padding: 2.5rem 1.5rem;
+  font-size: 1.8rem;
+}
+
+.status {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .field {

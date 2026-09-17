@@ -14,14 +14,16 @@ a screen or a data shape by copying it in and adapting it to outbox +
 |---|---|
 | `apps/management` | Staff only. `hek.plaashek.co.za` |
 | `apps/admin` | Farm office. `admin.plaashek.co.za` |
-| `apps/field` | Pairing shell for the phones. `app.plaashek.co.za` |
+| `apps/field` | The phones: pairing shell + Veldnotas, Boord, Span. `app.plaashek.co.za` |
+| `apps/owner` | Owner module (`eienaar`). Read-only rollups |
 | `packages/*` | Shared schema, sync, tickets, master data |
 | `services/api` | hek-api + sync-api |
 | `services/migrations` | Postgres migrations, numbered, checked in |
 | `infra/seed` | Fake farm for Phase 1 exit tests |
 | `infra/backup` | Nightly script + quarterly restore drill |
 
-`apps/field-*`, `apps/owner`, and a field-app template land in Phase 2/3 (plan §11), not before — no scaffolding for a phase that hasn't started.
+No scaffolding for a phase that hasn't started: a module gets a table, a
+screen and a route when it is being built, not before.
 
 ## Rules that are easy to break later
 
@@ -65,3 +67,22 @@ pairing, licence lifecycle, seasons, outbox migration) is done.
 Closed 17 September 2026 — see §12 of the plan. Real veldnotas capture
 (GPS stamp, weather via `/weather/current`, offline badge, correction model)
 is done; Phase 3 (`boord` + `eienaar`) is next.
+
+## Phase 3 exit checklist
+
+Closed 17 September 2026 — see §12 of the plan. `boord` (harvest capture) and
+the first `eienaar` rollup are done.
+
+## Phase 4 — first real farm
+
+**Open.** Laughing Waters / Bekfontein exists as a real org, farm and licence,
+and Excel export and CI are done. What's left is on-site: real people and
+blocks, real pairing, a proven offline day, a revoke on a real phone, and the
+backup/restore drill against the farm's own data. Phase 5 runs in parallel
+(plan §12) — it closes nothing here.
+
+## Phase 5 — remaining modules
+
+In progress, §11 order. `span` is done (clock in/out on the phone, days and
+hours in Eienaar) — see `docs/span-build-scope.md`. `stoor` is next; write its
+build scope before any code.

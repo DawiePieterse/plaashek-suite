@@ -40,7 +40,21 @@ export interface HarvestEventOp {
   };
 }
 
-export type QueuedOp = NoteOp | HarvestEventOp;
+/** Span punch (docs/span-build-scope.md): a direction, and where the phone was if it had a fix. */
+export interface AttendancePunchOp {
+  entity: "attendance_punches";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    direction: "in" | "out";
+    latitude?: number | null;
+    longitude?: number | null;
+    location_accuracy_m?: number | null;
+  };
+}
+
+export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp;
 
 const QUEUE_KEY = "plaashek.field.outbox";
 

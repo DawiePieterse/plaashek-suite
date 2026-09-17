@@ -8,6 +8,7 @@
 import { fileURLToPath } from "node:url";
 import {
   assets,
+  attendancePunches,
   auditLog,
   blocks,
   camps,
@@ -40,7 +41,7 @@ const LANGUAGE = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("-
 if (LANGUAGE !== "af" && LANGUAGE !== "en") throw new Error(`Unknown --lang: ${LANGUAGE} (af or en)`);
 
 /** Licensed, plus one deliberately left out so the unlicensed-QR-fails test has something to fail against. */
-const LICENSED = ["veldnotas", "boord"];
+const LICENSED = ["veldnotas", "boord", "span"];
 const UNLICENSED = "kudde";
 
 try {
@@ -76,6 +77,7 @@ async function wipeDemoData() {
     // so nothing cascades — every new module's table has to be listed here.
     await db.delete(notes).where(inArray(notes.farmId, farmIds));
     await db.delete(harvestEvents).where(inArray(harvestEvents.farmId, farmIds));
+    await db.delete(attendancePunches).where(inArray(attendancePunches.farmId, farmIds));
     await db.delete(heldWrites).where(inArray(heldWrites.farmId, farmIds));
 
     await db.delete(devices).where(inArray(devices.farmId, farmIds));

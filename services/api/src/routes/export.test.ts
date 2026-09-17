@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocks, devices, harvestEvents, notes } from "@plaashek/schema";
+import { attendancePunches, blocks, devices, harvestEvents, notes } from "@plaashek/schema";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
@@ -53,5 +53,50 @@ test("GET /export/harvest.csv totals every capture for the farm, not just the ac
     const lines = response.body.split("\r\n");
     assert.equal(lines[0], "﻿id,created_at,person,block,season,weight_kg,deduction_kg,weather_temp,weather_humidity,weather_condition");
     assert.match(lines[1], /,Blok A,,12\.5,,,,$/);
+  });
+});
+
+test("GET /export/attendance.csv exports every punch for the farm, one row each", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const { farm: otherFarm, person: otherPerson } = await seedFarm(db);
+
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [otherDevice] = await db.insert(devices).values({ farmId: otherFarm.id }).returning();
+
+    await db.insert(attendancePunches).values([
+      {
+        farmId: farm.id,
+        moduleCode: "span",
+        createdBy: person.id,
+        deviceId: device.id,
+        direction: "in",
+        createdAt: new Date("2026-11-02T04:00:00Z"),
+        latitude: -25.75,
+        longitude: 28.23,
+      },
+      {
+        farmId: farm.id,
+        moduleCode: "span",
+        createdBy: person.id,
+        deviceId: device.id,
+        direction: "out",
+        createdAt: new Date("2026-11-02T12:00:00Z"),
+      },
+      { farmId: otherFarm.id, moduleCode: "span", createdBy: otherPerson.id, deviceId: otherDevice.id, direction: "in" },
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/attendance.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    // Not `trim()` first: that eats the UTF-8 BOM Excel needs (lib/csv.ts).
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "\ufeffid,created_at,person,direction,season,latitude,longitude");
+    // Two rows, this farm's only — the other farm's punch is not in the file.
+    assert.equal(lines.length, 3);
+    assert.match(lines[1], /,Person,in,,-25.75,28.23$/);
+    assert.match(lines[2], /,Person,out,,,$/);
   });
 });

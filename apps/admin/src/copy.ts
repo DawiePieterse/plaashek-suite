@@ -60,6 +60,7 @@ const af = {
   exportHeading: "Uitvoer",
   exportNotes: "Voer veldnotas uit (CSV)",
   exportHarvest: "Voer oes uit (CSV)",
+  exportAttendance: "Voer span uit (CSV)",
 
   slipTitle: "Paringstrokie",
   slipFarm: "Plaas",
@@ -139,6 +140,7 @@ const en: typeof af = {
   exportHeading: "Export",
   exportNotes: "Export veldnotas (CSV)",
   exportHarvest: "Export harvest (CSV)",
+  exportAttendance: "Export attendance (CSV)",
 
   slipTitle: "Pairing slip",
   slipFarm: "Farm",

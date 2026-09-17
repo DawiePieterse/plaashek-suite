@@ -18,3 +18,4 @@ Raised outside §13, during phase work:
 
 8. ~~Veldnotas: how a worker corrects a wrong note, given `notes` was already built append-only~~ — [ADR 0006](0006-note-corrections.md): no edit, no delete — a correction is a new note
 9. ~~Boord: per-crate worker/team attribution, or the existing device-stamps-the-person model~~ — [ADR 0007](0007-boord-no-worker-attribution.md): no per-crate attribution, same as every other module
+10. ~~Span: one supervisor clocking a team, or the device's assigned person clocking themselves~~ — [ADR 0008](0008-span-self-clocking.md): the assigned person, no picker — the same call as ADR 0007, and the second module to hit that wall

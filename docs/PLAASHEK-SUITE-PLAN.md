@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.16
+**Status:** v1.17
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -33,6 +33,8 @@
 **Changes from v1.14:** Bekfontein created for real (§12 Phase 4) — organisation "Laughing Waters", farm "Bekfontein", licensed for exactly `veldnotas`, `boord`, `eienaar`, created through Plaashek Management rather than a script. First two Phase 4 checklist items close. Caveat: this lives in the local dev database, the only database that currently exists (no production VPS provisioned, plan §9) — move it when real hosting exists. Still open: real people/blocks/camps, real device pairing, on-site offline-day proof, days-since-sync against real signal, revoke on a real device, the backup/restore drill against this farm's actual data, and a go-live date.
 
 **Changes from v1.15:** Plaashek Management's farms list reworked as a table (farm, organisation, language, demo tell, one checkbox column per built module) instead of cards — the demo/real tell is derived from the organisation name ("Demo Organisasie"), not a new schema column. Closed a second real gap the same shape as the first: Plaashek Management could create a farm and license it, but nothing could create that farm's first Farm Admin Tool / Owner Module login (`farm_memberships`) — only the demo seed script or a raw DB insert ever did. `POST /management/farms/:farmId/logins` (person + membership, email/password/role) plus a form in the console close it. Used to create Bekfontein's real admin login, verified end-to-end against `POST /auth/login`.
+
+**Changes from v1.16:** Phase 5 opened, and given the exit checklist it never had — §12's Phase 5 was one line ("§11 order. Each module on the same foundation"), which is not something a phase can close against. Now one checklist per remaining module, and the first of them, `span`, is built: [docs/span-build-scope.md](span-build-scope.md) (no reference app, so a build scope stands in for a reuse audit), `attendance_punches`, the clock-in/clock-out field screen, `/sync/upload` routing, `GET /eienaar/attendance` (days and hours per person, paired at read time) and `GET /export/attendance.csv`. One product call closed on the way: [ADR 0008](decisions/0008-span-self-clocking.md) — a punch belongs to the device's assigned person, no team clocking, the same wall ADR 0007 hit and the same answer. **Phase 4 is not closed** — its remaining items are all on-site at Bekfontein (real people/blocks, real pairing, an offline day, a revoke, the backup drill against real data) and none of them are code. §12's "proceed to Phase 5 only after Bekfontein is live" is being run out of order deliberately: build work continues while the pilot waits on farm-side access, and no Phase 4 item is being counted as done because of it.
 
 ---
 
@@ -515,7 +517,40 @@ No Span, Stoor, Water, Werkswinkel, Oudit, or Kudde work starts before this clos
 
 ### Phase 5 — Remaining modules
 
-§11 order. Each module on the same foundation. Re-evaluate Kudde after Q4.
+§11 order, each module on the same foundation. Re-evaluate Kudde after Q4.
+
+Phase 4's remaining items are all on-site at the pilot farm and none of them
+are code (real people and blocks, real pairing, an offline day, a revoke, the
+backup drill against real data). Rather than idle the build behind farm-side
+access, Phase 5 proceeds in parallel — with nothing on Phase 4's checklist
+counted as closed because of it, and Bekfontein still first in line for any
+defect either phase surfaces.
+
+A module is done when it has: a build scope (a reuse audit where a reference
+app exists, [docs/span-build-scope.md](span-build-scope.md)'s shape where one
+does not), its table and migration, its field or office screen, its
+`/sync/upload` entity routing with the held-writes and not-paired paths
+proven, whatever the office needs to read it, a CSV export, and tests for all
+of it.
+
+**`span` — closed 17 September 2026:**
+
+- [x] Build scope written, with the one product call it raised closed as an ADR — [docs/span-build-scope.md](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md) (a punch belongs to the device's assigned person; no team clocking, no picker).
+- [x] `attendance_punches` table (`services/migrations/0007_abandoned_trauma.sql`): workspace row stamp + `direction` + the opportunistic location stamp. Append-only, no edit path.
+- [x] Field capture screen (`apps/field/src/Span.tsx`): one button that reads *Klok in* or *Klok uit* off this phone's last punch, which is kept locally so the answer is right with no signal. Offline badge and flush effect reused unchanged.
+- [x] `/sync/upload` routes `attendance_punches` → `span`: idempotent by client uuid, not-paired refused, a suspended licence holds the punch instead of dropping it (`sync.span.test.ts`). First module to arrive since Phase 3 generalised that route — it needed one map entry and one apply function, which is what that generalisation was for.
+- [x] `GET /eienaar/attendance`: days and hours per person for the active season, pairing each `in` with the `out` that follows it (`lib/attendance.ts`). Nothing derived is stored; an unpaired punch is reported open, never guessed at.
+- [x] `GET /export/attendance.csv` — raw punches, one row each, a button in both office tools.
+- [x] Proven end to end against the demo farm on 17 September 2026: printed QR → scan in a real browser → clock in → reload → clock out, both punches synced and season-stamped; a second phone's forgotten clock-out shows as open in Eienaar; a replayed batch inserts once.
+- Not in this module (closed by the scope, not deferred): team clocking and any roll-call screen (ADR 0008), leave and rosters, overtime/rounding/public-holiday rules, and wages — the same §2.1 non-goal that stopped Boord.
+
+**`stoor` — next, not started.** Chemical and stock records with legal weight (§10), so the backup story matters more here than anywhere else.
+
+**`water`, `werkswinkel` — not started.** Both season-less (§6) — the first modules to leave `season_id` null, which no code path has exercised yet.
+
+**`oudit` — last, not started.** Packs the other modules' records; it cannot be built before they exist.
+
+**`kudde` — no build slot** ([ADR 0005](decisions/0005-kudde.md)). Re-evaluate after Q4, and only against a contracted livestock farm.
 
 ---
 
@@ -564,7 +599,8 @@ No Span, Stoor, Water, Werkswinkel, Oudit, or Kudde work starts before this clos
 4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
 5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped. Build scope ready.
 6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
-7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built. Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close.
+7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built. Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
+8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export. `stoor` is next — write its build scope first, same as this one.
 
 ---
 
@@ -583,4 +619,4 @@ No Span, Stoor, Water, Werkswinkel, Oudit, or Kudde work starts before this clos
 
 ---
 
-*End of complete build plan v1.10.*
+*End of complete build plan v1.17.*

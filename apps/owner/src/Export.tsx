@@ -27,6 +27,9 @@ export function Export({ session }: { session: Session }) {
         <button type="button" className="quiet" onClick={() => download("/export/harvest.csv", "boord.csv")}>
           {c.exportHarvest}
         </button>
+        <button type="button" className="quiet" onClick={() => download("/export/attendance.csv", "span.csv")}>
+          {c.exportAttendance}
+        </button>
       </div>
     </section>
   );

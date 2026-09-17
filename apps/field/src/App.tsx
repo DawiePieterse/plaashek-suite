@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { locale, setLang, t } from "./copy.js";
 import { Harvest } from "./Harvest.js";
 import { Notes } from "./Notes.js";
+import { Span } from "./Span.js";
 import { readQueue } from "./queue.js";
 import { claims, pair, pairTokenFromPath, PairError, readTicket, refresh, saveTicket } from "./ticket.js";
 
@@ -73,6 +74,8 @@ export function App() {
           <Notes ticket={ticket} claims={ticketClaims} />
         ) : current === "boord" ? (
           <Harvest ticket={ticket} claims={ticketClaims} />
+        ) : current === "span" ? (
+          <Span ticket={ticket} claims={ticketClaims} />
         ) : (
           <Screen title={moduleName(current)} body={c.shellNote} />
         )}
