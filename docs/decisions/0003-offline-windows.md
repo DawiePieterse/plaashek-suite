@@ -37,8 +37,11 @@ a different number for a different risk.
 - No Bekfontein-specific signal-coverage data exists yet to justify departing
   from the plan's defaults. If picking crews turn out to work areas with
   multi-week dead zones during the Sep–Dec peak, revisit before Phase 4
-  go-live (already pushed to Jan–Aug 2027 per ADR 0001) — there is time to
-  gather that information before it matters.
+  go-live. ADR 0001's calendar gate (Jan–Aug 2027) was removed 17 September
+  2026 — go-live can now land inside the Sep–Dec peak itself, so this is no
+  longer a "gather the data whenever, there's time" item. Confirm signal
+  coverage against these defaults as part of the Phase 4 exit checklist's
+  on-site offline-day proof, not after.
 
 ## Consequences
 
