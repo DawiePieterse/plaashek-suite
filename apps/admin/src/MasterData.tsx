@@ -14,7 +14,9 @@ export function MasterData({ session, onSessionExpired }: { session: Session; on
   const [busy, setBusy] = useState(false);
   const c = t();
 
-  const isAdmin = session.role === "admin";
+  // Owner has the same rights as admin in the Farm Admin Tool — only
+  // Plaashek Management can restrict what a farm's own office can do to itself.
+  const isAdmin = true;
 
   async function load() {
     try {

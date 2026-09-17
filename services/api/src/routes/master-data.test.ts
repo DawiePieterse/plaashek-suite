@@ -7,7 +7,7 @@ import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
 import { seedFarm } from "../test/fixtures.js";
 
-test("admin can create a person, a block and a camp; owner cannot", async () => {
+test("admin and owner can both create a person, a block and a camp", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership } = await seedFarm(db);
@@ -35,23 +35,21 @@ test("admin can create a person, a block and a camp; owner cannot", async () => 
     assert.equal(camp.statusCode, 200);
     assert.equal(camp.json().camp.blockId, block.json().block.id);
 
+    // Owner has the same rights as admin in the Farm Admin Tool.
     const ownerToken = await signStaffSession(
       { farmMembershipId: membership.id, farmId: farm.id, role: "owner" },
       deps.env.staffSessionSecret,
     );
-    const forbidden = await app.inject({
-      method: "POST",
-      url: "/people",
-      headers: { authorization: `Bearer ${ownerToken}` },
-      payload: { name: "Should fail" },
-    });
-    assert.equal(forbidden.statusCode, 403);
+    const ownerHeaders = { authorization: `Bearer ${ownerToken}` };
+    const ownerPerson = await app.inject({ method: "POST", url: "/people", headers: ownerHeaders, payload: { name: "Owner Toets" } });
+    assert.equal(ownerPerson.statusCode, 200);
+    assert.equal(ownerPerson.json().person.name, "Owner Toets");
 
     const farmContext = await app.inject({ method: "GET", url: "/farm", headers: adminHeaders });
     // seedFarm already put down one person ("Person") to own the staff login.
     assert.deepEqual(
       farmContext.json().people.map((p: { name: string }) => p.name).sort(),
-      ["Person", "Petrus"],
+      ["Owner Toets", "Person", "Petrus"].sort(),
     );
     assert.deepEqual(
       farmContext.json().blocks.map((b: { name: string }) => b.name),

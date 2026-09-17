@@ -210,7 +210,11 @@ Staff only. Sale → access. Switch modules on or off per farm. Billing status. 
 
 ### 4.2 Farm Admin Tool
 
-Farm-facing, computer.
+Farm-facing, computer. Either office login — `admin` or `owner` — has full
+read/write access here (devices, pairing, seasons, master data): a farm's
+office is one team, and there's no built reason for Plaashek to arbitrate who
+on it may add a person versus who may only look. The `owner` role's own read-only
+surface is the separate Owner Module (§4.3), not a restriction inside this tool.
 
 - People list
 - Add device (person + first module) and print QR
