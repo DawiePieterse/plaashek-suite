@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { type Block, type Camp, useOffice, useOfficeLoader } from "@plaashek/ui-office";
 import { t } from "./copy.js";
 
@@ -13,6 +13,7 @@ export function MasterData() {
   const guard = useOfficeLoader();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const c = t();
 
   const isAdmin = session.role === "admin";
 
@@ -31,15 +32,23 @@ export function MasterData() {
     <Fragment>
       {error && <p className="error no-print">{error}</p>}
 
-      <PeopleCard
-        people={context.people}
+      <NamedListCard
+        heading={c.peopleHeading}
+        emptyText={c.noPeople}
+        placeholder={c.personNamePlaceholder}
+        addLabel={c.addPerson}
+        items={context.people}
         isAdmin={isAdmin}
         busy={busy}
         onAdd={(name) => run(() => api("/people", { method: "POST", token: session.token, body: JSON.stringify({ name }) }))}
       />
 
-      <BlocksCard
-        blocks={context.blocks}
+      <NamedListCard
+        heading={c.blocksHeading}
+        emptyText={c.noBlocks}
+        placeholder={c.blockNamePlaceholder}
+        addLabel={c.addBlock}
+        items={context.blocks}
         isAdmin={isAdmin}
         busy={busy}
         onAdd={(name) => run(() => api("/blocks", { method: "POST", token: session.token, body: JSON.stringify({ name }) }))}
@@ -56,72 +65,40 @@ export function MasterData() {
   );
 }
 
-function PeopleCard({
-  people,
+/** People and Blocks are both just a farm-scoped name list with an add row — Camps needs its own card for the block picker. */
+function NamedListCard({
+  heading,
+  emptyText,
+  placeholder,
+  addLabel,
+  items,
   isAdmin,
   busy,
   onAdd,
 }: {
-  people: { id: string; name: string }[];
+  heading: string;
+  emptyText: string;
+  placeholder: string;
+  addLabel: string;
+  items: { id: string; name: string }[];
   isAdmin: boolean;
   busy: boolean;
   onAdd: (name: string) => void;
 }) {
-  const c = t();
-
-  if (people.length === 0 && !isAdmin) return null;
-
   return (
     <section className="no-print">
-      <h2>{c.peopleHeading}</h2>
-      {people.length === 0 && !isAdmin && <p className="empty">{c.noPeople}</p>}
-      {(people.length > 0 || isAdmin) && (
+      <h2>{heading}</h2>
+      {items.length === 0 && !isAdmin && <p className="empty">{emptyText}</p>}
+      {(items.length > 0 || isAdmin) && (
         <div className="card">
           <table>
             <tbody>
-              {people.map((person) => (
-                <tr key={person.id}>
-                  <td>{person.name}</td>
+              {items.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.name}</td>
                 </tr>
               ))}
-              {isAdmin && <NewNameRow busy={busy} placeholder={c.personNamePlaceholder} label={c.addPerson} onCreate={onAdd} />}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function BlocksCard({
-  blocks,
-  isAdmin,
-  busy,
-  onAdd,
-}: {
-  blocks: Block[];
-  isAdmin: boolean;
-  busy: boolean;
-  onAdd: (name: string) => void;
-}) {
-  const c = t();
-
-  if (blocks.length === 0 && !isAdmin) return null;
-
-  return (
-    <section className="no-print">
-      <h2>{c.blocksHeading}</h2>
-      {blocks.length === 0 && !isAdmin && <p className="empty">{c.noBlocks}</p>}
-      {(blocks.length > 0 || isAdmin) && (
-        <div className="card">
-          <table>
-            <tbody>
-              {blocks.map((block) => (
-                <tr key={block.id}>
-                  <td>{block.name}</td>
-                </tr>
-              ))}
-              {isAdmin && <NewNameRow busy={busy} placeholder={c.blockNamePlaceholder} label={c.addBlock} onCreate={onAdd} />}
+              {isAdmin && <NewNameRow busy={busy} placeholder={placeholder} label={addLabel} onCreate={onAdd} />}
             </tbody>
           </table>
         </div>
@@ -144,9 +121,7 @@ function CampsCard({
   onAdd: (body: { name: string; blockId?: string }) => void;
 }) {
   const c = t();
-  const blockName = (blockId: string | null) => blocks.find((b) => b.id === blockId)?.name ?? "";
-
-  if (camps.length === 0 && !isAdmin) return null;
+  const blockNameById = useMemo(() => new Map(blocks.map((b) => [b.id, b.name])), [blocks]);
 
   return (
     <section className="no-print">
@@ -166,7 +141,7 @@ function CampsCard({
               {camps.map((camp) => (
                 <tr key={camp.id}>
                   <td>{camp.name}</td>
-                  <td>{blockName(camp.blockId)}</td>
+                  <td>{camp.blockId ? blockNameById.get(camp.blockId) : ""}</td>
                 </tr>
               ))}
               {isAdmin && <NewCampRow busy={busy} blocks={blocks} onCreate={onAdd} />}
