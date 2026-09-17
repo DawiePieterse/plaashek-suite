@@ -46,3 +46,26 @@ test("a corrupt outbox reads as empty rather than throwing mid-pick", () => {
   store.set("plaashek.field.outbox", "{not json");
   assert.deepEqual(readQueue(), []);
 });
+
+test("an app upgrade migrates a pre-versioning outbox without losing pending writes", () => {
+  store.clear();
+  // v0 shape, from before schema versioning existed: a bare array, no wrapper.
+  store.set("plaashek.field.outbox", JSON.stringify([note("a"), note("b")]));
+
+  assert.deepEqual(
+    readQueue().map((op) => op.entity_id),
+    ["a", "b"],
+  );
+
+  // Migration must not just read through — it has to persist the upgrade,
+  // and a capture made right after must land alongside the migrated ops.
+  enqueue(note("c"));
+  assert.deepEqual(
+    readQueue().map((op) => op.entity_id),
+    ["a", "b", "c"],
+  );
+  assert.deepEqual(
+    settle(["a", "b", "c"]).map((op) => op.entity_id),
+    [],
+  );
+});

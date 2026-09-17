@@ -57,5 +57,6 @@ environment — they do not read `.env`.
 
 ## Phase 1 exit checklist
 
-Lives in `docs/decisions/` once the Phase 0 answers are in. Until then, see
-§12 of the plan.
+Closed 17 September 2026 — see §12 of the plan. Foundation (tickets, sync,
+pairing, licence lifecycle, seasons, outbox migration) is done; Phase 2
+(`veldnotas`) is next.

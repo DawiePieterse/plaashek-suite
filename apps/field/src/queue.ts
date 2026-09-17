@@ -17,10 +17,33 @@ export interface QueuedOp {
 
 const QUEUE_KEY = "plaashek.field.outbox";
 
+/**
+ * Version 1 shape. Version 0 (pre-migration) was a bare `QueuedOp[]` with no
+ * wrapper — that shipped first, so it must still read back intact rather than
+ * be treated as corrupt (plan §8: migration must never lose the outbox).
+ * ponytail: one hand-rolled upgrade step, not a migration registry. Add a
+ * second `if` here when a v2 shape actually exists.
+ */
+const SCHEMA_VERSION = 1;
+
+interface StoredQueue {
+  version: number;
+  ops: QueuedOp[];
+}
+
+function migrate(parsed: unknown): QueuedOp[] {
+  if (Array.isArray(parsed)) return parsed as QueuedOp[]; // v0 -> v1: same ops, just wrap on next write
+  if (parsed && typeof parsed === "object" && Array.isArray((parsed as StoredQueue).ops)) {
+    return (parsed as StoredQueue).ops;
+  }
+  return [];
+}
+
 export function readQueue(): QueuedOp[] {
   try {
     const raw = globalThis.localStorage?.getItem(QUEUE_KEY);
-    return raw ? (JSON.parse(raw) as QueuedOp[]) : [];
+    if (!raw) return [];
+    return migrate(JSON.parse(raw));
   } catch {
     // A corrupt outbox must not white-screen a phone mid-pick.
     return [];
@@ -28,7 +51,8 @@ export function readQueue(): QueuedOp[] {
 }
 
 function writeQueue(ops: QueuedOp[]) {
-  globalThis.localStorage?.setItem(QUEUE_KEY, JSON.stringify(ops));
+  const stored: StoredQueue = { version: SCHEMA_VERSION, ops };
+  globalThis.localStorage?.setItem(QUEUE_KEY, JSON.stringify(stored));
 }
 
 /** The save the picker sees: local and instant, never a network call (plan §8). */

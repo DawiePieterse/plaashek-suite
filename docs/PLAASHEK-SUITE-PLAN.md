@@ -2,13 +2,15 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.4
-**Date:** 16 September 2026
+**Status:** v1.5
+**Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
 **Changes from v1.1:** licence lifecycle restored (§5); offline windows defined and made a Phase 0 decision (§3.6); pairing token hardened (§3.4); PWA update/migration added (§8); tech stack restored (§9); backup, offboarding and audit log added (§11); explicit non-goals (§2.1); seasons defined as farm-owned master data, stamped on every record (§4.2, §6).
 
 **Changes from v1.3:** all seven §13 questions closed — see [docs/decisions/](decisions/) (ADRs 0001–0005). Sync engine is PowerSync, not a build-your-own outbox (§9, ADR 0002); Kudde schema pulled from §6 and marked deferred, no build slot (§6, §11, §14, ADR 0005); Phase 4 named to the pilot farm and its 2027 go-live window (§12, ADR 0001).
+
+**Changes from v1.4:** Phase 1 exit checklist (§12) closed on the fake farm — including the last open item, app-upgrade migration with a pending outbox (`apps/field/src/queue.ts`, `queue.test.ts`). Proceeding to Phase 2 (`veldnotas`).
 
 ---
 
@@ -418,19 +420,19 @@ Answered — see [docs/decisions/](decisions/) (ADRs 0001–0005). Hosts, module
 
 Schema, tickets, sync, print QR, Plaashek Management (module on/off), Farm Admin add-device / print / add-app / assign / revoke. Update and migration scaffolding (§8).
 
-Exit on a fake farm:
+Exit on a fake farm — **closed 17 September 2026**:
 
-- Print QR for Veldnotas → scan → that app opens, only that app.
-- Offline write → sync, stamped with the assigned person.
-- Second QR for another licensed module adds the second app.
-- QR for an unlicensed module fails.
-- Unscanned QR expires and shows pending, then cancels cleanly.
-- Revoke stops sync.
-- Licence flipped to `suspended` → captures inside grace land in the holding area, none lost.
-- Season defined in the Farm Admin Tool syncs to the phone; an offline capture stamps the correct `season_id`.
-- App version bump with pending outbox items → migration runs, outbox survives.
+- [x] Print QR for Veldnotas → scan → that app opens, only that app.
+- [x] Offline write → sync, stamped with the assigned person.
+- [x] Second QR for another licensed module adds the second app.
+- [x] QR for an unlicensed module fails.
+- [x] Unscanned QR expires and shows pending, then cancels cleanly.
+- [x] Revoke stops sync.
+- [x] Licence flipped to `suspended` → captures inside grace land in the holding area, none lost.
+- [x] Season defined in the Farm Admin Tool syncs to the phone; an offline capture stamps the correct `season_id`.
+- [x] App version bump with pending outbox items → migration runs, outbox survives.
 
-No module polish until this is boring.
+No module polish until this is boring. It's boring — proceed to Phase 2.
 
 ### Phase 2 — `veldnotas` (3–4 weeks)
 
@@ -494,8 +496,8 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 ## 15. Build next
 
 1. §13 answered (ADRs 0001–0005) — proceed to Phase 1.
-2. Phase 1 on one fake farm: add device → print QR → scan → one app opens → offline save → sync.
-3. Notes reuse audit for `veldnotas` only after that loop works.
+2. Phase 1 on one fake farm: add device → print QR → scan → one app opens → offline save → sync. **Done — exit checklist closed (§12).**
+3. Notes reuse audit for `veldnotas`, then build Phase 2 on the closed foundation.
 
 ---
 
