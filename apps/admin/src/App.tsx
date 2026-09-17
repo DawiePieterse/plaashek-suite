@@ -4,6 +4,7 @@ import { t } from "./copy.js";
 import { Devices } from "./Devices.js";
 import { Export } from "./Export.js";
 import { Login } from "./Login.js";
+import { MasterData } from "./MasterData.js";
 import { Seasons } from "./Seasons.js";
 
 export function App() {
@@ -28,6 +29,7 @@ export function App() {
         </button>
       </header>
       <main className="app">
+        <MasterData session={session} onSessionExpired={signOut} />
         <Devices session={session} onSessionExpired={signOut} />
         <Seasons session={session} onSessionExpired={signOut} />
         <Export session={session} />

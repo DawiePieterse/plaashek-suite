@@ -54,6 +54,23 @@ const af = {
   saveSeason: "Stoor",
   addSeason: "Voeg seisoen by",
   noSeasons: "Nog geen seisoen nie. Opnames word gemerk vir die kantoor totdat daar een is.",
+
+  peopleHeading: "Mense",
+  noPeople: "Nog geen mense nie. Voeg die eerste een by.",
+  personNamePlaceholder: "Petrus",
+  addPerson: "Voeg persoon by",
+
+  blocksHeading: "Blokke",
+  noBlocks: "Nog geen blokke nie. Voeg die eerste een by.",
+  blockNamePlaceholder: "Blok A",
+  addBlock: "Voeg blok by",
+
+  campsHeading: "Kampe",
+  noCamps: "Nog geen kampe nie. Voeg die eerste een by.",
+  campNamePlaceholder: "Kamp 1",
+  addCamp: "Voeg kamp by",
+  campBlockCol: "Blok",
+  noBlockOption: "Geen blok",
   heldWaiting: (count: number) => `Lisensie het verval — ${count} opname(s) wag. Praat met Plaashek.`,
   withoutSeason: (count: number) => `${count} opname(s) sonder seisoen.`,
 
@@ -133,6 +150,23 @@ const en: typeof af = {
   saveSeason: "Save",
   addSeason: "Add season",
   noSeasons: "No season yet. Captures are flagged for the office until there is one.",
+
+  peopleHeading: "People",
+  noPeople: "No people yet. Add the first one.",
+  personNamePlaceholder: "Petrus",
+  addPerson: "Add person",
+
+  blocksHeading: "Blocks",
+  noBlocks: "No blocks yet. Add the first one.",
+  blockNamePlaceholder: "Block A",
+  addBlock: "Add block",
+
+  campsHeading: "Camps",
+  noCamps: "No camps yet. Add the first one.",
+  campNamePlaceholder: "Camp 1",
+  addCamp: "Add camp",
+  campBlockCol: "Block",
+  noBlockOption: "No block",
   heldWaiting: (count: number) => `Licence has lapsed — ${count} capture(s) waiting. Talk to Plaashek.`,
   withoutSeason: (count: number) => `${count} capture(s) with no season.`,
 
