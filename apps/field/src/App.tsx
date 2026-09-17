@@ -7,8 +7,13 @@ import { claims, pair, pairTokenFromPath, PairError, readTicket, refresh, saveTi
 
 const moduleName = (code: string) => code.charAt(0).toUpperCase() + code.slice(1);
 
-/** The token is one-shot: React StrictMode's double effect would burn it and report "al op die foon". */
-let pairStarted = false;
+/**
+ * Guards against React StrictMode's double effect burning a one-shot token
+ * and reporting "al op die foon" — tracks the token itself, not just "any
+ * token handled yet", so a later scan in the same tab (no full reload) still
+ * pairs instead of silently falling through to whatever ticket is stored.
+ */
+let pairedToken: string | null = null;
 
 export function App() {
   const [ticket, setTicket] = useState(readTicket);
@@ -27,8 +32,8 @@ export function App() {
       setTicket(fresh.ticket);
     }
 
-    if (token && !pairStarted) {
-      pairStarted = true;
+    if (token && token !== pairedToken) {
+      pairedToken = token;
       setBusy(true);
       // Drop the token from the URL first: a reload would re-post a burnt one-shot.
       history.replaceState(null, "", "/");
