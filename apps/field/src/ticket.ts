@@ -56,15 +56,8 @@ export class PairError extends Error {
   }
 }
 
-async function post<T>(path: string, init?: { ticket?: string; body?: unknown }): Promise<T> {
-  const response = await fetch(`${API}${path}`, {
-    method: "POST",
-    headers: {
-      ...(init?.body ? { "content-type": "application/json" } : {}),
-      ...(init?.ticket ? { authorization: `Bearer ${init.ticket}` } : {}),
-    },
-    ...(init?.body ? { body: JSON.stringify(init.body) } : {}),
-  });
+async function request<T>(path: string, init: RequestInit): Promise<T> {
+  const response = await fetch(`${API}${path}`, init);
 
   if (!response.ok) {
     const code = ((await response.json().catch(() => null)) as { error?: { code?: string } } | null)?.error?.code ?? "unknown";
@@ -73,6 +66,18 @@ async function post<T>(path: string, init?: { ticket?: string; body?: unknown })
 
   return (await response.json()) as T;
 }
+
+const post = <T>(path: string, init?: { ticket?: string; body?: unknown }) =>
+  request<T>(path, {
+    method: "POST",
+    headers: {
+      ...(init?.body ? { "content-type": "application/json" } : {}),
+      ...(init?.ticket ? { authorization: `Bearer ${init.ticket}` } : {}),
+    },
+    ...(init?.body ? { body: JSON.stringify(init.body) } : {}),
+  });
+
+const get = <T>(path: string, ticket: string) => request<T>(path, { headers: { authorization: `Bearer ${ticket}` } });
 
 /** One-shot: the scan burns the token and mints this device's ticket. */
 export const pair = (token: string) => post<{ ticket: string }>(`/pair/${encodeURIComponent(token)}`);
@@ -83,3 +88,7 @@ export const refresh = (ticket: string) => post<{ ticket: string }>("/tickets/re
 /** Sends queued writes. The server stamps farm, device and person — the phone only says what and when. */
 export const upload = (ticket: string, ops: unknown[]) =>
   post<{ accepted: string[]; held: boolean }>("/sync/upload", { ticket, body: { ops } });
+
+/** Current weather at a fix, server-proxied. Only called once a GPS fix exists. */
+export const fetchWeather = (ticket: string, latitude: number, longitude: number) =>
+  get<{ temp: number; humidity: number; condition: string }>(`/weather/current?lat=${latitude}&lon=${longitude}`, ticket);

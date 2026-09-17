@@ -9,6 +9,7 @@ import { registerPairingRoutes } from "./routes/pairing.js";
 import { registerSeasonRoutes } from "./routes/seasons.js";
 import { registerSyncRoutes } from "./routes/sync.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
+import { registerWeatherRoutes } from "./routes/weather.js";
 import type { Db } from "./db.js";
 import type { Env } from "./env.js";
 import { ApiError } from "./lib/errors.js";
@@ -47,6 +48,7 @@ export function buildApp(deps: AppDeps) {
   registerPairingRoutes(app, deps);
   registerTicketRoutes(app, deps);
   registerSyncRoutes(app, deps);
+  registerWeatherRoutes(app, deps);
   registerJwksRoutes(app, deps);
 
   return app;

@@ -1,11 +1,10 @@
 import { deviceAssignments, deviceModules, heldWrites, notes } from "@plaashek/schema";
-import { verifyTicket } from "@plaashek/tickets";
 import { and, desc, eq, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
+import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
-import { forbidden, unauthorized } from "../lib/errors.js";
-import { bearerToken } from "../lib/http.js";
+import { forbidden } from "../lib/errors.js";
 import { uploadRequestSchema, type UploadOp } from "../schemas/sync.js";
 
 /** Veldnotas is the only module that captures anything yet (plan §11); a second entity brings a map. */
@@ -40,18 +39,7 @@ async function personAtSaveTime(db: Pick<Db, "select">, deviceId: string, client
 
 export function registerSyncRoutes(app: App, deps: AppDeps) {
   app.post("/sync/upload", async (request) => {
-    const token = bearerToken(request.headers.authorization);
-    if (!token) throw unauthorized("unauthenticated", "Missing device ticket");
-
-    let claims: Awaited<ReturnType<typeof verifyTicket>>;
-    try {
-      claims = await verifyTicket(token, deps.keys.publicKey);
-    } catch (error) {
-      const code = (error as { code?: string }).code;
-      if (code === "ERR_JWT_EXPIRED") throw unauthorized("ticket_expired", "Device ticket has expired");
-      throw unauthorized("ticket_invalid", "Device ticket is invalid");
-    }
-
+    const claims = await requireDeviceTicket(request.headers, deps);
     const { ops } = uploadRequestSchema.parse(request.body);
 
     // The floor is read live, not from the ticket: a revoke lands at the next
