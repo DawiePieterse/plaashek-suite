@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.6
+**Status:** v1.7
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -13,6 +13,8 @@
 **Changes from v1.4:** Phase 1 exit checklist (§12) closed on the fake farm — including the last open item, app-upgrade migration with a pending outbox (`apps/field/src/queue.ts`, `queue.test.ts`). Proceeding to Phase 2 (`veldnotas`).
 
 **Changes from v1.5:** Phase 2 exit checklist (§12) closed — real capture in `Notes.tsx` (GPS stamp, weather via `/weather/current`, offline badge, 10s poll), correction model built as decided (ADR 0006). Block picker dropped from scope: GPS location already places the note, so a manual block field would be asking twice for the same thing. Proceeding to Phase 3 (`boord` + `eienaar`).
+
+**Changes from v1.6:** Phase 3 kickoff — Boord + Eienaar reuse audit done, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Weather stamp and correction model (append-only, ADR 0006) carry over from Phase 2 unchanged. Supplier/multi-grower pack house and BoordOwner's cross-service architecture ruled out as not portable, not deferred. Per-crate worker/team attribution flagged as an open product call, not decided — it conflicts with the locked "no in-app person picker" rule (§2.1) and its only real use in the reference app is wage calculation, which is out of scope for year one anyway.
 
 ---
 
@@ -512,6 +514,7 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 2. Phase 1 on one fake farm: add device → print QR → scan → one app opens → offline save → sync. **Done — exit checklist closed (§12).**
 3. Notes reuse audit for `veldnotas` — **done**, see [docs/veldnotas-reuse-audit.md](veldnotas-reuse-audit.md). Build Phase 2 on the closed foundation next.
 4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
+5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution flagged as a product call, not decided — confirm before building the field capture screen.
 
 ---
 
@@ -530,4 +533,4 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 ---
 
-*End of complete build plan v1.6.*
+*End of complete build plan v1.7.*
