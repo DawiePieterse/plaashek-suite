@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.9
+**Status:** v1.10
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -19,6 +19,8 @@
 **Changes from v1.7:** Phase 3 exit checklist closed (§12) — `harvest_events` table, Boord capture screen (`apps/field/src/Harvest.tsx`), `/sync/upload` generalised to route by entity to its own module and table, `GET /blocks` for the picker, and `apps/owner` as the first `eienaar` build (`GET /eienaar/harvest`, totals by block for the active season). Proceeding to Phase 4.
 
 **Changes from v1.8:** Phase 4 kickoff — exit checklist written (§12). Phase 4 is a go-live, not a module build: no reference app, no reuse audit. Excel export (§10 offboarding, §12) does not exist yet in any app — it's on the checklist, not assumed done. Go-live itself stays gated to Jan–Aug 2027 per ADR 0001 regardless of when the checklist closes.
+
+**Changes from v1.9:** CI added (`.github/workflows/ci.yml`) — build, migrate, typecheck and test on every push to main and every PR. Surfaced two latent, Node-version-dependent test bugs (`apps/field`'s and `services/api`'s test scripts each relied on a Node runtime feature not present in CI's pinned Node 20, despite passing on a newer local Node); both fixed with portable patterns already used elsewhere in the repo. Green on main as of commit `8750f60`. A branch protection rule requiring the `test` check exists on `main` but is not enforced — GitHub only enforces private-repo branch protection under a Team/Enterprise organisation account, not a personal account — left as-is, solo/part-time project, revisit if a collaborator joins.
 
 ---
 
@@ -485,6 +487,7 @@ Not a module build — no reference app, no reuse audit. The exit criteria are t
 Exit:
 
 - [x] Excel export shipped from the office tools — `GET /export/notes.csv` and `GET /export/harvest.csv` (`services/api/src/routes/export.ts`), staff-auth-gated the same way `/farm` and `/eienaar/harvest` are, one button each in the Farm Admin Tool and `apps/owner`. CSV, not a binary `.xlsx` — Excel opens it natively, so no dependency was added for a two-table export.
+- [x] CI green on `main` (`.github/workflows/ci.yml`: build, migrate, typecheck, test on every push/PR). Branch protection requiring the `test` check is configured but not enforced — GitHub gates private-repo enforcement behind a Team/Enterprise org account; left inert as a solo/part-time project, free to activate the moment a collaborator joins or the repo moves org-side.
 - [ ] Bekfontein created as a real organisation + farm row, replacing no seed data (ADR 0001: genuine first deployment, not a migration).
 - [ ] Real entitlements set for exactly `veldnotas`, `boord`, `eienaar` — no `span`, no `kudde`.
 - [ ] Bekfontein's litchi season(s) entered in the Farm Admin Tool with real dates, checked against the 1 Sep–31 Dec peak-picking window (ADR 0001) so go-live never lands mid-pick.
@@ -568,4 +571,4 @@ No Span, Stoor, Water, Werkswinkel, Oudit, or Kudde work starts before this clos
 
 ---
 
-*End of complete build plan v1.9.*
+*End of complete build plan v1.10.*
