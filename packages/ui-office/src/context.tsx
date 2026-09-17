@@ -29,6 +29,8 @@ export interface OfficeContextValue {
   /** True when a failed call means the session is gone and the host should sign out. */
   isUnauthenticated: (caught: unknown) => boolean;
   onSessionExpired: () => void;
+  /** Re-fetches `/farm` and replaces `context` — for a panel that just wrote to what it answers (master data's people/blocks/camps), so every other panel reading it (the device picker included) sees the change without a reload. */
+  refreshFarm: () => Promise<void>;
 }
 
 const OfficeContext = createContext<OfficeContextValue | null>(null);

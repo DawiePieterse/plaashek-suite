@@ -97,21 +97,21 @@ export function OfficeShell({
 
   // One /farm load for the whole tool: the tab strip needs the farm's
   // licensed modules before it can draw anything, and every panel below
-  // needs the same answer.
+  // needs the same answer. Panels that write to what /farm answers (master
+  // data's people/blocks/camps) call `refreshFarm` afterwards rather than
+  // keeping their own copy, so a person added in one place is immediately
+  // pickable everywhere else — the device picker included.
+  async function loadFarm() {
+    try {
+      setContext(await api<FarmContext>("/farm", { token: session.token }));
+    } catch (caught) {
+      if (isUnauthenticated(caught)) return onSignOut();
+      setError(errorMessage(caught));
+    }
+  }
+
   useEffect(() => {
-    let live = true;
-
-    api<FarmContext>("/farm", { token: session.token })
-      .then((farm) => live && setContext(farm))
-      .catch((caught) => {
-        if (!live) return;
-        if (isUnauthenticated(caught)) return onSignOut();
-        setError(errorMessage(caught));
-      });
-
-    return () => {
-      live = false;
-    };
+    void loadFarm();
   }, [session.token]);
 
   const tabs = officeTabs(context?.modules ?? [], session.language);
@@ -144,6 +144,7 @@ export function OfficeShell({
               errorMessage,
               isUnauthenticated,
               onSessionExpired: onSignOut,
+              refreshFarm: loadFarm,
             }}
           >
             <Tabs tabs={tabs} active={active} onSelect={setActive} />
