@@ -34,7 +34,7 @@ function requirePending(row: PairingTokenRow, now: Date) {
 export function registerPairingRoutes(app: App, deps: AppDeps) {
   app.post(
     "/pairing-tokens/:id/reprint",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { id } = request.params as { id: string };
@@ -66,7 +66,7 @@ export function registerPairingRoutes(app: App, deps: AppDeps) {
 
   app.post(
     "/pairing-tokens/:id/cancel",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { id } = request.params as { id: string };

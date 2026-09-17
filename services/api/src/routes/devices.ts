@@ -49,7 +49,7 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
   app.post(
     "/devices",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { personId, moduleCode, label } = addDeviceRequestSchema.parse(request.body);
@@ -88,7 +88,7 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
   app.post(
     "/devices/:deviceId/apps",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { deviceId } = request.params as { deviceId: string };
@@ -124,7 +124,7 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
   app.post(
     "/devices/:deviceId/revoke",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { deviceId } = request.params as { deviceId: string };

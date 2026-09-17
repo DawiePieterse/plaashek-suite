@@ -4,6 +4,7 @@ import { devices } from "@plaashek/schema";
 import { seedFarm } from "../test/fixtures.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
+import { requireStaff } from "./require-staff.js";
 import { signStaffSession } from "./staff-jwt.js";
 
 test("a farm A staff token cannot reach farm B's device", async () => {
@@ -29,23 +30,23 @@ test("a farm A staff token cannot reach farm B's device", async () => {
   });
 });
 
-test("owner role is rejected from an admin-only route", async () => {
+// Owner has the same rights as admin everywhere in the Farm Admin Tool, so no
+// real route is admin-only any more — this exercises requireStaff's role
+// check directly, on a route registered just for the test, rather than
+// coupling to whichever endpoint happened to be admin-only this month.
+test("requireStaff rejects a role not in the allowed list", async () => {
   await withTestDb(async (db) => {
     const { farm, membership } = await seedFarm(db, { role: "owner" });
-    const [device] = await db.insert(devices).values({ farmId: farm.id, label: "Device" }).returning();
 
     const { app, deps } = await buildTestApp(db);
+    app.get("/__test-admin-only", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async () => ({ ok: true }));
+
     const token = await signStaffSession(
       { farmMembershipId: membership.id, farmId: farm.id, role: "owner" },
       deps.env.staffSessionSecret,
     );
 
-    const response = await app.inject({
-      method: "POST",
-      url: `/devices/${device.id}/apps`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: { moduleCode: "boord" },
-    });
+    const response = await app.inject({ method: "GET", url: "/__test-admin-only", headers: { authorization: `Bearer ${token}` } });
 
     assert.equal(response.statusCode, 403);
   });

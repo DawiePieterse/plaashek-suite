@@ -228,9 +228,15 @@ is worse than no tab.
 What sits where: a module's tab holds that module's rollups, whatever the
 office sets up for it, and its CSV export. **Farm settings** holds what is
 true of the whole farm rather than one module — the farm's name and language,
-which modules are switched on, devices and their printed QRs, seasons, and
-the two things the office has to act on (captures held behind a lapsed
-licence, captures with no season).
+which modules are switched on, devices and their printed QRs, seasons, master
+data (people, blocks, camps), and the two things the office has to act on
+(captures held behind a lapsed licence, captures with no season).
+
+Either office login — `admin` or `owner` — has full read/write access here
+(devices, pairing, seasons, master data): a farm's office is one team, and
+there's no built reason for Plaashek to arbitrate who on it may add a person
+versus who may only look. The `owner` role's own read-only surface is the
+separate Owner Module (§4.3), not a restriction inside this tool.
 
 - People list
 - Add device (person + first module) and print QR

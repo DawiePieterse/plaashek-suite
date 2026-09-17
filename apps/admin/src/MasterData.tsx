@@ -15,7 +15,9 @@ export function MasterData() {
   const [busy, setBusy] = useState(false);
   const c = t();
 
-  const isAdmin = session.role === "admin";
+  // Owner has the same rights as admin in the Farm Admin Tool — only
+  // Plaashek Management can restrict what a farm's own office can do to itself.
+  const isAdmin = true;
 
   /** Every add goes through here: one error path, one refresh of the shared farm context so the new row shows up everywhere it's read (the device picker included). */
   async function run(action: () => Promise<unknown>) {

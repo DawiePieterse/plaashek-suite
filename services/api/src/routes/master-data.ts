@@ -27,7 +27,7 @@ function createFarmRow<Table extends PgTable>(
  * nothing downstream asks to rename or remove one yet (plan §12 Phase 4).
  */
 export function registerMasterDataRoutes(app: App, deps: AppDeps) {
-  app.post("/people", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+  app.post("/people", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const staff = request.staff!;
     const body = createPersonRequestSchema.parse(request.body);
 
@@ -41,7 +41,7 @@ export function registerMasterDataRoutes(app: App, deps: AppDeps) {
     return { person };
   });
 
-  app.post("/blocks", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+  app.post("/blocks", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const staff = request.staff!;
     const body = createBlockRequestSchema.parse(request.body);
 
@@ -55,7 +55,7 @@ export function registerMasterDataRoutes(app: App, deps: AppDeps) {
     return { block };
   });
 
-  app.post("/camps", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+  app.post("/camps", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const staff = request.staff!;
     const body = createCampRequestSchema.parse(request.body);
 

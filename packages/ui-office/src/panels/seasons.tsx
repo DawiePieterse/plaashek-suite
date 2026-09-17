@@ -25,7 +25,9 @@ export function Seasons() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const isAdmin = session.role === "admin";
+  // Owner has the same rights as admin in the Farm Admin Tool — only
+  // Plaashek Management can restrict what a farm's own office can do to itself.
+  const isAdmin = true;
 
   async function load() {
     await guard(
