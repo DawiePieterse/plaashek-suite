@@ -1,6 +1,9 @@
 /**
- * A fake farm for the Phase 1 exit checklist — see infra/seed/README.md.
- * Re-runnable: wipes and recreates everything under the demo organisation.
+ * Mooiplaas: a demo farm modelled on the Bekfontein pilot (ADR 0001), for the
+ * Phase 1 exit checklist — see infra/seed/README.md. Not real Bekfontein data
+ * (none exists yet per ADR 0001) — just its known shape: litchi, peak picking
+ * 1 Sep - 31 Dec. Re-runnable: wipes and recreates everything under the demo
+ * organisation.
  */
 import { fileURLToPath } from "node:url";
 import {
@@ -27,10 +30,10 @@ import { hashPassword } from "../src/auth/password.js";
 import { createDb } from "../src/db.js";
 
 const ORG_NAME = "Demo Organisasie";
-const FARM_NAME = "Toetsplaas";
-const ADMIN_EMAIL = "admin@toetsplaas.test";
-const OWNER_EMAIL = "eienaar@toetsplaas.test";
-const PASSWORD = "toets1234";
+const FARM_NAME = "Mooiplaas";
+const ADMIN_EMAIL = "admin@mooiplaas.test";
+const OWNER_EMAIL = "eienaar@mooiplaas.test";
+const PASSWORD = "mooi1234";
 
 /** The farm's screen language, chosen at setup: `pnpm seed --lang=en`. Office and phones both follow it. */
 const LANGUAGE = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("--lang=".length) ?? "af";
@@ -126,11 +129,12 @@ async function seed() {
     { farmId: farm.id, name: "Pakhuis" },
   ]);
 
+  // Peak litchi picking window per ADR 0001 (Bekfontein pilot).
   const year = new Date().getUTCFullYear();
   await db.insert(seasons).values({
     farmId: farm.id,
-    name: `Seisoen ${year}`,
-    startsOn: `${year}-01-01`,
+    name: `Lietsjie-oes ${year}`,
+    startsOn: `${year}-09-01`,
     endsOn: `${year}-12-31`,
     isActive: true,
   });

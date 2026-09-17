@@ -1,7 +1,9 @@
 # Seed
 
-A fake farm with known data, resettable in one command, so the Phase 1 exit
-checklist can be re-run in a minute instead of clicked through.
+"Mooiplaas" — a demo farm modelled on the Bekfontein pilot's known shape
+(ADR 0001: litchi, peak picking 1 Sep - 31 Dec), resettable in one command,
+so the Phase 1 exit checklist can be re-run in a minute instead of clicked
+through. Not real Bekfontein data — none exists yet.
 
     pnpm seed
 
