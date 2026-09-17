@@ -94,7 +94,7 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
         await logAudit(tx, { actor: staff.farmMembershipId, action: "add_device", target: device.id, farmId: staff.farmId });
 
-        return { device, pairingToken: { ...pairingToken, qrUrl: qrUrl(pairingToken.token) } };
+        return { device, pairingToken: { ...pairingToken, qrUrl: qrUrl(pairingToken.token, deps.env.fieldAppUrl) } };
       });
     },
   );
@@ -130,7 +130,7 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
         await logAudit(tx, { actor: staff.farmMembershipId, action: "add_app", target: deviceId, farmId: staff.farmId });
 
-        return { pairingToken: { ...pairingToken, qrUrl: qrUrl(pairingToken.token) } };
+        return { pairingToken: { ...pairingToken, qrUrl: qrUrl(pairingToken.token, deps.env.fieldAppUrl) } };
       });
     },
   );

@@ -59,7 +59,7 @@ export function registerPairingRoutes(app: App, deps: AppDeps) {
 
         await logAudit(tx, { actor: staff.farmMembershipId, action: "reprint_pairing_token", target: fresh.id, farmId: staff.farmId });
 
-        return { pairingToken: { ...fresh, qrUrl: qrUrl(fresh.token) } };
+        return { pairingToken: { ...fresh, qrUrl: qrUrl(fresh.token, deps.env.fieldAppUrl) } };
       });
     },
   );

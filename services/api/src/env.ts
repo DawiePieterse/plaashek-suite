@@ -9,6 +9,8 @@ export interface Env {
   managementSessionSecret: string;
   port: number;
   corsOrigins: string[];
+  /** Where the pairing QR points — the deployed field PWA. Override locally to actually test a scan. */
+  fieldAppUrl: string;
 }
 
 function required(name: string): string {
@@ -32,5 +34,6 @@ export function loadEnv(): Env {
     managementSessionSecret: required("MANAGEMENT_SESSION_SECRET"),
     port: Number(process.env["PORT"] ?? 8080),
     corsOrigins: (process.env["CORS_ORIGINS"] ?? "").split(",").filter(Boolean),
+    fieldAppUrl: process.env["FIELD_APP_URL"] ?? "https://app.plaashek.co.za",
   };
 }

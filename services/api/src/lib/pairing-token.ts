@@ -11,6 +11,6 @@ export function pairingExpiry(now: Date): Date {
   return new Date(now.getTime() + PAIRING_TOKEN_LIFE_HOURS * 60 * 60 * 1000);
 }
 
-export function qrUrl(token: string): string {
-  return `https://app.plaashek.co.za/pair/${token}`;
+export function qrUrl(token: string, baseUrl: string): string {
+  return `${baseUrl}/pair/${token}`;
 }
