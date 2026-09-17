@@ -25,6 +25,10 @@ const af = {
   kg: "kg",
   total: "Totaal",
 
+  exportHeading: "Uitvoer",
+  exportNotes: "Voer veldnotas uit (CSV)",
+  exportHarvest: "Voer oes uit (CSV)",
+
   errors: {
     invalid_credentials: "Verkeerde e-pos of wagwoord.",
     unauthenticated: "Jou sessie het verval. Meld weer aan.",
@@ -51,6 +55,10 @@ const en: typeof af = {
   crates: "Crates",
   kg: "kg",
   total: "Total",
+
+  exportHeading: "Export",
+  exportNotes: "Export veldnotas (CSV)",
+  exportHarvest: "Export harvest (CSV)",
 
   errors: {
     invalid_credentials: "Incorrect email or password.",

@@ -56,6 +56,10 @@ const af = {
   heldWaiting: (count: number) => `Lisensie het verval — ${count} opname(s) wag. Praat met Plaashek.`,
   withoutSeason: (count: number) => `${count} opname(s) sonder seisoen.`,
 
+  exportHeading: "Uitvoer",
+  exportNotes: "Voer veldnotas uit (CSV)",
+  exportHarvest: "Voer oes uit (CSV)",
+
   slipTitle: "Paringstrokie",
   slipFarm: "Plaas",
   slipPerson: "Persoon",
@@ -129,6 +133,10 @@ const en: typeof af = {
   noSeasons: "No season yet. Captures are flagged for the office until there is one.",
   heldWaiting: (count: number) => `Licence has lapsed — ${count} capture(s) waiting. Talk to Plaashek.`,
   withoutSeason: (count: number) => `${count} capture(s) with no season.`,
+
+  exportHeading: "Export",
+  exportNotes: "Export veldnotas (CSV)",
+  exportHarvest: "Export harvest (CSV)",
 
   slipTitle: "Pairing slip",
   slipFarm: "Farm",

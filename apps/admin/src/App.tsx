@@ -2,6 +2,7 @@ import { useState } from "react";
 import { clearSession, loadSession, type Session } from "./api.js";
 import { t } from "./copy.js";
 import { Devices } from "./Devices.js";
+import { Export } from "./Export.js";
 import { Login } from "./Login.js";
 import { Seasons } from "./Seasons.js";
 
@@ -25,6 +26,7 @@ export function App() {
       </header>
       <Devices session={session} onSessionExpired={signOut} />
       <Seasons session={session} onSessionExpired={signOut} />
+      <Export session={session} />
     </div>
   );
 }

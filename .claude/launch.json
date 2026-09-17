@@ -2,6 +2,19 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@plaashek/api", "dev"],
+      "port": 8080
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@plaashek/admin", "dev"],
+      "port": 5176,
+      "autoPort": true
+    },
+    {
       "name": "field",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@plaashek/field", "dev"],

@@ -5,6 +5,7 @@ import { registerAuthRoutes } from "./routes/auth.js";
 import { registerBlockRoutes } from "./routes/blocks.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerEienaarRoutes } from "./routes/eienaar.js";
+import { registerExportRoutes } from "./routes/export.js";
 import { registerFarmRoutes } from "./routes/farm.js";
 import { registerJwksRoutes } from "./routes/jwks.js";
 import { registerPairingRoutes } from "./routes/pairing.js";
@@ -54,6 +55,7 @@ export function buildApp(deps: AppDeps) {
   registerJwksRoutes(app, deps);
   registerBlockRoutes(app, deps);
   registerEienaarRoutes(app, deps);
+  registerExportRoutes(app, deps);
 
   return app;
 }

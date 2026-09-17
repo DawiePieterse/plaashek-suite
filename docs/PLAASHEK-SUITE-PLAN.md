@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.8
+**Status:** v1.9
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -17,6 +17,8 @@
 **Changes from v1.6:** Phase 3 kickoff — Boord + Eienaar reuse audit done, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Weather stamp and correction model (append-only, ADR 0006) carry over from Phase 2 unchanged. Supplier/multi-grower pack house and BoordOwner's cross-service architecture ruled out as not portable, not deferred. Per-crate worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped, conflicted with the locked "no in-app person picker" rule (§2.1) and its only real use in the reference app was wage calculation, out of scope for year one. Build scope is ready — proceeding to build `harvest_events` and the Boord capture screen.
 
 **Changes from v1.7:** Phase 3 exit checklist closed (§12) — `harvest_events` table, Boord capture screen (`apps/field/src/Harvest.tsx`), `/sync/upload` generalised to route by entity to its own module and table, `GET /blocks` for the picker, and `apps/owner` as the first `eienaar` build (`GET /eienaar/harvest`, totals by block for the active season). Proceeding to Phase 4.
+
+**Changes from v1.8:** Phase 4 kickoff — exit checklist written (§12). Phase 4 is a go-live, not a module build: no reference app, no reuse audit. Excel export (§10 offboarding, §12) does not exist yet in any app — it's on the checklist, not assumed done. Go-live itself stays gated to Jan–Aug 2027 per ADR 0001 regardless of when the checklist closes.
 
 ---
 
@@ -478,6 +480,24 @@ No module polish beyond this until a farm asks — proceed to Phase 4.
 
 One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: Veldnotas, Boord, Eienaar. Do not start Span to delay this. No 2026 go-live under any build-speed scenario — ADR 0001.
 
+Not a module build — no reference app, no reuse audit. The exit criteria are the farm working for real, on what Phases 1–3 already shipped, plus the one missing piece (Excel export) those phases deferred to here.
+
+Exit:
+
+- [x] Excel export shipped from the office tools — `GET /export/notes.csv` and `GET /export/harvest.csv` (`services/api/src/routes/export.ts`), staff-auth-gated the same way `/farm` and `/eienaar/harvest` are, one button each in the Farm Admin Tool and `apps/owner`. CSV, not a binary `.xlsx` — Excel opens it natively, so no dependency was added for a two-table export.
+- [ ] Bekfontein created as a real organisation + farm row, replacing no seed data (ADR 0001: genuine first deployment, not a migration).
+- [ ] Real entitlements set for exactly `veldnotas`, `boord`, `eienaar` — no `span`, no `kudde`.
+- [ ] Bekfontein's litchi season(s) entered in the Farm Admin Tool with real dates, checked against the 1 Sep–31 Dec peak-picking window (ADR 0001) so go-live never lands mid-pick.
+- [ ] Real people, blocks, camps entered for the farm — not the fake-farm fixtures from `infra/seed`.
+- [ ] Real devices paired on-site: printed QR → scan → correct single app opens, for each of the three modules across however many phones the farm actually runs.
+- [ ] A full offline day proven on an actual phone at Bekfontein: capture with no signal, sync once back at the gate, nothing lost.
+- [ ] Days-since-sync and pending-QR visibility (§4.2) checked against real rural signal, not the office Wi-Fi the fake farm was tested on.
+- [ ] Revoke tested on a real device at the farm, not the fake farm.
+- [ ] Backup/restore drill run at least once against real Bekfontein data before go-live (§10 — "an untested backup is a rumour" applies doubly to the first real farm).
+- [ ] Go-live date confirmed inside Jan–Aug 2027 and outside 1 Sep–31 Dec picking, signed off against the farm's actual season calendar, not the estimate in ADR 0001.
+
+No Span, Stoor, Water, Werkswinkel, Oudit, or Kudde work starts before this closes — proceed to Phase 5 only after Bekfontein is live and stable on Veldnotas + Boord + Eienaar.
+
 ### Phase 5 — Remaining modules
 
 §11 order. Each module on the same foundation. Re-evaluate Kudde after Q4.
@@ -529,6 +549,7 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
 5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped. Build scope ready.
 6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
+7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), nothing closed yet. Excel export is the one unbuilt piece; everything else is real-farm setup and on-site proving of what Phases 1–3 already built. Go-live itself does not move ahead of Jan 2027 regardless of checklist progress (ADR 0001).
 
 ---
 
@@ -547,4 +568,4 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 ---
 
-*End of complete build plan v1.8.*
+*End of complete build plan v1.9.*
