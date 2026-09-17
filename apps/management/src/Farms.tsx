@@ -75,7 +75,6 @@ function FarmCard({
   busy: boolean;
   onSetEntitlement: (moduleCode: string, status: "active" | "cancelled") => void;
 }) {
-  const [customModule, setCustomModule] = useState("");
   const statusByModule = new Map(farm.entitlements.map((e) => [e.moduleCode, e.status]));
   const licensed = (code: string) => statusByModule.get(code) === "active" || statusByModule.get(code) === "grace";
 
@@ -100,40 +99,7 @@ function FarmCard({
             {code}
           </label>
         ))}
-
-        {farm.entitlements
-          .filter((e) => !BUILT_MODULES.includes(e.moduleCode))
-          .map((e) => (
-            <label key={e.moduleCode} className="module-toggle">
-              <input
-                type="checkbox"
-                checked={e.status === "active" || e.status === "grace"}
-                disabled={busy}
-                onChange={(ev) => onSetEntitlement(e.moduleCode, ev.target.checked ? "active" : "cancelled")}
-              />
-              {e.moduleCode}
-            </label>
-          ))}
       </div>
-
-      <form
-        className="add-module"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!customModule.trim()) return;
-          onSetEntitlement(customModule.trim(), "active");
-          setCustomModule("");
-        }}
-      >
-        <input
-          value={customModule}
-          onChange={(e) => setCustomModule(e.target.value)}
-          placeholder="ander program (bv. kudde, custom:x)"
-        />
-        <button type="submit" disabled={busy}>
-          Voeg by
-        </button>
-      </form>
     </div>
   );
 }

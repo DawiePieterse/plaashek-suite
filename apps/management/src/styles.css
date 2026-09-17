@@ -120,11 +120,6 @@ label {
   font-family: monospace;
 }
 
-.add-module {
-  display: flex;
-  gap: 0.5rem;
-}
-
 .create-farm {
   display: flex;
   flex-wrap: wrap;
