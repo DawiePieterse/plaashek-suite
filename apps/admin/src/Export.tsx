@@ -20,12 +20,14 @@ export function Export({ session }: { session: Session }) {
     <section className="no-print">
       <h2>{c.exportHeading}</h2>
       {error && <p className="error">{error}</p>}
-      <button type="button" className="link" onClick={() => download("/export/notes.csv", "veldnotas.csv")}>
-        {c.exportNotes}
-      </button>{" "}
-      <button type="button" className="link" onClick={() => download("/export/harvest.csv", "boord.csv")}>
-        {c.exportHarvest}
-      </button>
+      <div className="row">
+        <button type="button" className="quiet" onClick={() => download("/export/notes.csv", "veldnotas.csv")}>
+          {c.exportNotes}
+        </button>
+        <button type="button" className="quiet" onClick={() => download("/export/harvest.csv", "boord.csv")}>
+          {c.exportHarvest}
+        </button>
+      </div>
     </section>
   );
 }

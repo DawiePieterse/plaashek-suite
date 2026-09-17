@@ -16,15 +16,20 @@ export function App() {
   };
 
   return (
-    <div className="app">
-      <header>
+    <>
+      <header className="topbar">
+        <span className="mark" aria-hidden="true">
+          P
+        </span>
         <h1>{t().appTitle}</h1>
         <button type="button" className="link" onClick={signOut}>
           {t().signOut}
         </button>
       </header>
-      <Harvest session={session} onSessionExpired={signOut} />
-      <Export session={session} />
-    </div>
+      <main className="app">
+        <Harvest session={session} onSessionExpired={signOut} />
+        <Export session={session} />
+      </main>
+    </>
   );
 }

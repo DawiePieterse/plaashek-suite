@@ -32,24 +32,29 @@ export function Login({ onLogin }: { onLogin: (session: Session) => void }) {
   }
 
   return (
-    <form className="login" onSubmit={submit}>
-      <h1>{c.appTitle}</h1>
+    <div className="login-page">
+      <form className="login" onSubmit={submit}>
+        <span className="mark" aria-hidden="true">
+          P
+        </span>
+        <h1>{c.appTitle}</h1>
 
-      <label>
-        {c.email}
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
-      </label>
+        <label>
+          {c.email}
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+        </label>
 
-      <label>
-        {c.password}
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      </label>
+        <label>
+          {c.password}
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </label>
 
-      {error && <p className="error">{error}</p>}
+        {error && <p className="error">{error}</p>}
 
-      <button type="submit" disabled={busy}>
-        {busy ? c.signingIn : c.signIn}
-      </button>
-    </form>
+        <button type="submit" disabled={busy}>
+          {busy ? c.signingIn : c.signIn}
+        </button>
+      </form>
+    </div>
   );
 }

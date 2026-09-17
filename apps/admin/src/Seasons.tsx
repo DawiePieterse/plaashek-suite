@@ -56,48 +56,50 @@ export function Seasons({ session, onSessionExpired }: { session: Session; onSes
       <h2>{c.seasonsHeading}</h2>
 
       {error && <p className="error">{error}</p>}
-      {seasons.length === 0 && <p className="muted">{c.noSeasons}</p>}
+      {seasons.length === 0 && !isAdmin && <p className="empty">{c.noSeasons}</p>}
 
       {(seasons.length > 0 || isAdmin) && (
-        <table className="seasons-table">
-          <thead>
-            <tr>
-              <th>{c.seasonName}</th>
-              <th>{c.startsOn}</th>
-              <th>{c.endsOn}</th>
-              <th>{c.activeSeason}</th>
-              {isAdmin && <th></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {seasons.map((season) =>
-              isAdmin ? (
-                <EditableSeasonRow
-                  key={season.id}
-                  season={season}
-                  busy={busy}
-                  onSave={(body) => run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify(body) }))}
-                  onActivate={() =>
-                    run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify({ isActive: true }) }))
-                  }
-                />
-              ) : (
-                <tr key={season.id}>
-                  <td>{season.name}</td>
-                  <td>{season.startsOn}</td>
-                  <td>{season.endsOn}</td>
-                  <td>
-                    <input type="checkbox" checked={season.isActive} disabled />
-                  </td>
-                </tr>
-              ),
-            )}
+        <div className="card">
+          <table className="seasons-table">
+            <thead>
+              <tr>
+                <th>{c.seasonName}</th>
+                <th>{c.startsOn}</th>
+                <th>{c.endsOn}</th>
+                <th>{c.activeSeason}</th>
+                {isAdmin && <th></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {seasons.map((season) =>
+                isAdmin ? (
+                  <EditableSeasonRow
+                    key={season.id}
+                    season={season}
+                    busy={busy}
+                    onSave={(body) => run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify(body) }))}
+                    onActivate={() =>
+                      run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify({ isActive: true }) }))
+                    }
+                  />
+                ) : (
+                  <tr key={season.id}>
+                    <td>{season.name}</td>
+                    <td>{season.startsOn}</td>
+                    <td>{season.endsOn}</td>
+                    <td>
+                      <input className="switch" type="checkbox" checked={season.isActive} disabled aria-label={c.activeSeason} />
+                    </td>
+                  </tr>
+                ),
+              )}
 
-            {isAdmin && (
-              <NewSeasonRow busy={busy} onCreate={(body) => run(() => api("/seasons", { method: "POST", token: session.token, body: JSON.stringify(body) }))} />
-            )}
-          </tbody>
-        </table>
+              {isAdmin && (
+                <NewSeasonRow busy={busy} onCreate={(body) => run(() => api("/seasons", { method: "POST", token: session.token, body: JSON.stringify(body) }))} />
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
@@ -131,10 +133,10 @@ function EditableSeasonRow({
         <input type="date" value={endsOn} onChange={(e) => setEndsOn(e.target.value)} required />
       </td>
       <td>
-        <input type="checkbox" checked={season.isActive} disabled={busy || season.isActive} onChange={onActivate} />
+        <input className="switch" type="checkbox" checked={season.isActive} disabled={busy || season.isActive} onChange={onActivate} aria-label={c.activeSeason} />
       </td>
       <td>
-        <button type="button" disabled={busy} onClick={() => onSave({ name, startsOn, endsOn })}>
+        <button type="button" className="quiet" disabled={busy} onClick={() => onSave({ name, startsOn, endsOn })}>
           {c.saveSeason}
         </button>
       </td>

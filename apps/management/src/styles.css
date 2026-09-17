@@ -1,140 +1,38 @@
-:root {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  color: #1c2321;
-  background: #f6f5f2;
-}
+/* Shared office look lives in @plaashek/ui-office — only the farms table is ours. */
 
-body {
-  margin: 0;
-}
-
-.app {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-h1 {
-  font-size: 1.4rem;
-}
-
-button {
-  font: inherit;
-  padding: 0.5rem 0.9rem;
-  border: 1px solid #1c2321;
-  border-radius: 0.3rem;
-  background: #1c2321;
-  color: #fff;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-button.link {
-  border: 0;
-  background: none;
-  color: #1c2321;
-  text-decoration: underline;
-  padding: 0 0.4rem;
-}
-
-input,
-select {
-  font: inherit;
-  padding: 0.45rem;
-  border: 1px solid #b9b5ad;
-  border-radius: 0.3rem;
-  background: #fff;
-}
-
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.9rem;
-}
-
-.error {
-  color: #8c2b20;
-}
-
-.muted {
-  color: #6b6760;
-}
-
-.login {
-  max-width: 22rem;
-  margin: 15vh auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: #fff;
-  border-radius: 0.5rem;
+.search {
+  max-width: 16rem;
 }
 
 .farms-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 0.5rem;
-  overflow: hidden;
+  min-width: 40rem;
 }
 
-.farms-table th,
-.farms-table td {
-  text-align: left;
-  padding: 0.6rem 0.9rem;
-  border-bottom: 1px solid #ece9e3;
+.farms-table th:nth-child(2),
+.farms-table td:nth-child(2) {
+  width: 8rem;
 }
 
-.farms-table th {
-  font-size: 0.85rem;
-  color: #6b6760;
+.farms-table th:nth-child(n + 3),
+.farms-table td:nth-child(n + 3) {
+  text-align: center;
+  width: 6.5rem;
+}
+
+.farm-name {
   font-weight: 600;
 }
 
-.farms-table th:nth-child(n + 4),
-.farms-table td:nth-child(n + 4) {
-  font-family: monospace;
-  text-align: center;
+.farm-org {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-weight: 400;
 }
 
-.farms-table input[type="checkbox"] {
-  width: 1.15rem;
-  height: 1.15rem;
-  border: 1.5px solid #1c2321;
-  border-radius: 0.25rem;
-  accent-color: #1c2321;
-}
-
-.farms-table tr:last-child td {
-  border-bottom: none;
-}
-
-.create-farm {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #fff;
-  border-radius: 0.5rem;
-  margin-top: 1rem;
-}
-
-.create-farm h3 {
-  width: 100%;
-  margin: 0;
+.forms {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  align-items: start;
 }

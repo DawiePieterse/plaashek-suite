@@ -1,0 +1,10 @@
+{
+  "name": "@plaashek/ui-office",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared look for the office-side apps — tokens, shell, cards, tables, forms",
+  "exports": {
+    "./office.css": "./src/office.css"
+  }
+}

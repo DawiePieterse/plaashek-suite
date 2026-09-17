@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Owner Module (eienaar) — read-only harvest rollup",
+  "description": "Owner Module (eienaar) \u2014 read-only harvest rollup",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@plaashek/ui-office": "workspace:*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

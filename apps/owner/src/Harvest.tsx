@@ -18,9 +18,9 @@ export function Harvest({ session, onSessionExpired }: { session: Session; onSes
   }, [session.token]);
 
   if (error) return <p className="error">{error}</p>;
-  if (!summary) return <p className="muted">{c.loading}</p>;
-  if (!summary.season) return <p className="muted">{c.noSeason}</p>;
-  if (summary.blocks.length === 0) return <p className="muted">{c.noHarvest}</p>;
+  if (!summary) return <p className="empty">{c.loading}</p>;
+  if (!summary.season) return <p className="empty">{c.noSeason}</p>;
+  if (summary.blocks.length === 0) return <p className="empty">{c.noHarvest}</p>;
 
   const totalCrates = summary.blocks.reduce((sum, b) => sum + b.crates, 0);
   const totalKg = summary.blocks.reduce((sum, b) => sum + b.kg, 0);
@@ -28,33 +28,35 @@ export function Harvest({ session, onSessionExpired }: { session: Session; onSes
   return (
     <section>
       <h2>
-        {c.harvestHeading} — {summary.season.name}
+        {c.harvestHeading} <span className="pill on">{summary.season.name}</span>
       </h2>
-      <table>
-        <thead>
-          <tr>
-            <th>{c.block}</th>
-            <th className="num">{c.crates}</th>
-            <th className="num">{c.kg}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {summary.blocks.map((block) => (
-            <tr key={block.blockId}>
-              <td>{block.blockName}</td>
-              <td className="num">{block.crates}</td>
-              <td className="num">{block.kg.toFixed(1)}</td>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.block}</th>
+              <th className="num">{c.crates}</th>
+              <th className="num">{c.kg}</th>
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td>{c.total}</td>
-            <td className="num">{totalCrates}</td>
-            <td className="num">{totalKg.toFixed(1)}</td>
-          </tr>
-        </tfoot>
-      </table>
+          </thead>
+          <tbody>
+            {summary.blocks.map((block) => (
+              <tr key={block.blockId}>
+                <td>{block.blockName}</td>
+                <td className="num">{block.crates}</td>
+                <td className="num">{block.kg.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>{c.total}</td>
+              <td className="num">{totalCrates}</td>
+              <td className="num">{totalKg.toFixed(1)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </section>
   );
 }

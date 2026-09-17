@@ -17,16 +17,21 @@ export function App() {
   };
 
   return (
-    <div className="app">
-      <header className="no-print">
+    <>
+      <header className="topbar no-print">
+        <span className="mark" aria-hidden="true">
+          P
+        </span>
         <h1>{t().appTitle}</h1>
         <button type="button" className="link" onClick={signOut}>
           {t().signOut}
         </button>
       </header>
-      <Devices session={session} onSessionExpired={signOut} />
-      <Seasons session={session} onSessionExpired={signOut} />
-      <Export session={session} />
-    </div>
+      <main className="app">
+        <Devices session={session} onSessionExpired={signOut} />
+        <Seasons session={session} onSessionExpired={signOut} />
+        <Export session={session} />
+      </main>
+    </>
   );
 }

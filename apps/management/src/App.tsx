@@ -14,14 +14,22 @@ export function App() {
   };
 
   return (
-    <div className="app">
-      <header>
+    <>
+      <header className="topbar">
+        <span className="mark" aria-hidden="true">
+          P
+        </span>
         <h1>Plaashek Management</h1>
+        <span className="who">
+          {session.email}
+        </span>
         <button type="button" className="link" onClick={signOut}>
           Meld af
         </button>
       </header>
-      <Farms session={session} onSessionExpired={signOut} />
-    </div>
+      <main className="app">
+        <Farms session={session} onSessionExpired={signOut} />
+      </main>
+    </>
   );
 }

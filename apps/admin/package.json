@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Farm Admin Tool — devices, printed QRs, people, master data, seasons",
+  "description": "Farm Admin Tool \u2014 devices, printed QRs, people, master data, seasons",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@plaashek/ui-office": "workspace:*",
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
