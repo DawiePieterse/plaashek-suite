@@ -43,7 +43,11 @@ No picker, no roll-call screen, no team punch.
 - Span is only useful to a farm whose clocking people each carry a paired
   phone — a permanent staff farm, not a 40-picker seasonal team sharing one
   tablet. Say that plainly when selling it rather than discovering it
-  on-site.
+  on-site. **Confirmed by the farm on 17 September 2026:** Span is for
+  permanent employees, and seasonal piece-workers paid per kilogram are a
+  separate build. That build is the third case to hit the no-person-picker
+  wall, so it reopens §2.1 properly rather than deciding it inside a module
+  — see the closing note below.
 - `attendance_punches` needs no `worker_id`, no `marked_by`, and the field
   screen is one button. Hours are derived office-side from the punch pairs,
   so nothing about this decision is baked into stored data.

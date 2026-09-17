@@ -7,10 +7,26 @@ this stands in for the reuse audits Phases 2 and 3 got — same job, deciding
 what is in and what is out before any code, just without a reference app to
 mine.
 
+## Who Span is for
+
+**Permanent employees** — confirmed by the farm 17 September 2026, after the
+module shipped. One person, one paired phone, one clock. That is the shape
+ADR 0008 chose and the shape it fits.
+
+**Seasonal piece-workers are not in this module.** A litchi picking team paid
+per kilogram is a different product: the pickers are transient, they do not
+carry a phone each, and what has to be recorded is not when they arrived but
+how much each of them picked. That needs picker-level attribution on a
+harvest capture, which is exactly what [ADR 0007](decisions/0007-boord-no-worker-attribution.md)
+refused and what [ADR 0008](decisions/0008-span-self-clocking.md) said would
+be the signal to reopen §2.1 rather than decide it a third time inside a
+module. It gets its own scope and its own decisions — do not stretch Span or
+`attendance_punches` to cover it.
+
 ## What Span is
 
-Clocking. A worker's day starts and ends; the farm needs to know when, per
-person, without a paper register that lives in a bakkie.
+Clocking. A permanent worker's day starts and ends; the farm needs to know
+when, per person, without a paper register that lives in a bakkie.
 
 Plan §6 gives it one table, `attendance_punches`, and §11 gives it one line of
 justification: *"Assigned-person stamp makes clocking work."* That sentence is
