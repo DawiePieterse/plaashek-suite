@@ -90,86 +90,98 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
 
       {devices.length === 0 && <p className="muted no-print">{c.noDevices}</p>}
 
-      <ul className="devices no-print">
-        {devices.map((device) => (
-          <li key={device.id}>
-            <div className="device-head">
-              <strong>{device.label ?? c.unnamedDevice}</strong>
-              <span className="muted">{personName(device)}</span>
-            </div>
-
-            <p>{c.modules(device.modules.length ? device.modules.map(moduleName).join(", ") : c.modulesNone)}</p>
-
-            {device.pendingPairingTokens.map((pending) => (
-              <p key={pending.id} className="pending">
-                {c.pendingPairing(moduleName(pending.moduleCode), formatWhen(pending.printedAt), formatWhen(pending.expiresAt))}
+      {devices.length > 0 && (
+        <table className="devices-table no-print">
+          <thead>
+            <tr>
+              <th>{c.deviceCol}</th>
+              <th>{c.person}</th>
+              <th>{c.module}</th>
+              <th>{c.pendingCol}</th>
+              {isAdmin && <th>{c.actionsCol}</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {devices.map((device) => (
+              <tr key={device.id}>
+                <td>{device.label ?? c.unnamedDevice}</td>
+                <td>{personName(device)}</td>
+                <td>{device.modules.length ? device.modules.map(moduleName).join(", ") : c.modulesNone}</td>
+                <td>
+                  {device.pendingPairingTokens.map((pending) => (
+                    <div key={pending.id} className="pending">
+                      {c.pendingPairing(moduleName(pending.moduleCode), formatWhen(pending.printedAt), formatWhen(pending.expiresAt))}
+                      {isAdmin && (
+                        <>
+                          <button
+                            type="button"
+                            className="link"
+                            disabled={busy}
+                            onClick={() =>
+                              run(
+                                () =>
+                                  api<{ pairingToken: PairingToken }>(`/pairing-tokens/${pending.id}/reprint`, {
+                                    method: "POST",
+                                    token: session.token,
+                                  }),
+                                ({ pairingToken }) => showSlip(pairingToken, personName(device)),
+                              )
+                            }
+                          >
+                            {c.reprint}
+                          </button>
+                          <button
+                            type="button"
+                            className="link"
+                            disabled={busy}
+                            onClick={() => run(() => api(`/pairing-tokens/${pending.id}/cancel`, { method: "POST", token: session.token }))}
+                          >
+                            {c.cancel}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </td>
                 {isAdmin && (
-                  <>
-                    <button
-                      type="button"
-                      className="link"
-                      disabled={busy}
-                      onClick={() =>
-                        run(
-                          () =>
-                            api<{ pairingToken: PairingToken }>(`/pairing-tokens/${pending.id}/reprint`, {
-                              method: "POST",
-                              token: session.token,
-                            }),
-                          ({ pairingToken }) => showSlip(pairingToken, personName(device)),
-                        )
-                      }
-                    >
-                      {c.reprint}
-                    </button>
-                    <button
-                      type="button"
-                      className="link"
-                      disabled={busy}
-                      onClick={() => run(() => api(`/pairing-tokens/${pending.id}/cancel`, { method: "POST", token: session.token }))}
-                    >
-                      {c.cancel}
-                    </button>
-                  </>
+                  <td>
+                    <div className="device-actions">
+                      <AddAppForm
+                        device={device}
+                        modules={context.modules}
+                        busy={busy}
+                        onSubmit={(moduleCode) =>
+                          run(
+                            () =>
+                              api<{ pairingToken: PairingToken }>(`/devices/${device.id}/apps`, {
+                                method: "POST",
+                                token: session.token,
+                                body: JSON.stringify({ moduleCode }),
+                              }),
+                            ({ pairingToken }) => showSlip(pairingToken, personName(device)),
+                          )
+                        }
+                      />
+
+                      <button
+                        type="button"
+                        className="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (!confirm(c.revokeConfirm)) return;
+                          void run(() => api(`/devices/${device.id}/revoke`, { method: "POST", token: session.token }));
+                        }}
+                      >
+                        {c.revoke}
+                      </button>
+                    </div>
+                  </td>
                 )}
-              </p>
+              </tr>
             ))}
-
-            {isAdmin && (
-              <div className="device-actions">
-                <AddAppForm
-                  device={device}
-                  modules={context.modules}
-                  busy={busy}
-                  onSubmit={(moduleCode) =>
-                    run(
-                      () =>
-                        api<{ pairingToken: PairingToken }>(`/devices/${device.id}/apps`, {
-                          method: "POST",
-                          token: session.token,
-                          body: JSON.stringify({ moduleCode }),
-                        }),
-                      ({ pairingToken }) => showSlip(pairingToken, personName(device)),
-                    )
-                  }
-                />
-
-                <button
-                  type="button"
-                  className="danger"
-                  disabled={busy}
-                  onClick={() => {
-                    if (!confirm(c.revokeConfirm)) return;
-                    void run(() => api(`/devices/${device.id}/revoke`, { method: "POST", token: session.token }));
-                  }}
-                >
-                  {c.revoke}
-                </button>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+          </tbody>
+        </table>
+      )}
 
       {slip && <PairingSlip slip={slip} onClose={() => setSlip(null)} />}
     </section>

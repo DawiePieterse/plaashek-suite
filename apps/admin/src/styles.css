@@ -99,61 +99,78 @@ label {
   border-radius: 0.5rem;
 }
 
-.devices {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.devices li {
-  padding: 1rem;
+.devices-table,
+.seasons-table {
+  width: 100%;
+  border-collapse: collapse;
   background: #fff;
   border-radius: 0.5rem;
+  overflow: hidden;
 }
 
-.device-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+.devices-table th,
+.devices-table td,
+.seasons-table th,
+.seasons-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid #ece9e3;
+}
+
+.devices-table tr:last-child td,
+.seasons-table tr:last-child td {
+  border-bottom: none;
+}
+
+.devices-table th,
+.seasons-table th {
+  font-size: 0.85rem;
+  color: #6b6760;
+  font-weight: 600;
+}
+
+.devices-table input[type="checkbox"],
+.seasons-table input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1.5px solid #1c2321;
+  border-radius: 0.25rem;
+  accent-color: #1c2321;
+}
+
+.seasons-table input {
+  width: 8rem;
 }
 
 .device-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .device-actions form {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
-.pending,
+.pending {
+  padding: 0.4rem 0.6rem;
+  background: #fdf3d8;
+  border-radius: 0.3rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.pending:last-child {
+  margin-bottom: 0;
+}
+
 .waiting {
   padding: 0.5rem;
   background: #fdf3d8;
   border-radius: 0.3rem;
-}
-
-.seasons {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.season {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: #fff;
-  border-radius: 0.5rem;
 }
 
 .modal-backdrop {

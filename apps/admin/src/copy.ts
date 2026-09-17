@@ -22,6 +22,9 @@ const af = {
   devicesHeading: (farm: string) => `Toestelle — ${farm}`,
   noDevices: "Nog geen toestelle nie. Voeg die eerste een by.",
   noLicence: "Die plaas het nog geen aktiewe lisensie nie. Kontak Plaashek.",
+  deviceCol: "Toestel",
+  pendingCol: "Wagtend",
+  actionsCol: "Aksies",
 
   person: "Persoon",
   choose: "Kies…",
@@ -32,7 +35,6 @@ const af = {
 
   unnamedDevice: "Toestel sonder naam",
   nobodyAssigned: "Niemand toegewys nie",
-  modules: (list: string) => `Programme: ${list}`,
   modulesNone: "nog geen — wag vir die eerste skandering",
   pendingPairing: (module: string, printed: string, expires: string) =>
     `Wag vir paring: ${module} — gedruk ${printed}, verval ${expires}`,
@@ -49,7 +51,6 @@ const af = {
   startsOn: "Begin",
   endsOn: "Einde",
   activeSeason: "Aktief",
-  makeActive: "Maak aktief",
   saveSeason: "Stoor",
   addSeason: "Voeg seisoen by",
   noSeasons: "Nog geen seisoen nie. Opnames word gemerk vir die kantoor totdat daar een is.",
@@ -100,6 +101,9 @@ const en: typeof af = {
   devicesHeading: (farm: string) => `Devices — ${farm}`,
   noDevices: "No devices yet. Add the first one.",
   noLicence: "This farm has no active licence yet. Contact Plaashek.",
+  deviceCol: "Device",
+  pendingCol: "Pending",
+  actionsCol: "Actions",
 
   person: "Person",
   choose: "Choose…",
@@ -110,7 +114,6 @@ const en: typeof af = {
 
   unnamedDevice: "Unnamed device",
   nobodyAssigned: "Nobody assigned",
-  modules: (list: string) => `Apps: ${list}`,
   modulesNone: "none yet — waiting for the first scan",
   pendingPairing: (module: string, printed: string, expires: string) =>
     `Waiting to pair: ${module} — printed ${printed}, expires ${expires}`,
@@ -127,7 +130,6 @@ const en: typeof af = {
   startsOn: "Starts",
   endsOn: "Ends",
   activeSeason: "Active",
-  makeActive: "Make active",
   saveSeason: "Save",
   addSeason: "Add season",
   noSeasons: "No season yet. Captures are flagged for the office until there is one.",

@@ -58,98 +58,120 @@ export function Seasons({ session, onSessionExpired }: { session: Session; onSes
       {error && <p className="error">{error}</p>}
       {seasons.length === 0 && <p className="muted">{c.noSeasons}</p>}
 
-      <ul className="seasons">
-        {seasons.map((season) => (
-          <li key={season.id}>
-            <SeasonForm
-              season={season}
-              busy={busy}
-              readOnly={!isAdmin}
-              onSave={(body) => run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify(body) }))}
-              onActivate={() =>
-                run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify({ isActive: true }) }))
-              }
-            />
-          </li>
-        ))}
-      </ul>
+      {(seasons.length > 0 || isAdmin) && (
+        <table className="seasons-table">
+          <thead>
+            <tr>
+              <th>{c.seasonName}</th>
+              <th>{c.startsOn}</th>
+              <th>{c.endsOn}</th>
+              <th>{c.activeSeason}</th>
+              {isAdmin && <th></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {seasons.map((season) =>
+              isAdmin ? (
+                <EditableSeasonRow
+                  key={season.id}
+                  season={season}
+                  busy={busy}
+                  onSave={(body) => run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify(body) }))}
+                  onActivate={() =>
+                    run(() => api(`/seasons/${season.id}`, { method: "PATCH", token: session.token, body: JSON.stringify({ isActive: true }) }))
+                  }
+                />
+              ) : (
+                <tr key={season.id}>
+                  <td>{season.name}</td>
+                  <td>{season.startsOn}</td>
+                  <td>{season.endsOn}</td>
+                  <td>
+                    <input type="checkbox" checked={season.isActive} disabled />
+                  </td>
+                </tr>
+              ),
+            )}
 
-      {isAdmin && (
-        <SeasonForm
-          busy={busy}
-          onSave={(body) => run(() => api("/seasons", { method: "POST", token: session.token, body: JSON.stringify(body) }))}
-        />
+            {isAdmin && (
+              <NewSeasonRow busy={busy} onCreate={(body) => run(() => api("/seasons", { method: "POST", token: session.token, body: JSON.stringify(body) }))} />
+            )}
+          </tbody>
+        </table>
       )}
     </section>
   );
 }
 
-function SeasonForm({
+function EditableSeasonRow({
   season,
   busy,
-  readOnly,
   onSave,
   onActivate,
 }: {
-  season?: Season;
+  season: Season;
   busy: boolean;
-  readOnly?: boolean;
   onSave: (body: { name: string; startsOn: string; endsOn: string }) => void;
-  onActivate?: () => void;
+  onActivate: () => void;
 }) {
-  const [name, setName] = useState(season?.name ?? "");
-  const [startsOn, setStartsOn] = useState(season?.startsOn ?? "");
-  const [endsOn, setEndsOn] = useState(season?.endsOn ?? "");
+  const [name, setName] = useState(season.name);
+  const [startsOn, setStartsOn] = useState(season.startsOn);
+  const [endsOn, setEndsOn] = useState(season.endsOn);
   const c = t();
 
-  if (readOnly) {
-    return (
-      <p>
-        {season?.name} · {season?.startsOn} – {season?.endsOn} {season?.isActive && <strong>{c.activeSeason}</strong>}
-      </p>
-    );
+  return (
+    <tr>
+      <td>
+        <input value={name} onChange={(e) => setName(e.target.value)} required />
+      </td>
+      <td>
+        <input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} required />
+      </td>
+      <td>
+        <input type="date" value={endsOn} onChange={(e) => setEndsOn(e.target.value)} required />
+      </td>
+      <td>
+        <input type="checkbox" checked={season.isActive} disabled={busy || season.isActive} onChange={onActivate} />
+      </td>
+      <td>
+        <button type="button" disabled={busy} onClick={() => onSave({ name, startsOn, endsOn })}>
+          {c.saveSeason}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function NewSeasonRow({ busy, onCreate }: { busy: boolean; onCreate: (body: { name: string; startsOn: string; endsOn: string }) => void }) {
+  const [name, setName] = useState("");
+  const [startsOn, setStartsOn] = useState("");
+  const [endsOn, setEndsOn] = useState("");
+  const c = t();
+
+  function submit() {
+    onCreate({ name, startsOn, endsOn });
+    setName("");
+    setStartsOn("");
+    setEndsOn("");
   }
 
   return (
-    <form
-      className="season"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSave({ name, startsOn, endsOn });
-        if (!season) {
-          setName("");
-          setStartsOn("");
-          setEndsOn("");
-        }
-      }}
-    >
-      <label>
-        {c.seasonName}
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Oes 2026/27" required />
-      </label>
-
-      <label>
-        {c.startsOn}
-        <input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} required />
-      </label>
-
-      <label>
-        {c.endsOn}
-        <input type="date" value={endsOn} onChange={(e) => setEndsOn(e.target.value)} required />
-      </label>
-
-      <button type="submit" disabled={busy}>
-        {season ? c.saveSeason : c.addSeason}
-      </button>
-
-      {season &&
-        (season.isActive ? (
-          <strong>{c.activeSeason}</strong>
-        ) : (
-          <button type="button" className="link" disabled={busy} onClick={onActivate}>
-            {c.makeActive}
-          </button>
-        ))}
-    </form>
+    <tr>
+      <td>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Oes 2026/27" />
+      </td>
+      <td>
+        <input type="date" value={startsOn} onChange={(e) => setStartsOn(e.target.value)} />
+      </td>
+      <td>
+        <input type="date" value={endsOn} onChange={(e) => setEndsOn(e.target.value)} />
+      </td>
+      <td></td>
+      <td>
+        <button type="button" disabled={busy || !name || !startsOn || !endsOn} onClick={submit}>
+          {c.addSeason}
+        </button>
+      </td>
+    </tr>
   );
 }
