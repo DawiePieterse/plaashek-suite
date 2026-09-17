@@ -1,13 +1,18 @@
 import { randomBytes } from "node:crypto";
-import { entitlements, farms, organisations, plaashekStaff } from "@plaashek/schema";
+import { entitlements, farmMemberships, farms, organisations, people, plaashekStaff } from "@plaashek/schema";
 import { eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireManagement } from "../auth/require-management.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { signManagementSession } from "../auth/management-jwt.js";
 import { logAudit } from "../lib/audit.js";
-import { unauthorized } from "../lib/errors.js";
-import { createFarmRequestSchema, managementLoginRequestSchema, setEntitlementRequestSchema } from "../schemas/management.js";
+import { conflict, unauthorized } from "../lib/errors.js";
+import {
+  createFarmLoginRequestSchema,
+  createFarmRequestSchema,
+  managementLoginRequestSchema,
+  setEntitlementRequestSchema,
+} from "../schemas/management.js";
 
 /** Compared against when the email is unknown, so a miss costs the same scrypt time as a hit. */
 const DUMMY_HASH = hashPassword(randomBytes(16).toString("hex"));
@@ -94,6 +99,32 @@ export function registerManagementRoutes(app: App, deps: AppDeps) {
         });
 
         return { entitlement };
+      });
+    },
+  );
+
+  /** The farm's first office login — nothing else can create one; a farm can't self-signup (plan §3.1). */
+  app.post(
+    "/management/farms/:farmId/logins",
+    { preHandler: requireManagement(deps.env.managementSessionSecret) },
+    async (request) => {
+      const staff = request.management!;
+      const { farmId } = request.params as { farmId: string };
+      const body = createFarmLoginRequestSchema.parse(request.body);
+
+      const [existing] = await deps.db.select({ id: farmMemberships.id }).from(farmMemberships).where(eq(farmMemberships.email, body.email));
+      if (existing) throw conflict("email_taken", "This email already has a login");
+
+      return deps.db.transaction(async (tx) => {
+        const [person] = await tx.insert(people).values({ farmId, name: body.personName }).returning();
+        const [membership] = await tx
+          .insert(farmMemberships)
+          .values({ farmId, personId: person.id, email: body.email, passwordHash: hashPassword(body.password), role: body.role })
+          .returning();
+
+        await logAudit(tx, { actor: staff.staffId, action: "create_farm_login", target: membership.id, farmId, actorType: "staff" });
+
+        return { person, membership: { id: membership.id, email: membership.email, role: membership.role } };
       });
     },
   );

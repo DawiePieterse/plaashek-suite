@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.15
+**Status:** v1.16
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -31,6 +31,8 @@
 **Changes from v1.13:** Backup/restore mechanism built (§10, §12 Phase 4) — `infra/backup/backup.sh` (`pg_dump`, 30-day retention) and `restore.sh` (the quarterly drill), wired as `pnpm backup` / `pnpm restore`. Drilled once against Mooiplaas: backed up, restored into a throwaway database, spot-checked (farm, entitlements, season all matched), thrown away. The Phase 4 checklist item stays open — it requires a run against real Bekfontein data — but the tooling gap in front of it is closed.
 
 **Changes from v1.14:** Bekfontein created for real (§12 Phase 4) — organisation "Laughing Waters", farm "Bekfontein", licensed for exactly `veldnotas`, `boord`, `eienaar`, created through Plaashek Management rather than a script. First two Phase 4 checklist items close. Caveat: this lives in the local dev database, the only database that currently exists (no production VPS provisioned, plan §9) — move it when real hosting exists. Still open: real people/blocks/camps, real device pairing, on-site offline-day proof, days-since-sync against real signal, revoke on a real device, the backup/restore drill against this farm's actual data, and a go-live date.
+
+**Changes from v1.15:** Plaashek Management's farms list reworked as a table (farm, organisation, language, demo tell, one checkbox column per built module) instead of cards — the demo/real tell is derived from the organisation name ("Demo Organisasie"), not a new schema column. Closed a second real gap the same shape as the first: Plaashek Management could create a farm and license it, but nothing could create that farm's first Farm Admin Tool / Owner Module login (`farm_memberships`) — only the demo seed script or a raw DB insert ever did. `POST /management/farms/:farmId/logins` (person + membership, email/password/role) plus a form in the console close it. Used to create Bekfontein's real admin login, verified end-to-end against `POST /auth/login`.
 
 ---
 

@@ -88,3 +88,48 @@ test("Plaashek Management creates a farm and sets its entitlements, invisible to
     assert.equal(stored.name, "Bekfontein");
   });
 });
+
+test("Plaashek Management creates the farm's first office login, and the farm can then sign in with it", async () => {
+  await withTestDb(async (db) => {
+    const { app } = await buildTestApp(db);
+    const { staff, password } = await seedManagementStaff(db, { email: "manager2@plaashek.test" });
+
+    const login = await app.inject({ method: "POST", url: "/management/login", payload: { email: staff.email, password } });
+    const { token } = login.json() as { token: string };
+
+    const create = await app.inject({
+      method: "POST",
+      url: "/management/farms",
+      headers: { authorization: `Bearer ${token}` },
+      payload: { organisationName: "Bekfontein Bpk", farmName: "Bekfontein", language: "af" },
+    });
+    const { farm } = create.json() as { farm: { id: string } };
+
+    const createLogin = await app.inject({
+      method: "POST",
+      url: `/management/farms/${farm.id}/logins`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { personName: "Bestuurder Botha", email: "admin@bekfontein.test", password: "bekfontein-wagwoord", role: "admin" },
+    });
+    assert.equal(createLogin.statusCode, 200);
+
+    const farmLogin = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: { email: "admin@bekfontein.test", password: "bekfontein-wagwoord" },
+    });
+    assert.equal(farmLogin.statusCode, 200);
+    const farmSession = farmLogin.json() as { farmId: string; role: string };
+    assert.equal(farmSession.farmId, farm.id);
+    assert.equal(farmSession.role, "admin");
+
+    // Same email twice is rejected, not a second login for the farm.
+    const duplicate = await app.inject({
+      method: "POST",
+      url: `/management/farms/${farm.id}/logins`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { personName: "Iemand Anders", email: "admin@bekfontein.test", password: "ander-wagwoord", role: "owner" },
+    });
+    assert.equal(duplicate.statusCode, 409);
+  });
+});

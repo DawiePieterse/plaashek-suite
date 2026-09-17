@@ -92,6 +92,14 @@ export function Farms({ session, onSessionExpired }: { session: Session; onSessi
       )}
 
       <CreateFarmForm busy={busy} onCreate={(body) => run(() => api("/management/farms", { method: "POST", token: session.token, body: JSON.stringify(body) }))} />
+
+      {farms.length > 0 && (
+        <CreateLoginForm
+          farms={farms}
+          busy={busy}
+          onCreate={(farmId, body) => run(() => api(`/management/farms/${farmId}/logins`, { method: "POST", token: session.token, body: JSON.stringify(body) }))}
+        />
+      )}
     </section>
   );
 }
@@ -142,6 +150,76 @@ function CreateFarmForm({ busy, onCreate }: { busy: boolean; onCreate: (body: { 
 
       <button type="submit" disabled={busy}>
         Skep plaas
+      </button>
+    </form>
+  );
+}
+
+/** Bootstraps a farm's first Farm Admin Tool / Owner Module login — a farm can't self-signup (plan §3.1). */
+function CreateLoginForm({
+  farms,
+  busy,
+  onCreate,
+}: {
+  farms: Farm[];
+  busy: boolean;
+  onCreate: (farmId: string, body: { personName: string; email: string; password: string; role: "admin" | "owner" }) => void;
+}) {
+  const [farmId, setFarmId] = useState(farms[0].farm.id);
+  const [personName, setPersonName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "owner">("admin");
+
+  return (
+    <form
+      className="create-farm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onCreate(farmId, { personName, email, password, role });
+        setPersonName("");
+        setEmail("");
+        setPassword("");
+      }}
+    >
+      <h3>Kantoor-aanmelding</h3>
+
+      <label>
+        Plaas
+        <select value={farmId} onChange={(e) => setFarmId(e.target.value)}>
+          {farms.map((f) => (
+            <option key={f.farm.id} value={f.farm.id}>
+              {f.farm.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label>
+        Naam
+        <input value={personName} onChange={(e) => setPersonName(e.target.value)} required />
+      </label>
+
+      <label>
+        E-pos
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      </label>
+
+      <label>
+        Wagwoord
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
+      </label>
+
+      <label>
+        Rol
+        <select value={role} onChange={(e) => setRole(e.target.value as "admin" | "owner")}>
+          <option value="admin">admin</option>
+          <option value="owner">owner</option>
+        </select>
+      </label>
+
+      <button type="submit" disabled={busy}>
+        Skep aanmelding
       </button>
     </form>
   );
