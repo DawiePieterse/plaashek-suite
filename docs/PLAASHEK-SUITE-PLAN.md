@@ -497,7 +497,7 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 1. §13 answered (ADRs 0001–0005) — proceed to Phase 1.
 2. Phase 1 on one fake farm: add device → print QR → scan → one app opens → offline save → sync. **Done — exit checklist closed (§12).**
-3. Notes reuse audit for `veldnotas`, then build Phase 2 on the closed foundation.
+3. Notes reuse audit for `veldnotas` — **done**, see [docs/veldnotas-reuse-audit.md](veldnotas-reuse-audit.md). Build Phase 2 on the closed foundation next.
 
 ---
 
