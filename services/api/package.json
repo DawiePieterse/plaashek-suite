@@ -10,7 +10,7 @@
     "seed": "tsx scripts/seed.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit && tsx --test \"src/**/*.test.ts\"",
+    "test": "tsc --noEmit && tsx --test $(find src -name '*.test.ts')",
     "start": "node dist/index.js"
   },
   "dependencies": {
