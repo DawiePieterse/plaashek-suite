@@ -66,6 +66,10 @@ entitlement cannot pair that QR") rather than reference-app parity:
 2. `Notes.tsx`: block picker, GPS warm-up + stamp, weather stamp via a new
    `/weather/current` proxy route, offline badge, 10s poll added to the
    existing flush-on-mount/online logic.
+   **Amendment, 17 September 2026:** block picker dropped before shipping —
+   GPS already places the note, so a manual block field would ask the worker
+   to say the same thing twice. `notes.block_id` stays in the schema, just
+   not captured from this screen.
 3. Correction model closed — [ADR 0006](decisions/0006-note-corrections.md).
 4. Tags, photos, dashboard/stats: not in this phase — listed above as the
    next candidates once there's a real local blob store for photos.

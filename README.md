@@ -58,5 +58,10 @@ environment — they do not read `.env`.
 ## Phase 1 exit checklist
 
 Closed 17 September 2026 — see §12 of the plan. Foundation (tickets, sync,
-pairing, licence lifecycle, seasons, outbox migration) is done; Phase 2
-(`veldnotas`) is next.
+pairing, licence lifecycle, seasons, outbox migration) is done.
+
+## Phase 2 exit checklist
+
+Closed 17 September 2026 — see §12 of the plan. Real veldnotas capture
+(GPS stamp, weather via `/weather/current`, offline badge, correction model)
+is done; Phase 3 (`boord` + `eienaar`) is next.

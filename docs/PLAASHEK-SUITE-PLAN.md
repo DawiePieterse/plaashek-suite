@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.5
+**Status:** v1.6
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -11,6 +11,8 @@
 **Changes from v1.3:** all seven §13 questions closed — see [docs/decisions/](decisions/) (ADRs 0001–0005). Sync engine is PowerSync, not a build-your-own outbox (§9, ADR 0002); Kudde schema pulled from §6 and marked deferred, no build slot (§6, §11, §14, ADR 0005); Phase 4 named to the pilot farm and its 2027 go-live window (§12, ADR 0001).
 
 **Changes from v1.4:** Phase 1 exit checklist (§12) closed on the fake farm — including the last open item, app-upgrade migration with a pending outbox (`apps/field/src/queue.ts`, `queue.test.ts`). Proceeding to Phase 2 (`veldnotas`).
+
+**Changes from v1.5:** Phase 2 exit checklist (§12) closed — real capture in `Notes.tsx` (GPS stamp, weather via `/weather/current`, offline badge, 10s poll), correction model built as decided (ADR 0006). Block picker dropped from scope: GPS location already places the note, so a manual block field would be asking twice for the same thing. Proceeding to Phase 3 (`boord` + `eienaar`).
 
 ---
 
@@ -438,7 +440,18 @@ No module polish until this is boring. It's boring — proceed to Phase 2.
 
 Real Notes-shaped capture on the foundation.
 
-Exit: offline note survives; farm without the entitlement cannot pair that QR.
+Exit — **closed 17 September 2026**:
+
+- [x] Offline note survives: local save is instant, never waits on network (`apps/field/src/Notes.tsx`).
+- [x] Farm without the entitlement cannot pair that QR — Phase 1 foundation, unchanged by this phase.
+- [x] Location stamped on save; GPS warm-up on screen-open, never blocks save on a missing fix.
+- [x] Weather stamped via a server-proxied `/weather/current` route (Open-Meteo, no API key), raced against a 1.5s timeout so a slow lookup never blocks save.
+- [x] Offline badge shows the queued count; sync flushes on mount, on `online`, and a 10s poll for flaky rural radios that regain signal without firing the event.
+- [x] Correction model closed — no edit, no delete (ADR 0006).
+- Block picker was in the reuse audit's original scope but got dropped: GPS already places the note, so a manual block field asks the worker to say the same thing twice. `notes.block_id` stays in the schema (nullable, unused by this UI) rather than a migration nobody asked for.
+- Tags, photos, dashboard/stats — still out of scope, as the reuse audit called: no local blob store for photos yet, and nothing here asks for tags.
+
+No module polish beyond this until a farm asks — proceed to Phase 3.
 
 ### Phase 3 — `boord` + first `eienaar` (4–5 weeks)
 
@@ -498,6 +511,7 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 1. §13 answered (ADRs 0001–0005) — proceed to Phase 1.
 2. Phase 1 on one fake farm: add device → print QR → scan → one app opens → offline save → sync. **Done — exit checklist closed (§12).**
 3. Notes reuse audit for `veldnotas` — **done**, see [docs/veldnotas-reuse-audit.md](veldnotas-reuse-audit.md). Build Phase 2 on the closed foundation next.
+4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
 
 ---
 
@@ -516,4 +530,4 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 ---
 
-*End of complete build plan v1.4.*
+*End of complete build plan v1.6.*
