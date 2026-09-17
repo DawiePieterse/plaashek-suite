@@ -1,10 +1,23 @@
-import { jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { doublePrecision, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { workspaceRowColumns } from "../workspace-row.js";
+import { blocks } from "./master-data.js";
 
-/** Veldnotas — the first module (plan §11). Append-only events: a note is never edited, only added. */
+/**
+ * Veldnotas — the first module (plan §11). Append-only events: a note is never
+ * edited, only added — ADR 0006. Location, weather and block are all captured
+ * once, on the device, at the moment of writing (docs/veldnotas-reuse-audit.md);
+ * none of them are ever revised by a later sync.
+ */
 export const notes = pgTable("notes", {
   ...workspaceRowColumns,
   body: text("body").notNull(),
+  blockId: uuid("block_id").references(() => blocks.id),
+  latitude: doublePrecision("latitude"),
+  longitude: doublePrecision("longitude"),
+  locationAccuracyM: doublePrecision("location_accuracy_m"),
+  weatherTemp: doublePrecision("weather_temp"),
+  weatherHumidity: doublePrecision("weather_humidity"),
+  weatherCondition: text("weather_condition"),
 });
 
 /**

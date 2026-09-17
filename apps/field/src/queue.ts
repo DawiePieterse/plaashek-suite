@@ -12,7 +12,16 @@ export interface QueuedOp {
   entity_id: string;
   client_time: string;
   season_id: string | null;
-  payload: { body: string };
+  payload: {
+    body: string;
+    block_id?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    location_accuracy_m?: number | null;
+    weather_temp?: number | null;
+    weather_humidity?: number | null;
+    weather_condition?: string | null;
+  };
 }
 
 const QUEUE_KEY = "plaashek.field.outbox";

@@ -119,6 +119,13 @@ async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, devi
       createdBy,
       deviceId,
       body: op.payload.body,
+      blockId: op.payload.block_id ?? null,
+      latitude: op.payload.latitude ?? null,
+      longitude: op.payload.longitude ?? null,
+      locationAccuracyM: op.payload.location_accuracy_m ?? null,
+      weatherTemp: op.payload.weather_temp ?? null,
+      weatherHumidity: op.payload.weather_humidity ?? null,
+      weatherCondition: op.payload.weather_condition ?? null,
       createdAt: clientTime,
       updatedAt: clientTime,
     })

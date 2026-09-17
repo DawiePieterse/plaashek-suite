@@ -131,6 +131,59 @@ test("a revoked device is refused, and the same note twice is not two notes", as
   });
 });
 
+test("block, location and weather are stored when the phone sends them, null when it doesn't", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, device } = await pairedPhone(db, "active");
+    const ticket = await mintTicket({
+      farmId: farm.id,
+      deviceId: device.id,
+      farmModules: ["veldnotas"],
+      deviceModules: ["veldnotas"],
+      language: "af",
+      seasonId: null,
+      signingKey: deps.keys.privateKey,
+    });
+
+    const withContext = {
+      entity: "notes" as const,
+      entity_id: crypto.randomUUID(),
+      client_time: "2026-06-01T07:30:00.000Z",
+      season_id: null,
+      payload: {
+        body: "Luise op blok A",
+        latitude: -33.9,
+        longitude: 18.4,
+        location_accuracy_m: 12.5,
+        weather_temp: 22.1,
+        weather_humidity: 54,
+        weather_condition: "Clear",
+      },
+    };
+
+    await app.inject({
+      method: "POST",
+      url: "/sync/upload",
+      headers: { authorization: `Bearer ${ticket}` },
+      payload: { ops: [withContext, op("Sonder konteks", "2026-06-01T07:31:00.000Z")] },
+    });
+
+    const rows = await db.select().from(notes).where(eq(notes.farmId, farm.id));
+    const withRow = rows.find((r) => r.id === withContext.entity_id)!;
+    const withoutRow = rows.find((r) => r.id !== withContext.entity_id)!;
+
+    assert.equal(withRow.latitude, -33.9);
+    assert.equal(withRow.longitude, 18.4);
+    assert.equal(withRow.locationAccuracyM, 12.5);
+    assert.equal(withRow.weatherTemp, 22.1);
+    assert.equal(withRow.weatherHumidity, 54);
+    assert.equal(withRow.weatherCondition, "Clear");
+
+    assert.equal(withoutRow.latitude, null);
+    assert.equal(withoutRow.weatherCondition, null);
+  });
+});
+
 test("a suspended licence holds the capture instead of dropping it", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
