@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.13
+**Status:** v1.14
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -27,6 +27,8 @@
 **Changes from v1.11:** Plaashek Management (§4.1) built for the first time — until now it was an empty stub (`apps/management/src` had no files) and the only way to create an organisation, farm or entitlement was the seed script reaching the database directly. Minimal vertical slice: `plaashek_staff` table and a cross-farm login kept on its own session secret (`MANAGEMENT_SESSION_SECRET`) so a farm office session can never authenticate here, `POST /management/login`, `GET/POST /management/farms`, `PUT /management/farms/:id/entitlements`, a thin `apps/management` UI, and `pnpm create-staff` to bootstrap the first login (console has no self-signup). Verified against Mooiplaas via automated tests (`services/api/src/routes/management.test.ts`), a live curl walkthrough, and a full browser click-through (sign in, create a farm, toggle built-in and free-text module entitlements, all confirmed in Postgres). Does not touch or close any Phase 4 exit checklist item (§12) — those are all real Bekfontein data — but removes the tooling gap that stood in front of the first one ("Bekfontein created as a real organisation + farm row").
 
 **Changes from v1.12:** ADR 0001's calendar gate on Phase 4 go-live removed — explicit business decision, both halves lifted (the "no 2026 rollout" call and the "never during 1 Sep–31 Dec peak picking" operational rule). Go-live now proceeds whenever the exit checklist (§12 Phase 4) actually closes, calendar not a factor. The risk this reopens — a real defect surfacing against Bekfontein's actual harvest instead of a fake farm, if the checklist closes mid-pick — is now carried entirely by the checklist's own items (on-site offline-day proof, backup/restore drill against real data), which stay mandatory and unchanged. See ADR 0001's 17 September 2026 update for the full reasoning.
+
+**Changes from v1.13:** Backup/restore mechanism built (§10, §12 Phase 4) — `infra/backup/backup.sh` (`pg_dump`, 30-day retention) and `restore.sh` (the quarterly drill), wired as `pnpm backup` / `pnpm restore`. Drilled once against Mooiplaas: backed up, restored into a throwaway database, spot-checked (farm, entitlements, season all matched), thrown away. The Phase 4 checklist item stays open — it requires a run against real Bekfontein data — but the tooling gap in front of it is closed.
 
 ---
 
@@ -502,7 +504,7 @@ Exit:
 - [ ] A full offline day proven on an actual phone at Bekfontein: capture with no signal, sync once back at the gate, nothing lost.
 - [ ] Days-since-sync and pending-QR visibility (§4.2) checked against real rural signal, not the office Wi-Fi the fake farm was tested on.
 - [ ] Revoke tested on a real device at the farm, not the fake farm.
-- [ ] Backup/restore drill run at least once against real Bekfontein data before go-live (§10 — "an untested backup is a rumour" applies doubly to the first real farm).
+- [ ] Backup/restore drill run at least once against real Bekfontein data before go-live (§10 — "an untested backup is a rumour" applies doubly to the first real farm). Mechanism now exists and is drilled against Mooiplaas (`infra/backup/backup.sh`, `restore.sh`, `pnpm backup`/`pnpm restore`) — still open until run against the real farm's data.
 - [ ] Go-live date confirmed against the farm's actual season calendar — no calendar restriction to check it against (ADR 0001, updated 17 September 2026), just make sure it isn't a surprise to the farm.
 
 No Span, Stoor, Water, Werkswinkel, Oudit, or Kudde work starts before this closes — proceed to Phase 5 only after Bekfontein is live and stable on Veldnotas + Boord + Eienaar.
