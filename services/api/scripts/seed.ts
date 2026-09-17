@@ -14,6 +14,7 @@ import {
   entitlements,
   farmMemberships,
   farms,
+  harvestEvents,
   heldWrites,
   notes,
   organisations,
@@ -71,6 +72,7 @@ async function wipeDemoData() {
     // Workspace rows carry no foreign key to farms (plan §6: no cross-farm FKs),
     // so nothing cascades — every new module's table has to be listed here.
     await db.delete(notes).where(inArray(notes.farmId, farmIds));
+    await db.delete(harvestEvents).where(inArray(harvestEvents.farmId, farmIds));
     await db.delete(heldWrites).where(inArray(heldWrites.farmId, farmIds));
 
     await db.delete(devices).where(inArray(devices.farmId, farmIds));

@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "field",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@plaashek/field", "dev"],
+      "port": 5174,
+      "autoPort": true
+    },
+    {
+      "name": "owner",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@plaashek/owner", "dev"],
+      "port": 5175,
+      "autoPort": true
+    }
+  ]
+}

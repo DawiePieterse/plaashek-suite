@@ -92,3 +92,6 @@ export const upload = (ticket: string, ops: unknown[]) =>
 /** Current weather at a fix, server-proxied. Only called once a GPS fix exists. */
 export const fetchWeather = (ticket: string, latitude: number, longitude: number) =>
   get<{ temp: number; humidity: number; condition: string }>(`/weather/current?lat=${latitude}&lon=${longitude}`, ticket);
+
+/** Picker data for Boord's block field — fetched once with signal, cached by the caller. */
+export const fetchBlocks = (ticket: string) => get<{ blocks: { id: string; name: string }[] }>("/blocks", ticket);

@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.7
+**Status:** v1.8
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -15,6 +15,8 @@
 **Changes from v1.5:** Phase 2 exit checklist (§12) closed — real capture in `Notes.tsx` (GPS stamp, weather via `/weather/current`, offline badge, 10s poll), correction model built as decided (ADR 0006). Block picker dropped from scope: GPS location already places the note, so a manual block field would be asking twice for the same thing. Proceeding to Phase 3 (`boord` + `eienaar`).
 
 **Changes from v1.6:** Phase 3 kickoff — Boord + Eienaar reuse audit done, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Weather stamp and correction model (append-only, ADR 0006) carry over from Phase 2 unchanged. Supplier/multi-grower pack house and BoordOwner's cross-service architecture ruled out as not portable, not deferred. Per-crate worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped, conflicted with the locked "no in-app person picker" rule (§2.1) and its only real use in the reference app was wage calculation, out of scope for year one. Build scope is ready — proceeding to build `harvest_events` and the Boord capture screen.
+
+**Changes from v1.7:** Phase 3 exit checklist closed (§12) — `harvest_events` table, Boord capture screen (`apps/field/src/Harvest.tsx`), `/sync/upload` generalised to route by entity to its own module and table, `GET /blocks` for the picker, and `apps/owner` as the first `eienaar` build (`GET /eienaar/harvest`, totals by block for the active season). Proceeding to Phase 4.
 
 ---
 
@@ -461,6 +463,17 @@ Field harvest capture. Owner sees it after sync.
 
 **Season check:** Boord touches harvest capture. Do not run Phase 3 or Phase 4 across the pilot farm's pick. Map this against their season in Phase 0 and schedule around it.
 
+Exit — **closed 17 September 2026**, scope per [docs/boord-reuse-audit.md](boord-reuse-audit.md):
+
+- [x] `harvest_events` table: workspace row stamp + `block_id` (FK, not null), `weight_kg` (not null), `deduction_kg`, weather columns. Append-only — no edit path (ADR 0007's precedent).
+- [x] Field capture screen (`apps/field/src/Harvest.tsx`): block picker, weight, optional deduction. Weather race and the offline-badge/flush effect ported from `Notes.tsx` as-is.
+- [x] `GET /blocks`: picker data for the block field, device-ticket-gated, not carried in the signed ticket.
+- [x] `/sync/upload` generalised from a single hardcoded module to a per-entity module map (`notes` → veldnotas, `harvest_events` → boord), so a mixed batch checks pairing/licence once per module and idempotent-inserts each entity into its own table. Suspended/cancelled licence holds the write, same as veldnotas.
+- [x] `GET /eienaar/harvest` (`apps/owner`, new app): crates + kg by block, for the farm's active season only, staff-auth-gated the same way `/farm` already is. No active season returns an empty rollup rather than mixing seasons.
+- Not in this phase (closed by the audit, not deferred): worker/team attribution (ADR 0007), lots/dispatch/pack-house receiving, wages, dashboard history/risk analysis, the multi-grower Supplier model.
+
+No module polish beyond this until a farm asks — proceed to Phase 4.
+
 ### Phase 4 — First real pilot farm (Laughing Waters / Bekfontein, go-live Jan–Aug 2027)
 
 One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: Veldnotas, Boord, Eienaar. Do not start Span to delay this. No 2026 go-live under any build-speed scenario — ADR 0001.
@@ -515,6 +528,7 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 3. Notes reuse audit for `veldnotas` — **done**, see [docs/veldnotas-reuse-audit.md](veldnotas-reuse-audit.md). Build Phase 2 on the closed foundation next.
 4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
 5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped. Build scope ready.
+6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
 
 ---
 
@@ -533,4 +547,4 @@ One live farm. Printed QRs, offline days, sync at the gate, Excel out. Modules: 
 
 ---
 
-*End of complete build plan v1.7.*
+*End of complete build plan v1.8.*

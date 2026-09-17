@@ -5,6 +5,7 @@ import { deviceAssignments, deviceModules, devices, pairingTokens } from "./tabl
 import { entitlements } from "./tables/entitlements.js";
 import { assets, blocks, camps, seasons } from "./tables/master-data.js";
 import { notes } from "./tables/notes.js";
+import { harvestEvents } from "./tables/harvest-events.js";
 import { farmMemberships, people } from "./tables/people.js";
 
 export * from "./tables/core.js";
@@ -14,6 +15,7 @@ export * from "./tables/devices.js";
 export * from "./tables/audit.js";
 export * from "./tables/master-data.js";
 export * from "./tables/notes.js";
+export * from "./tables/harvest-events.js";
 export * from "./workspace-row.js";
 
 export const insertOrganisation = createInsertSchema(organisations);
@@ -60,3 +62,6 @@ export const selectSeason = createSelectSchema(seasons);
 
 export const insertNote = createInsertSchema(notes);
 export const selectNote = createSelectSchema(notes);
+
+export const insertHarvestEvent = createInsertSchema(harvestEvents);
+export const selectHarvestEvent = createSelectSchema(harvestEvents);

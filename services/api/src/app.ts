@@ -2,7 +2,9 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerBlockRoutes } from "./routes/blocks.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
+import { registerEienaarRoutes } from "./routes/eienaar.js";
 import { registerFarmRoutes } from "./routes/farm.js";
 import { registerJwksRoutes } from "./routes/jwks.js";
 import { registerPairingRoutes } from "./routes/pairing.js";
@@ -50,6 +52,8 @@ export function buildApp(deps: AppDeps) {
   registerSyncRoutes(app, deps);
   registerWeatherRoutes(app, deps);
   registerJwksRoutes(app, deps);
+  registerBlockRoutes(app, deps);
+  registerEienaarRoutes(app, deps);
 
   return app;
 }

@@ -1,14 +1,17 @@
-import { deviceAssignments, deviceModules, heldWrites, notes } from "@plaashek/schema";
+import { deviceAssignments, deviceModules, harvestEvents, heldWrites, notes } from "@plaashek/schema";
 import { and, desc, eq, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
-import { uploadRequestSchema, type UploadOp } from "../schemas/sync.js";
+import { uploadRequestSchema, type HarvestEventOp, type NoteOp } from "../schemas/sync.js";
 
-/** Veldnotas is the only module that captures anything yet (plan §11); a second entity brings a map. */
-const MODULE_CODE = "veldnotas";
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, then boord). */
+const MODULE_CODE: Record<NoteOp["entity"] | HarvestEventOp["entity"], string> = {
+  notes: "veldnotas",
+  harvest_events: "boord",
+};
 
 /**
  * Who the phone was assigned to *when the note was taken*, not when it finally
@@ -42,32 +45,41 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
     const claims = await requireDeviceTicket(request.headers, deps);
     const { ops } = uploadRequestSchema.parse(request.body);
 
-    // The floor is read live, not from the ticket: a revoke lands at the next
-    // sync, and this is that sync (plan §3.5).
-    const [paired] = await deps.db
-      .select({ moduleCode: deviceModules.moduleCode })
-      .from(deviceModules)
-      .where(and(eq(deviceModules.deviceId, claims.deviceId), eq(deviceModules.moduleCode, MODULE_CODE)));
-    if (!paired) throw forbidden("not_paired", `This device is not paired for module: ${MODULE_CODE}`);
+    // A batch only ever touches the module(s) this phone actually has open, but
+    // check each once and cache — a mixed batch must not pay for the same
+    // module twice.
+    const heldModules = new Set<string>();
+    for (const moduleCode of new Set(ops.map((op) => MODULE_CODE[op.entity]))) {
+      // The floor is read live, not from the ticket: a revoke lands at the next
+      // sync, and this is that sync (plan §3.5).
+      const [paired] = await deps.db
+        .select({ moduleCode: deviceModules.moduleCode })
+        .from(deviceModules)
+        .where(and(eq(deviceModules.deviceId, claims.deviceId), eq(deviceModules.moduleCode, moduleCode)));
+      if (!paired) throw forbidden("not_paired", `This device is not paired for module: ${moduleCode}`);
 
-    const status = await moduleStatus(deps.db, claims.farmId, MODULE_CODE);
-    if (!status) throw forbidden("not_licensed", `Farm is not licensed for module: ${MODULE_CODE}`);
+      const status = await moduleStatus(deps.db, claims.farmId, moduleCode);
+      if (!status) throw forbidden("not_licensed", `Farm is not licensed for module: ${moduleCode}`);
 
-    // Never drop a capture over an invoice — hold it instead (plan §5).
-    const held = status === "suspended" || status === "cancelled";
+      // Never drop a capture over an invoice — hold it instead (plan §5).
+      if (status === "suspended" || status === "cancelled") heldModules.add(moduleCode);
+    }
 
-    // ponytail: two queries per op, fine for a phone's handful of notes.
+    // ponytail: two queries per op, fine for a phone's handful of captures.
     // Batch the assignment lookup and the insert if a device ever syncs hundreds.
     return deps.db.transaction(async (tx) => {
       const accepted: string[] = [];
+      let held = false;
 
       for (const op of ops) {
+        const moduleCode = MODULE_CODE[op.entity];
         const clientTime = new Date(op.client_time);
 
-        if (held) {
+        if (heldModules.has(moduleCode)) {
+          held = true;
           await tx.insert(heldWrites).values({
             farmId: claims.farmId,
-            moduleCode: MODULE_CODE,
+            moduleCode,
             deviceId: claims.deviceId,
             entity: op.entity,
             entityId: op.entity_id,
@@ -78,7 +90,11 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
           continue;
         }
 
-        await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
+        if (op.entity === "notes") {
+          await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else {
+          await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
+        }
         accepted.push(op.entity_id);
       }
 
@@ -90,10 +106,9 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
 /**
  * Notes are append-only events (plan §7), so the same id arriving twice is a
  * retry, not a second note — `onConflictDoNothing` makes that idempotent in one
- * statement, with no read-then-write race. `resolveWrite`'s last-write-wins
- * branch is for scalar tables and lands with the first editable module.
+ * statement, with no read-then-write race.
  */
-async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: UploadOp, clientTime: Date) {
+async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: NoteOp, clientTime: Date) {
   const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
   if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
 
@@ -102,7 +117,7 @@ async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, devi
     .values({
       id: op.entity_id,
       farmId,
-      moduleCode: MODULE_CODE,
+      moduleCode: MODULE_CODE.notes,
       seasonId: op.season_id,
       createdBy,
       deviceId,
@@ -111,6 +126,32 @@ async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, devi
       latitude: op.payload.latitude ?? null,
       longitude: op.payload.longitude ?? null,
       locationAccuracyM: op.payload.location_accuracy_m ?? null,
+      weatherTemp: op.payload.weather_temp ?? null,
+      weatherHumidity: op.payload.weather_humidity ?? null,
+      weatherCondition: op.payload.weather_condition ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/** Same append-only shape as a note — no edit path (ADR 0007's precedent). */
+async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: HarvestEventOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(harvestEvents)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.harvest_events,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      blockId: op.payload.block_id,
+      weightKg: op.payload.weight_kg,
+      deductionKg: op.payload.deduction_kg ?? null,
       weatherTemp: op.payload.weather_temp ?? null,
       weatherHumidity: op.payload.weather_humidity ?? null,
       weatherCondition: op.payload.weather_condition ?? null,

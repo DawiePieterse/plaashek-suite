@@ -7,7 +7,7 @@
  * redesign. Ceiling: localStorage is ~5MB and synchronous, so it is fine for
  * text notes and wrong for photos.
  */
-export interface QueuedOp {
+export interface NoteOp {
   entity: "notes";
   entity_id: string;
   client_time: string;
@@ -23,6 +23,24 @@ export interface QueuedOp {
     weather_condition?: string | null;
   };
 }
+
+/** Boord capture (docs/boord-reuse-audit.md): block + weight + optional deduction. */
+export interface HarvestEventOp {
+  entity: "harvest_events";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    block_id: string;
+    weight_kg: number;
+    deduction_kg?: number | null;
+    weather_temp?: number | null;
+    weather_humidity?: number | null;
+    weather_condition?: string | null;
+  };
+}
+
+export type QueuedOp = NoteOp | HarvestEventOp;
 
 const QUEUE_KEY = "plaashek.field.outbox";
 
