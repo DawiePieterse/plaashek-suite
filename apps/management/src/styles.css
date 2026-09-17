@@ -84,40 +84,43 @@ label {
   border-radius: 0.5rem;
 }
 
-.farms {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.farm-card {
-  padding: 1rem;
+.farms-table {
+  width: 100%;
+  border-collapse: collapse;
   background: #fff;
   border-radius: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  overflow: hidden;
 }
 
-.farm-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+.farms-table th,
+.farms-table td {
+  text-align: left;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid #ece9e3;
 }
 
-.modules {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+.farms-table th {
+  font-size: 0.85rem;
+  color: #6b6760;
+  font-weight: 600;
 }
 
-.module-toggle {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.35rem;
+.farms-table th:nth-child(n + 5),
+.farms-table td:nth-child(n + 5) {
   font-family: monospace;
+  text-align: center;
+}
+
+.farms-table input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1.5px solid #1c2321;
+  border-radius: 0.25rem;
+  accent-color: #1c2321;
+}
+
+.farms-table tr:last-child td {
+  border-bottom: none;
 }
 
 .create-farm {

@@ -45,13 +45,47 @@ export function Farms({ session, onSessionExpired }: { session: Session; onSessi
       {error && <p className="error">{error}</p>}
       {farms.length === 0 && <p className="muted">Nog geen plaas nie. Skep die eerste een.</p>}
 
-      <ul className="farms">
-        {farms.map((f) => (
-          <li key={f.farm.id}>
-            <FarmCard farm={f} busy={busy} onSetEntitlement={(moduleCode, status) => run(() => setEntitlement(session, f.farm.id, moduleCode, status))} />
-          </li>
-        ))}
-      </ul>
+      {farms.length > 0 && (
+        <table className="farms-table">
+          <thead>
+            <tr>
+              <th>Plaas</th>
+              <th>Organisasie</th>
+              <th>Taal</th>
+              <th>Demo?</th>
+              {BUILT_MODULES.map((code) => (
+                <th key={code}>{code}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {farms.map((f) => {
+              const statusByModule = new Map(f.entitlements.map((e) => [e.moduleCode, e.status]));
+              const licensed = (code: string) => statusByModule.get(code) === "active" || statusByModule.get(code) === "grace";
+
+              return (
+                <tr key={f.farm.id}>
+                  <td>{f.farm.name}</td>
+                  <td>{f.organisation.name}</td>
+                  <td>{f.farm.language}</td>
+                  {/* No is-demo column in the schema — the seed script always creates demo farms under this org name, so that's the tell. */}
+                  <td>{f.organisation.name === "Demo Organisasie" ? "Ja" : "Nee"}</td>
+                  {BUILT_MODULES.map((code) => (
+                    <td key={code}>
+                      <input
+                        type="checkbox"
+                        checked={licensed(code)}
+                        disabled={busy}
+                        onChange={(e) => run(() => setEntitlement(session, f.farm.id, code, e.target.checked ? "active" : "cancelled"))}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
 
       <CreateFarmForm busy={busy} onCreate={(body) => run(() => api("/management/farms", { method: "POST", token: session.token, body: JSON.stringify(body) }))} />
     </section>
@@ -64,44 +98,6 @@ function setEntitlement(session: Session, farmId: string, moduleCode: string, st
     token: session.token,
     body: JSON.stringify({ moduleCode, status }),
   });
-}
-
-function FarmCard({
-  farm,
-  busy,
-  onSetEntitlement,
-}: {
-  farm: Farm;
-  busy: boolean;
-  onSetEntitlement: (moduleCode: string, status: "active" | "cancelled") => void;
-}) {
-  const statusByModule = new Map(farm.entitlements.map((e) => [e.moduleCode, e.status]));
-  const licensed = (code: string) => statusByModule.get(code) === "active" || statusByModule.get(code) === "grace";
-
-  return (
-    <div className="farm-card">
-      <div className="farm-head">
-        <strong>{farm.farm.name}</strong>
-        <span className="muted">
-          {farm.organisation.name} · {farm.farm.language}
-        </span>
-      </div>
-
-      <div className="modules">
-        {BUILT_MODULES.map((code) => (
-          <label key={code} className="module-toggle">
-            <input
-              type="checkbox"
-              checked={licensed(code)}
-              disabled={busy}
-              onChange={(e) => onSetEntitlement(code, e.target.checked ? "active" : "cancelled")}
-            />
-            {code}
-          </label>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function CreateFarmForm({ busy, onCreate }: { busy: boolean; onCreate: (body: { organisationName: string; farmName: string; language: "af" | "en" }) => void }) {
