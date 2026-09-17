@@ -4,6 +4,8 @@ import { api, ApiError, OFFLINE_MESSAGE, type Farm, type Session } from "./api.j
 /** The modules actually built so far (plan §4.5, §12) — anything else is typed in by hand. */
 const BUILT_MODULES = ["veldnotas", "boord", "eienaar"];
 
+const LANGUAGE_NAME: Record<string, string> = { af: "Afrikaans", en: "English" };
+
 export function Farms({ session, onSessionExpired }: { session: Session; onSessionExpired: () => void }) {
   const [farms, setFarms] = useState<Farm[] | null>(null);
   const [error, setError] = useState("");
@@ -67,7 +69,7 @@ export function Farms({ session, onSessionExpired }: { session: Session; onSessi
                 <tr key={f.farm.id}>
                   <td>{f.farm.name}</td>
                   <td>{f.organisation.name}</td>
-                  <td>{f.farm.language}</td>
+                  <td>{LANGUAGE_NAME[f.farm.language] ?? f.farm.language}</td>
                   {/* No is-demo column in the schema — the seed script always creates demo farms under this org name, so that's the tell. */}
                   <td>{f.organisation.name === "Demo Organisasie" ? "Ja" : "Nee"}</td>
                   {BUILT_MODULES.map((code) => (
