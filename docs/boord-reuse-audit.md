@@ -31,11 +31,20 @@ to port.
 | Supplier (multi-grower pack house) | A pack house receives fruit from several farms' `Supplier` rows, tracked separately through every table (lots, billing, dashboard). | Plaashek is one farm per install with no cross-farm data (plan §6: "No cross-farm foreign keys. Ever."). There is no "pack house serving multiple growers" concept in this architecture — this isn't a Phase 3-vs-later question, it's a different business model. Skip entirely. |
 | BoordOwner's architecture (reads Boord's live DB) | A separate FastAPI service connects read-only to Boord's own SQLite file. | Plaashek's office tools read the farm's own synced Postgres rows, not another app's live database. Nothing here is portable as code — `eienaar` gets rebuilt on Plaashek's schema, per README ("reuse a screen or a data shape... otherwise rebuild"). |
 
+## Conflicts with what's locked in
+
+- **Per-crate worker/team attribution** — the reference app stamps every
+  crate with `worker_id`, chosen mid-shift on a field tablet shared by a
+  whole picking team; Plaashek's locked model stamps every capture with the
+  device's assigned person and rules out an in-app person picker (§2.1).
+  Closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): no
+  per-crate attribution, `harvest_events` gets `created_by` the same way
+  every other module does.
+
 ## Needs a product call before building
 
 | Feature | Reference shape | Question |
 |---|---|---|
-| **Per-crate worker/team attribution** | Every `HarvestRecord` carries `worker_id` (picked from a dropdown or QR-card scan, mid-shift, on a shared field tablet) and `team_id`. Dashboard and wage calculation both key off it. | Plaashek's locked model stamps every capture with **the device's assigned person** (plan §3.2, §6) and explicitly rules out an in-app person picker (§2.1: "No in-app person switching. The admin assigns the name; the phone never asks."). A shared field tablet used by a whole picking team across a day is exactly the case that rule was written against. Recommend: **drop per-crate worker/team attribution for Phase 3.** `created_by` stays the device's assigned person, same as every other module. Reasoning: (1) it directly conflicts with a locked decision, not just an unbuilt feature; (2) its only real consumer in the reference app is wage calculation, and "no payments inside Plaashek Management in year one" is an explicit non-goal (§2.1) — so the data has no use once captured. If the pilot farm wants per-picker productivity later (not payroll, just "who picked what"), that's a real ask worth its own decision when it comes, not one to guess at now. |
 | **Lots / dispatch / pack-house receiving** | `Lot`, `ReceivingRecord`, `PrePackRecord` — a field device bundles crates into a picking slip, dispatches it, and a separate receiving station logs discrepancies and condition. | Boord is Field-only in the module table (plan §4.5) — there's no pack-house-receiving module or device role anywhere in §11's order. Recommend: **out of Phase 3 scope.** A crate is captured and synced; what happens to it after the truck leaves the block isn't part of "field harvest capture." Revisit only if a future module (`stoor`?) actually asks for it. |
 | **Wages/payments** (`RateSetting`, `Payment`, admin Dashboard's wage columns) | Rate-per-kg or per-crate-tier, calculated and snapshotted per pay period. | Explicit non-goal (§2.1: "No payments inside Plaashek Management in year one"). Recommend: **defer**, same call the plan already made. |
 | **Dashboard / Eienaar's first screen** | Boord's admin Dashboard: active teams/workers/blocks, per-worker crate counts, wage totals. BoordOwner's version is the same thing with wages stripped. | Plan §4.3: "While only Boord is live, `eienaar` is Boord figures in owner form." Read literally, that's a minimal read-only rollup, not the reference's full historical-import + weather-risk analysis screens. Recommend: **Phase 3 `eienaar` = totals only** — crates and kg captured, by block, for the active season, read straight off Plaashek's own `harvest_events` (no cross-service DB read, no wage column since there's nothing to strip). Historical import and risk analysis: defer, first candidate once a farm asks for season-over-season comparison. |
@@ -62,9 +71,10 @@ after sync") rather than reference-app parity:
    suspended/cancelled licence, no update branch.
 4. `eienaar` first screen: total crates + kg for the active season, grouped
    by block. Read-only, staff-auth-gated the same way `/farm` already is.
-5. Not in this phase: worker/team attribution (needs its own product
-   decision if a farm asks), lots/dispatch/receiving, wages, dashboard
-   history/risk analysis.
+5. Not in this phase: worker/team attribution (closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md),
+   revisit only if a farm asks for per-picker counts without payroll
+   attached), lots/dispatch/receiving, wages, dashboard history/risk
+   analysis.
 
 **Scheduling reminder (plan §12):** do not run Phase 3 across the pilot
 farm's actual pick — map this against Laughing Waters / Bekfontein's season
