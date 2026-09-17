@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.10
+**Status:** v1.11
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -21,6 +21,8 @@
 **Changes from v1.8:** Phase 4 kickoff — exit checklist written (§12). Phase 4 is a go-live, not a module build: no reference app, no reuse audit. Excel export (§10 offboarding, §12) does not exist yet in any app — it's on the checklist, not assumed done. Go-live itself stays gated to Jan–Aug 2027 per ADR 0001 regardless of when the checklist closes.
 
 **Changes from v1.9:** CI added (`.github/workflows/ci.yml`) — build, migrate, typecheck and test on every push to main and every PR. Surfaced two latent, Node-version-dependent test bugs (`apps/field`'s and `services/api`'s test scripts each relied on a Node runtime feature not present in CI's pinned Node 20, despite passing on a newer local Node); both fixed with portable patterns already used elsewhere in the repo. Green on main as of commit `8750f60`. A branch protection rule requiring the `test` check exists on `main` but is not enforced — GitHub only enforces private-repo branch protection under a Team/Enterprise organisation account, not a personal account — left as-is, solo/part-time project, revisit if a collaborator joins.
+
+**Changes from v1.10:** Demo seed farm (`infra/seed`, `services/api/scripts/seed.ts`) renamed from the generic `Toetsplaas` to `Mooiplaas`, and its season shaped on Bekfontein's actual documented facts (ADR 0001: litchi, 1 Sep–31 Dec peak picking) instead of a generic calendar year — still fabricated demo data, not real Bekfontein data (none exists yet), just closer in shape to what Phase 4 will need. Does not close or touch any Phase 4 exit checklist item (§12) — those are all about the real farm.
 
 ---
 
