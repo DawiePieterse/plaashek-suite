@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.14
+**Status:** v1.15
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -29,6 +29,8 @@
 **Changes from v1.12:** ADR 0001's calendar gate on Phase 4 go-live removed — explicit business decision, both halves lifted (the "no 2026 rollout" call and the "never during 1 Sep–31 Dec peak picking" operational rule). Go-live now proceeds whenever the exit checklist (§12 Phase 4) actually closes, calendar not a factor. The risk this reopens — a real defect surfacing against Bekfontein's actual harvest instead of a fake farm, if the checklist closes mid-pick — is now carried entirely by the checklist's own items (on-site offline-day proof, backup/restore drill against real data), which stay mandatory and unchanged. See ADR 0001's 17 September 2026 update for the full reasoning.
 
 **Changes from v1.13:** Backup/restore mechanism built (§10, §12 Phase 4) — `infra/backup/backup.sh` (`pg_dump`, 30-day retention) and `restore.sh` (the quarterly drill), wired as `pnpm backup` / `pnpm restore`. Drilled once against Mooiplaas: backed up, restored into a throwaway database, spot-checked (farm, entitlements, season all matched), thrown away. The Phase 4 checklist item stays open — it requires a run against real Bekfontein data — but the tooling gap in front of it is closed.
+
+**Changes from v1.14:** Bekfontein created for real (§12 Phase 4) — organisation "Laughing Waters", farm "Bekfontein", licensed for exactly `veldnotas`, `boord`, `eienaar`, created through Plaashek Management rather than a script. First two Phase 4 checklist items close. Caveat: this lives in the local dev database, the only database that currently exists (no production VPS provisioned, plan §9) — move it when real hosting exists. Still open: real people/blocks/camps, real device pairing, on-site offline-day proof, days-since-sync against real signal, revoke on a real device, the backup/restore drill against this farm's actual data, and a go-live date.
 
 ---
 
@@ -496,8 +498,8 @@ Exit:
 
 - [x] Excel export shipped from the office tools — `GET /export/notes.csv` and `GET /export/harvest.csv` (`services/api/src/routes/export.ts`), staff-auth-gated the same way `/farm` and `/eienaar/harvest` are, one button each in the Farm Admin Tool and `apps/owner`. CSV, not a binary `.xlsx` — Excel opens it natively, so no dependency was added for a two-table export.
 - [x] CI green on `main` (`.github/workflows/ci.yml`: build, migrate, typecheck, test on every push/PR). Branch protection requiring the `test` check is configured but not enforced — GitHub gates private-repo enforcement behind a Team/Enterprise org account; left inert as a solo/part-time project, free to activate the moment a collaborator joins or the repo moves org-side.
-- [ ] Bekfontein created as a real organisation + farm row, replacing no seed data (ADR 0001: genuine first deployment, not a migration).
-- [ ] Real entitlements set for exactly `veldnotas`, `boord`, `eienaar` — no `span`, no `kudde`.
+- [x] Bekfontein created as a real organisation + farm row, replacing no seed data (ADR 0001: genuine first deployment, not a migration). Created 17 September 2026 via Plaashek Management (`POST /management/farms`) — organisation "Laughing Waters", farm "Bekfontein", `af`. Lives in the local dev database (no production VPS exists yet, plan §9) — move it when real hosting is provisioned.
+- [x] Real entitlements set for exactly `veldnotas`, `boord`, `eienaar` — no `span`, no `kudde`. Set 17 September 2026 via `PUT /management/farms/:id/entitlements`.
 - [ ] Bekfontein's litchi season(s) entered in the Farm Admin Tool with real dates (peak picking runs 1 Sep–31 Dec, ADR 0001) — informational now that go-live isn't gated to avoid that window, but the season still has to be right for captures to stamp correctly.
 - [ ] Real people, blocks, camps entered for the farm — not the fake-farm fixtures from `infra/seed`.
 - [ ] Real devices paired on-site: printed QR → scan → correct single app opens, for each of the three modules across however many phones the farm actually runs.
