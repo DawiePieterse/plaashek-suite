@@ -105,8 +105,8 @@ label {
   font-weight: 600;
 }
 
-.farms-table th:nth-child(n + 5),
-.farms-table td:nth-child(n + 5) {
+.farms-table th:nth-child(n + 4),
+.farms-table td:nth-child(n + 4) {
   font-family: monospace;
   text-align: center;
 }

@@ -54,7 +54,7 @@ export function Farms({ session, onSessionExpired }: { session: Session; onSessi
               <th>Plaas</th>
               <th>Organisasie</th>
               <th>Taal</th>
-              <th>Demo?</th>
+              <th>Demo</th>
               {BUILT_MODULES.map((code) => (
                 <th key={code}>{code}</th>
               ))}
@@ -70,8 +70,10 @@ export function Farms({ session, onSessionExpired }: { session: Session; onSessi
                   <td>{f.farm.name}</td>
                   <td>{f.organisation.name}</td>
                   <td>{LANGUAGE_NAME[f.farm.language] ?? f.farm.language}</td>
-                  {/* No is-demo column in the schema — the seed script always creates demo farms under this org name, so that's the tell. */}
-                  <td>{f.organisation.name === "Demo Organisasie" ? "Ja" : "Nee"}</td>
+                  {/* No is-demo column in the schema — the seed script always creates demo farms under this org name, so that's the tell. Read-only: nothing to set. */}
+                  <td>
+                    <input type="checkbox" checked={f.organisation.name === "Demo Organisasie"} disabled />
+                  </td>
                   {BUILT_MODULES.map((code) => (
                     <td key={code}>
                       <input
