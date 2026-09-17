@@ -18,3 +18,4 @@ Raised outside §13, during phase work:
 
 8. ~~Veldnotas: how a worker corrects a wrong note, given `notes` was already built append-only~~ — [ADR 0006](0006-note-corrections.md): no edit, no delete — a correction is a new note
 9. ~~Boord: per-crate worker/team attribution, or the existing device-stamps-the-person model~~ — [ADR 0007](0007-boord-no-worker-attribution.md): no per-crate attribution, same as every other module
+10. ~~Whether Span scoping could start before Bekfontein's Phase 4 gate closes~~ — [ADR 0008](0008-span-prep-early.md): yes, scoping only — see [docs/span-scope.md](../span-scope.md)

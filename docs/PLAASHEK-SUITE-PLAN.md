@@ -424,7 +424,7 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | 1 | `veldnotas` | Notes | Proves print-QR → one app → offline sync |
 | 2 | `boord` | Boord field | Second field module |
 | 3 | `eienaar` | Boord Owner | Built with Boord. Read-only |
-| 4 | `span` | — | Assigned-person stamp makes clocking work |
+| 4 | `span` | — | Assigned-person stamp makes clocking work. Build scope: [docs/span-scope.md](span-scope.md) |
 | 5 | `stoor` | — | New |
 | 6 | `kudde` | — | Deferred, no build slot — ADR 0005 |
 | 7 | `water`, `werkswinkel` | — | New |
@@ -568,7 +568,8 @@ No Span, Stoor, Water, Werkswinkel, Oudit, or Kudde work starts before this clos
 4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
 5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped. Build scope ready.
 6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
-7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built. Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close.
+7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists, and the Farm Admin Tool can now create the farm's own people/blocks/camps with either office role. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built, plus standing up real hosting (plan §9 — no production VPS exists yet). Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close.
+8. Span build scope — **done ahead of schedule** ([ADR 0008](decisions/0008-span-prep-early.md)), see [docs/span-scope.md](span-scope.md). Scoping only: no schema, no route, no field screen. Plan §12's Phase 4 gate still applies to actual Span implementation — three open product-call questions (punch-event shape, correction model, season scoping) need answers before that starts.
 
 ---
 
