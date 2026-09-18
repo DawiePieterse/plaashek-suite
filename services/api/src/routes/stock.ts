@@ -2,16 +2,10 @@ import { stockItems, stockMoves } from "@plaashek/schema";
 import { and, asc, eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
-import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
-import { notFound } from "../lib/errors.js";
+import { assertFarmOwns } from "../lib/farm.js";
 import { createStockItemRequestSchema, updateStockItemRequestSchema } from "../schemas/stock.js";
-
-async function ownStockItem(db: Pick<Db, "select">, farmId: string, itemId: string) {
-  const [item] = await db.select({ id: stockItems.id }).from(stockItems).where(and(eq(stockItems.id, itemId), eq(stockItems.farmId, farmId)));
-  return Boolean(item);
-}
 
 /**
  * Stoor (plan §11, docs/stoor-build-scope.md): the catalog, the phone's
@@ -53,7 +47,7 @@ export function registerStockRoutes(app: App, deps: AppDeps) {
     const { itemId } = request.params as { itemId: string };
     const body = updateStockItemRequestSchema.parse(request.body);
 
-    if (!(await ownStockItem(deps.db, staff.farmId, itemId))) throw notFound();
+    await assertFarmOwns(deps.db, stockItems, stockItems.id, stockItems.farmId, itemId, staff.farmId);
 
     return deps.db.transaction(async (tx) => {
       const [item] = await tx

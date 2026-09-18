@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { OfficeShell } from "@plaashek/ui-office";
-import { api, ApiError, clearSession, downloadCsv, loadSession, type Session } from "./api.js";
-import { t } from "./copy.js";
+import { Login, OfficeShell } from "@plaashek/ui-office";
+import { api, ApiError, clearSession, downloadCsv, loadSession, saveSession, type Session } from "./api.js";
+import { setLang, t } from "./copy.js";
 import { Devices } from "./Devices.js";
-import { Login } from "./Login.js";
 import { MasterData } from "./MasterData.js";
 import { Piecework } from "./Piecework.js";
 import { Stoor } from "./Stoor.js";
@@ -20,7 +19,17 @@ export function App() {
   const [payoutKey, setPayoutKey] = useState(0);
   const c = t();
 
-  if (!session) return <Login onLogin={setSession} />;
+  if (!session) {
+    return (
+      <Login
+        onLogin={setSession}
+        api={api}
+        saveSession={saveSession}
+        setLang={setLang}
+        copy={{ appTitle: c.appTitle, email: c.email, password: c.password, signIn: c.signIn, signingIn: c.signingIn, offline: c.offline }}
+      />
+    );
+  }
 
   const signOut = () => {
     clearSession();

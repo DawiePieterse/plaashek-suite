@@ -71,12 +71,12 @@ export interface StockMoveOp {
   };
 }
 
-/** Water's reading (docs/water-build-scope.md): which point, what value. `season_id` is always null. */
+/** Water's reading (docs/water-build-scope.md): which point, what value. `season_id` is always null — enforced by the server schema too, not just this type. */
 export interface MeterReadingOp {
   entity: "meter_readings";
   entity_id: string;
   client_time: string;
-  season_id: string | null;
+  season_id: null;
   payload: {
     water_point_id: string;
     reading: number;
@@ -84,12 +84,12 @@ export interface MeterReadingOp {
   };
 }
 
-/** Half of a job's lifecycle (docs/werkswinkel-build-scope.md) — `opened` or `closed`, paired server-side. `season_id` is always null. */
+/** Half of a job's lifecycle (docs/werkswinkel-build-scope.md) — `opened` or `closed`, paired server-side. `season_id` is always null — enforced by the server schema too. */
 export interface WorkOrderOp {
   entity: "work_orders";
   entity_id: string;
   client_time: string;
-  season_id: string | null;
+  season_id: null;
   payload: {
     asset_id: string;
     event: "opened" | "closed";
@@ -97,12 +97,12 @@ export interface WorkOrderOp {
   };
 }
 
-/** One fill-up (docs/werkswinkel-build-scope.md). `season_id` is always null. */
+/** One fill-up (docs/werkswinkel-build-scope.md). `season_id` is always null — enforced by the server schema too. */
 export interface FuelLogOp {
   entity: "fuel_logs";
   entity_id: string;
   client_time: string;
-  season_id: string | null;
+  season_id: null;
   payload: {
     asset_id: string;
     litres: number;

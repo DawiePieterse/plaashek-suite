@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { OfficeShell } from "@plaashek/ui-office";
-import { api, ApiError, clearSession, downloadCsv, loadSession, type Session } from "./api.js";
-import { t } from "./copy.js";
-import { Login } from "./Login.js";
+import { Login, OfficeShell } from "@plaashek/ui-office";
+import { api, ApiError, clearSession, downloadCsv, loadSession, saveSession, type Session } from "./api.js";
+import { setLang, t } from "./copy.js";
 
 /**
  * The Owner Module is the shared office shell (plan §4.2, §4.3) with nothing
@@ -14,7 +13,17 @@ export function App() {
   const [session, setSession] = useState<Session | null>(loadSession);
   const c = t();
 
-  if (!session) return <Login onLogin={setSession} />;
+  if (!session) {
+    return (
+      <Login
+        onLogin={setSession}
+        api={api}
+        saveSession={saveSession}
+        setLang={setLang}
+        copy={{ appTitle: c.appTitle, email: c.email, password: c.password, signIn: c.signIn, signingIn: c.signingIn, offline: c.offline }}
+      />
+    );
+  }
 
   const signOut = () => {
     clearSession();

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useOffice, useOfficeLoader } from "../context.js";
+import { rand } from "../money.js";
 
 /**
  * The read-only rollups both office tools show: harvest by block, attendance
@@ -41,8 +42,6 @@ export interface PayoutSummary {
   unattributedCrates: number;
   unattributedKg: number;
 }
-
-const rand = (cents: number) => (cents / 100).toFixed(2);
 
 /** A rollup with nothing in it yet — still titled, so the tab does not look broken. */
 function Empty({ heading, message, kind = "empty" }: { heading: string; message: string; kind?: "empty" | "error" }) {

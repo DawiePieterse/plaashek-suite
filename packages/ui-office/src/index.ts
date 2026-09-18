@@ -12,3 +12,6 @@ export { officeCopy, type Lang } from "./copy.js";
 export { OfficeShell, type OfficeShellProps } from "./shell.js";
 export type { Asset, Block, Camp, FarmContext } from "./farm-context.js";
 export { moduleName } from "./tabs.js";
+export { rand } from "./money.js";
+export { ApiError, createApiClient, type Session } from "./api-client.js";
+export { Login, type LoginCopy } from "./Login.js";

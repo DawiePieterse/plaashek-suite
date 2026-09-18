@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { nonEmptyUpdate } from "./catalog.js";
 
 /**
  * The farm's own number for the worker (ADR 0011) — typed by the office, not
@@ -14,14 +15,14 @@ export const createWorkerRequestSchema = z.object({
 });
 
 /** Every field optional: the office edits the one thing that was wrong. */
-export const updateWorkerRequestSchema = z
-  .object({
+export const updateWorkerRequestSchema = nonEmptyUpdate(
+  z.object({
     workerNumber: workerNumber.optional(),
     name: workerName.optional(),
     /** A worker who has left. Their captures keep their attribution; new scans of the number stop resolving. */
     active: z.boolean().optional(),
-  })
-  .refine((body) => Object.keys(body).length > 0, { message: "Nothing to change" });
+  }),
+);
 
 /**
  * Cents, not rand: money never touches a float in this codebase (ADR 0010).

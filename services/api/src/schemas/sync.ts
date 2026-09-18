@@ -4,6 +4,8 @@ import { z } from "zod";
 const clientTime = z.string().datetime({ offset: true });
 /** Resolved on the device from its synced season (docs/seasons-and-stamping.md), null when it has none. */
 const seasonId = z.string().uuid().nullable();
+/** Water and Werkswinkel are season-less (plan §6, §8) — enforced here, not just by each field screen happening to send null. */
+const noSeasonId = z.literal(null);
 
 const noteOp = z.object({
   entity: z.literal("notes"),
@@ -89,7 +91,7 @@ const meterReadingOp = z.object({
   entity: z.literal("meter_readings"),
   entity_id: z.string().uuid(),
   client_time: clientTime,
-  season_id: seasonId,
+  season_id: noSeasonId,
   payload: z.object({
     water_point_id: z.string().uuid(),
     reading: z.number(),
@@ -106,7 +108,7 @@ const workOrderOp = z.object({
   entity: z.literal("work_orders"),
   entity_id: z.string().uuid(),
   client_time: clientTime,
-  season_id: seasonId,
+  season_id: noSeasonId,
   payload: z.object({
     asset_id: z.string().uuid(),
     event: z.enum(["opened", "closed"]),
@@ -119,7 +121,7 @@ const fuelLogOp = z.object({
   entity: z.literal("fuel_logs"),
   entity_id: z.string().uuid(),
   client_time: clientTime,
-  season_id: seasonId,
+  season_id: noSeasonId,
   payload: z.object({
     asset_id: z.string().uuid(),
     litres: z.number().positive(),

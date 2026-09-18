@@ -68,6 +68,13 @@ async function personAtSaveTime(db: Pick<Db, "select">, deviceId: string, client
   return earliest?.personId ?? null;
 }
 
+/** Every `apply*` below needs this same lookup-or-refuse — the device must have someone assigned at save time to attribute the capture to. */
+async function requireCreatedBy(db: Pick<Db, "select">, deviceId: string, clientTime: Date): Promise<string> {
+  const createdBy = await personAtSaveTime(db, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  return createdBy;
+}
+
 export function registerSyncRoutes(app: App, deps: AppDeps) {
   app.post("/sync/upload", async (request) => {
     const claims = await requireDeviceTicket(request.headers, deps);
@@ -160,8 +167,7 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
  * statement, with no read-then-write race.
  */
 async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: NoteOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(notes)
@@ -212,8 +218,7 @@ async function resolvePicker(tx: Pick<Db, "select">, farmId: string, workerNumbe
 
 /** Same append-only shape as a note — no edit path (ADR 0006's precedent, kept by ADR 0009). */
 async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: HarvestEventOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   const scannedNumber = op.payload.picker_card_code ? normaliseWorkerNumber(op.payload.picker_card_code) : null;
   const pickerId = await resolvePicker(tx, farmId, scannedNumber);
@@ -255,8 +260,7 @@ async function applyAttendancePunch(
   op: AttendancePunchOp,
   clientTime: Date,
 ) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(attendancePunches)
@@ -283,8 +287,7 @@ async function applyAttendancePunch(
  * every other capture: a miscounted move is followed by a correcting one.
  */
 async function applyStockMove(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: StockMoveOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(stockMoves)
@@ -311,8 +314,7 @@ async function applyStockMove(tx: Pick<Db, "select" | "insert">, farmId: string,
  * always season-null (plan §6, §8).
  */
 async function applyMeterReading(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: MeterReadingOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(meterReadings)
@@ -337,8 +339,7 @@ async function applyMeterReading(tx: Pick<Db, "select" | "insert">, farmId: stri
  * or `closed`, paired at read time. Append-only, always season-null.
  */
 async function applyWorkOrder(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: WorkOrderOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(workOrders)
@@ -360,8 +361,7 @@ async function applyWorkOrder(tx: Pick<Db, "select" | "insert">, farmId: string,
 
 /** One fill-up (docs/werkswinkel-build-scope.md). Append-only, always season-null. */
 async function applyFuelLog(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: FuelLogOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(fuelLogs)
