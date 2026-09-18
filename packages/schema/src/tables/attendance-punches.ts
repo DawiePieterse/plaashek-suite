@@ -19,5 +19,3 @@ export const attendancePunches = pgTable("attendance_punches", {
   longitude: doublePrecision("longitude"),
   locationAccuracyM: doublePrecision("location_accuracy_m"),
 });
-
-export type PunchDirection = "in" | "out";

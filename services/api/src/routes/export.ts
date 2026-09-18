@@ -4,7 +4,7 @@ import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import { sendCsv, toCsv } from "../lib/csv.js";
 import { farmDayKey } from "../lib/farm-day.js";
-import { dayCents, rateOn, type Rate } from "../lib/piecework.js";
+import { dayCents, netKg, rateOn, type Rate } from "../lib/piecework.js";
 
 /**
  * Excel export for the office tools (plan §10 offboarding, §12 Phase 4) — one
@@ -144,33 +144,42 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
   app.get("/export/piecework.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
     const farmId = request.staff!.farmId;
 
-    const crates = await deps.db
-      .select({
-        at: harvestEvents.createdAt,
-        pickerId: harvestEvents.pickerId,
-        picker: people.name,
-        cardCode: harvestEvents.pickerCardCode,
-        season: seasons.name,
-        seasonId: harvestEvents.seasonId,
-        weightKg: harvestEvents.weightKg,
-        deductionKg: harvestEvents.deductionKg,
-      })
-      .from(harvestEvents)
-      .leftJoin(people, eq(people.id, harvestEvents.pickerId))
-      .leftJoin(seasons, eq(seasons.id, harvestEvents.seasonId))
-      .where(eq(harvestEvents.farmId, farmId))
-      .orderBy(asc(harvestEvents.createdAt));
+    const [crates, rateRows] = await Promise.all([
+      deps.db
+        .select({
+          at: harvestEvents.createdAt,
+          pickerId: harvestEvents.pickerId,
+          picker: people.name,
+          cardCode: harvestEvents.pickerCardCode,
+          season: seasons.name,
+          seasonId: harvestEvents.seasonId,
+          weightKg: harvestEvents.weightKg,
+          deductionKg: harvestEvents.deductionKg,
+        })
+        .from(harvestEvents)
+        .leftJoin(people, eq(people.id, harvestEvents.pickerId))
+        .leftJoin(seasons, eq(seasons.id, harvestEvents.seasonId))
+        .where(eq(harvestEvents.farmId, farmId))
+        .orderBy(asc(harvestEvents.createdAt)),
+      deps.db
+        .select({
+          seasonId: pieceRates.seasonId,
+          effectiveFrom: pieceRates.effectiveFrom,
+          baseCentsPerKg: pieceRates.baseCentsPerKg,
+          targetKg: pieceRates.targetKg,
+          bonusCentsPerKg: pieceRates.bonusCentsPerKg,
+        })
+        .from(pieceRates)
+        .where(eq(pieceRates.farmId, farmId)),
+    ]);
 
-    const rateRows = await deps.db
-      .select({
-        seasonId: pieceRates.seasonId,
-        effectiveFrom: pieceRates.effectiveFrom,
-        baseCentsPerKg: pieceRates.baseCentsPerKg,
-        targetKg: pieceRates.targetKg,
-        bonusCentsPerKg: pieceRates.bonusCentsPerKg,
-      })
-      .from(pieceRates)
-      .where(eq(pieceRates.farmId, farmId));
+    // Grouped once, not re-filtered for every row of the file.
+    const ratesBySeason = new Map<string | null, Rate[]>();
+    for (const rate of rateRows) {
+      const forSeason = ratesBySeason.get(rate.seasonId) ?? [];
+      forSeason.push(rate);
+      ratesBySeason.set(rate.seasonId, forSeason);
+    }
 
     // picker+day is the pay unit: the tier is daily, and rounding happens once per day.
     const buckets = new Map<string, { day: string; picker: string | null; cardCode: string | null; season: string | null; seasonId: string | null; kg: number }>();
@@ -186,7 +195,7 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
         seasonId: crate.seasonId,
         kg: 0,
       };
-      bucket.kg += crate.weightKg - (crate.deductionKg ?? 0);
+      bucket.kg += netKg(crate.weightKg, crate.deductionKg);
       buckets.set(key, bucket);
     }
 
@@ -200,8 +209,7 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
           (a.picker ?? a.cardCode ?? "").localeCompare(b.picker ?? b.cardCode ?? ""),
       )
       .map((bucket) => {
-        const seasonRates: Rate[] = rateRows.filter((rate) => rate.seasonId === bucket.seasonId);
-        const rate = rateOn(bucket.day, seasonRates);
+        const rate = rateOn(bucket.day, ratesBySeason.get(bucket.seasonId) ?? []);
         const kg = Math.round(bucket.kg * 100) / 100;
         // No picker means no pay line — the kilograms are real, whose they are is not yet known.
         const cents = rate && bucket.picker ? dayCents(bucket.kg, rate) : null;

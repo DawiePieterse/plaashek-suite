@@ -122,12 +122,7 @@ button.small {
   text-align: center;
 }
 
-/* Several small actions per row (print / reissue / revoke a worker card). */
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
+
 
 /* Print exactly the slip — it is the credential that leaves the office. */
 @media print {

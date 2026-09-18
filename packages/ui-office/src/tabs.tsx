@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { officeCopy, type Lang } from "./copy.js";
 
 /**
  * The office tools are one tab per field module plus the farm's own settings
@@ -16,8 +17,13 @@ export const MODULE_TABS = ["veldnotas", "boord", "span"] as const;
 
 export const FARM_SETTINGS_TAB = "farm";
 
+/** A module that has an office panel. `shell.tsx` is typed against this, so a tab without a panel will not compile. */
+export type ModuleTab = (typeof MODULE_TABS)[number];
+
+export type TabId = ModuleTab | typeof FARM_SETTINGS_TAB;
+
 export interface Tab {
-  id: string;
+  id: TabId;
   label: string;
 }
 
@@ -31,13 +37,16 @@ export const moduleName = (code: string) => code.charAt(0).toUpperCase() + code.
  * licensed. Farm settings is not a module and is always there; with nothing
  * licensed at all it is the only tab, which is the honest picture of a farm
  * whose licence has lapsed.
+ *
+ * The farm-settings label comes from this package's own copy, so the tab and
+ * the heading inside it cannot say different things.
  */
-export function officeTabs(licensedModules: string[], farmSettingsLabel: string): Tab[] {
+export function officeTabs(licensedModules: string[], lang: Lang): Tab[] {
   const licensed = new Set(licensedModules);
 
   return [
     ...MODULE_TABS.filter((code) => licensed.has(code)).map((code) => ({ id: code, label: moduleName(code) })),
-    { id: FARM_SETTINGS_TAB, label: farmSettingsLabel },
+    { id: FARM_SETTINGS_TAB, label: officeCopy(lang).farmSettings },
   ];
 }
 

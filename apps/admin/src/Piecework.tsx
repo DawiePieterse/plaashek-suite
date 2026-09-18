@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { PieceworkPayout, useOffice, type FarmContext, type PayoutSummary } from "@plaashek/ui-office";
-import { api, ApiError, type Session } from "./api.js";
+import { useOffice, useOfficeLoader } from "@plaashek/ui-office";
+import { api } from "./api.js";
 import { t } from "./copy.js";
 import { WorkerCard, type CardDetails } from "./WorkerCard.js";
 
@@ -9,11 +9,9 @@ interface Worker {
   name: string;
   cardId: string | null;
   code: string | null;
-  issuedAt: string | null;
 }
 
 interface PieceRate {
-  id: string;
   effectiveFrom: string;
   baseCentsPerKg: number;
   targetKg: number | null;
@@ -29,33 +27,29 @@ const rand = (cents: number) => (cents / 100).toFixed(2);
  * and exported — Plaashek does not issue payslips and does not move money
  * (ADR 0010).
  */
-export function Piecework({ session, context }: { session: Session; context: FarmContext }) {
+export function Piecework({ onRateChanged }: { onRateChanged: () => void }) {
+  const { session, context } = useOffice();
+  const guard = useOfficeLoader();
   const [workers, setWorkers] = useState<Worker[] | null>(null);
-  const [rates, setRates] = useState<PieceRate[]>([]);
-  const [payout, setPayout] = useState<PayoutSummary | null>(null);
+  const [current, setCurrent] = useState<PieceRate | null>(null);
   const [card, setCard] = useState<CardDetails | null>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const { errorMessage, isUnauthenticated, onSessionExpired } = useOffice();
   const c = t();
 
   const isAdmin = session.role === "admin";
 
   async function load() {
-    try {
-      const [workerList, rateList, paid] = await Promise.all([
+    await guard(async () => {
+      const [workerList, rateList] = await Promise.all([
         api<{ workers: Worker[] }>("/piecework/workers", { token: session.token }),
         api<{ rates: PieceRate[] }>("/piece-rates", { token: session.token }),
-        api<PayoutSummary>("/piecework/payout", { token: session.token }),
       ]);
       setWorkers(workerList.workers);
-      setRates(rateList.rates);
-      setPayout(paid);
-    } catch (caught) {
-      if (isUnauthenticated(caught)) return onSessionExpired();
-      setError(errorMessage(caught));
-    }
+      // Rates are effective-dated history; only the newest one is in force.
+      setCurrent(rateList.rates[0] ?? null);
+    }, setError);
   }
 
   useEffect(() => {
@@ -65,15 +59,11 @@ export function Piecework({ session, context }: { session: Session; context: Far
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     setError("");
-    try {
+    await guard(async () => {
       await action();
       await load();
-    } catch (caught) {
-      if (isUnauthenticated(caught)) return onSessionExpired();
-      setError(errorMessage(caught));
-    } finally {
-      setBusy(false);
-    }
+    }, setError);
+    setBusy(false);
   }
 
   function registerWorker(event: React.FormEvent) {
@@ -95,8 +85,6 @@ export function Piecework({ session, context }: { session: Session; context: Far
 
   if (!workers) return null;
 
-  const current = rates[0];
-
   return (
     <section className="no-print">
       <h2>{c.pieceworkHeading}</h2>
@@ -113,7 +101,16 @@ export function Piecework({ session, context }: { session: Session; context: Far
         <p className="empty">{c.noRate}</p>
       )}
       {isAdmin && (
-        <RateForm busy={busy} onCreate={(body) => run(() => api("/piece-rates", { method: "POST", token: session.token, body: JSON.stringify(body) }))} />
+        <RateForm
+          busy={busy}
+          onCreate={(body) =>
+            run(async () => {
+              await api("/piece-rates", { method: "POST", token: session.token, body: JSON.stringify(body) });
+              // The payout panel below owns its own read; a new rate re-prices it.
+              onRateChanged();
+            })
+          }
+        />
       )}
 
       <h3>{c.workersHeading}</h3>
@@ -132,7 +129,7 @@ export function Piecework({ session, context }: { session: Session; context: Far
                 <td>{worker.name}</td>
                 <td>{worker.code ?? <span className="muted">{c.noCard}</span>}</td>
                 {isAdmin && (
-                  <td className="row-actions">
+                  <td className="row">
                     {worker.code && (
                       <button type="button" className="quiet" onClick={() => setCard({ code: worker.code!, personName: worker.name, farmName: context.farm.name })}>
                         {c.printCard}
@@ -187,8 +184,6 @@ export function Piecework({ session, context }: { session: Session; context: Far
           </button>
         </form>
       )}
-
-      <PieceworkPayout payout={payout} />
 
       {card && <WorkerCard card={card} onClose={() => setCard(null)} />}
     </section>

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { officeTabs } from "./tabs.js";
 
-const ids = (modules: string[]) => officeTabs(modules, "Plaasinstellings").map((tab) => tab.id);
+const ids = (modules: string[]) => officeTabs(modules, "af").map((tab) => tab.id);
 
 test("a module tab appears only when the farm is licensed for it", () => {
   assert.deepEqual(ids(["veldnotas", "boord", "span"]), ["veldnotas", "boord", "span", "farm"]);
@@ -24,5 +24,6 @@ test("a farm with nothing licensed still has its settings", () => {
 });
 
 test("the farm settings tab is labelled in the farm's language", () => {
-  assert.equal(officeTabs([], "Farm settings").at(-1)?.label, "Farm settings");
+  assert.equal(officeTabs([], "af").at(-1)?.label, "Plaasinstellings");
+  assert.equal(officeTabs([], "en").at(-1)?.label, "Farm settings");
 });

@@ -28,6 +28,22 @@ export interface Crate {
   netKg: number;
 }
 
+/**
+ * What a picker is paid on: the weight in the crate, less whatever was
+ * deducted. Stated once — the payout, the CSV and anything that follows must
+ * not each decide this separately.
+ */
+export const netKg = (weightKg: number, deductionKg: number | null) => weightKg - (deductionKg ?? 0);
+
+/** One picker's kilograms on one farm day — the unit pay is calculated on. */
+export interface PersonDay {
+  personId: string;
+  personName: string;
+  /** Farm-local `YYYY-MM-DD`. */
+  day: string;
+  kg: number;
+}
+
 export interface PersonPay {
   personId: string;
   personName: string;
@@ -62,16 +78,34 @@ export function dayCents(kg: number, rate: Rate): number {
   return Math.round(atBase * rate.baseCentsPerKg + aboveTarget * rate.bonusCentsPerKg);
 }
 
-/** Totals per picker over whatever crates it is handed, priced day by day. */
-export function rollUpPiecework(crates: Crate[], rates: Rate[]): PersonPay[] {
-  // person -> day -> kg
-  const byPerson = new Map<string, { name: string; days: Map<string, number> }>();
+/**
+ * Crates gathered into pay units: one picker, one farm day. Both the payout
+ * rollup and the payroll CSV start here, so "what a picker is paid on" is
+ * decided once — the CSV emits a row per unit, the rollup sums them per
+ * person.
+ */
+export function byPersonDay(crates: Crate[]): PersonDay[] {
+  const buckets = new Map<string, PersonDay>();
 
   for (const crate of crates) {
-    const person = byPerson.get(crate.pickerId) ?? { name: crate.pickerName, days: new Map<string, number>() };
     const day = farmDayKey(crate.at);
-    person.days.set(day, (person.days.get(day) ?? 0) + crate.netKg);
-    byPerson.set(crate.pickerId, person);
+    const key = `${crate.pickerId}|${day}`;
+    const bucket = buckets.get(key) ?? { personId: crate.pickerId, personName: crate.pickerName, day, kg: 0 };
+    bucket.kg += crate.netKg;
+    buckets.set(key, bucket);
+  }
+
+  return [...buckets.values()];
+}
+
+/** Totals per picker over whatever crates it is handed, priced day by day. */
+export function rollUpPiecework(crates: Crate[], rates: Rate[]): PersonPay[] {
+  const byPerson = new Map<string, { name: string; days: Map<string, number> }>();
+
+  for (const unit of byPersonDay(crates)) {
+    const person = byPerson.get(unit.personId) ?? { name: unit.personName, days: new Map<string, number>() };
+    person.days.set(unit.day, unit.kg);
+    byPerson.set(unit.personId, person);
   }
 
   const people: PersonPay[] = [];

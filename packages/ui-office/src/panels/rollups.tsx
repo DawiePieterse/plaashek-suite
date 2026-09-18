@@ -42,8 +42,12 @@ function Empty({ heading, message, kind = "empty" }: { heading: string; message:
   );
 }
 
-/** One load, one error line, one "still loading" — the shape all three rollups share. */
-function useRollup<T>(path: string) {
+/**
+ * One load, one error line, one "still loading" — the shape all three rollups
+ * share. `reloadKey` is for a caller that has just changed something the
+ * server derives this from; bumping it re-reads.
+ */
+function useRollup<T>(path: string, reloadKey = 0) {
   const { api, session } = useOffice();
   const guard = useOfficeLoader();
   const [data, setData] = useState<T | null>(null);
@@ -54,7 +58,7 @@ function useRollup<T>(path: string) {
       async () => setData(await api<T>(path, { token: session.token })),
       (message) => setError(message),
     );
-  }, [session.token, path]);
+  }, [session.token, path, reloadKey]);
 
   return { data, error };
 }
@@ -169,14 +173,14 @@ export function AttendanceRollup() {
  * the caveat under the table travels with the numbers rather than living
  * next to the form.
  */
-export function PieceworkPayout({ payout }: { payout: PayoutSummary | null }) {
+export function PieceworkPayout({ reloadKey }: { reloadKey?: number }) {
   const { c } = useOffice();
-  const loaded = useRollup<PayoutSummary>("/piecework/payout");
-  // The admin section already holds a payout it reloads after every rate
-  // change; the owner has none, so this fetches its own.
-  const data = payout ?? loaded.data;
+  // This panel owns the fetch wherever it is drawn. The Farm Admin Tool bumps
+  // `reloadKey` after a rate change rather than handing in its own copy —
+  // one data path, so the two tools cannot show different money.
+  const { data, error } = useRollup<PayoutSummary>("/piecework/payout", reloadKey);
 
-  if (!payout && loaded.error) return <Empty heading={c.payoutHeading} message={loaded.error} kind="error" />;
+  if (error) return <Empty heading={c.payoutHeading} message={error} kind="error" />;
   if (!data) return <Empty heading={c.payoutHeading} message={c.loading} />;
   if (!data.season) return <Empty heading={c.payoutHeading} message={c.noActiveSeason} />;
 

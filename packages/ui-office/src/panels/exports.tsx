@@ -9,11 +9,12 @@ import { useOffice } from "../context.js";
  */
 export type ExportKind = "notes" | "harvest" | "attendance" | "piecework";
 
-const FILES: Record<ExportKind, { path: string; filename: string }> = {
-  notes: { path: "/export/notes.csv", filename: "veldnotas.csv" },
-  harvest: { path: "/export/harvest.csv", filename: "boord.csv" },
-  attendance: { path: "/export/attendance.csv", filename: "span.csv" },
-  piecework: { path: "/export/piecework.csv", filename: "stukwerk.csv" },
+/** Paths only — the file's name comes back on the response, from the one place that decides it. */
+const PATHS: Record<ExportKind, string> = {
+  notes: "/export/notes.csv",
+  harvest: "/export/harvest.csv",
+  attendance: "/export/attendance.csv",
+  piecework: "/export/piecework.csv",
 };
 
 export function Exports({ kinds }: { kinds: ExportKind[] }) {
@@ -30,7 +31,7 @@ export function Exports({ kinds }: { kinds: ExportKind[] }) {
   async function download(kind: ExportKind) {
     setError("");
     try {
-      await downloadCsv(FILES[kind].path, session.token, FILES[kind].filename);
+      await downloadCsv(PATHS[kind], session.token);
     } catch (caught) {
       if (isUnauthenticated(caught)) return onSessionExpired();
       setError(errorMessage(caught));

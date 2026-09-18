@@ -1,21 +1,12 @@
 import { useEffect, useState } from "react";
-import { moduleName, useOffice, type FarmContext } from "@plaashek/ui-office";
-import { api, ApiError, formatWhen, type Device, type PairingToken, type Session } from "./api.js";
+import { moduleName, useOffice, useOfficeLoader, type FarmContext } from "@plaashek/ui-office";
+import { api, formatWhen, type Device, type PairingToken } from "./api.js";
 import { t } from "./copy.js";
 import { PairingSlip, type SlipDetails } from "./PairingSlip.js";
 
-export function Devices({
-  session,
-  context,
-  onReloadContext,
-  onSessionExpired,
-}: {
-  session: Session;
-  /** Loaded once by the app shell — the tab strip needs it too, so this panel does not fetch it again. */
-  context: FarmContext;
-  onReloadContext: () => Promise<void>;
-  onSessionExpired: () => void;
-}) {
+export function Devices() {
+  const { session, context } = useOffice();
+  const guard = useOfficeLoader();
   const [devices, setDevices] = useState<Device[]>([]);
   const [slip, setSlip] = useState<SlipDetails | null>(null);
   const [error, setError] = useState("");
@@ -25,15 +16,7 @@ export function Devices({
   const c = t();
 
   async function load() {
-    try {
-      setDevices((await api<{ devices: Device[] }>("/devices", { token: session.token })).devices);
-      // A revoke or a new pairing can change what the farm is waiting on, and
-      // that count lives in the shell's copy of /farm.
-      await onReloadContext();
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : c.offline);
-    }
+    await guard(async () => setDevices((await api<{ devices: Device[] }>("/devices", { token: session.token })).devices), setError);
   }
 
   // Keyed on the token only: a new session reloads, a parent re-render does not.
@@ -45,16 +28,12 @@ export function Devices({
   async function run<T>(action: () => Promise<T>, after?: (result: T) => void) {
     setBusy(true);
     setError("");
-    try {
+    await guard(async () => {
       const result = await action();
       after?.(result);
       await load();
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : c.offline);
-    } finally {
-      setBusy(false);
-    }
+    }, setError);
+    setBusy(false);
   }
 
   function showSlip(pairingToken: PairingToken, personName: string) {

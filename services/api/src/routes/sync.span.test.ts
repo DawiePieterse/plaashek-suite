@@ -1,26 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { attendancePunches, deviceAssignments, deviceModules, devices, entitlements } from "@plaashek/schema";
-import { mintTicket } from "@plaashek/tickets";
+import { attendancePunches } from "@plaashek/schema";
 import { asc, eq } from "drizzle-orm";
-import type { Db } from "../db.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
-import { seedFarm } from "../test/fixtures.js";
-
-/** A paired Span phone, assigned to the one person it clocks (ADR 0008). */
-async function pairedSpanPhone(db: Db, status: "active" | "suspended" = "active") {
-  const { farm, person, membership } = await seedFarm(db);
-  await db.insert(entitlements).values({ farmId: farm.id, moduleCode: "span", status });
-
-  const [device] = await db.insert(devices).values({ farmId: farm.id, label: "Anna se foon" }).returning();
-  await db.insert(deviceModules).values({ deviceId: device.id, moduleCode: "span" });
-  await db
-    .insert(deviceAssignments)
-    .values({ deviceId: device.id, personId: person.id, assignedBy: membership.id, assignedAt: new Date("2026-01-01T00:00:00Z") });
-
-  return { farm, person, device };
-}
+import { pairedPhone, ticketFor } from "../test/fixtures.js";
 
 function punch(direction: "in" | "out", clientTime: string) {
   return {
@@ -35,16 +19,8 @@ function punch(direction: "in" | "out", clientTime: string) {
 test("a punch uploads, stamped with the direction and the device's assigned person", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
-    const { farm, person, device } = await pairedSpanPhone(db);
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["span"],
-      deviceModules: ["span"],
-      language: "af",
-      seasonId: null,
-      signingKey: deps.keys.privateKey,
-    });
+    const { farm, person, device } = await pairedPhone(db, "span");
+    const ticket = await ticketFor(deps, farm, device, ["span"]);
 
     const response = await app.inject({
       method: "POST",
@@ -77,16 +53,8 @@ test("a punch uploads, stamped with the direction and the device's assigned pers
 test("a second `in` is accepted rather than argued with", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
-    const { farm, device } = await pairedSpanPhone(db);
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["span"],
-      deviceModules: ["span"],
-      language: "af",
-      seasonId: null,
-      signingKey: deps.keys.privateKey,
-    });
+    const { farm, device } = await pairedPhone(db, "span");
+    const ticket = await ticketFor(deps, farm, device, ["span"]);
 
     const response = await app.inject({
       method: "POST",
@@ -103,16 +71,8 @@ test("a second `in` is accepted rather than argued with", async () => {
 test("the same punch uploaded twice lands once", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
-    const { farm, device } = await pairedSpanPhone(db);
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["span"],
-      deviceModules: ["span"],
-      language: "af",
-      seasonId: null,
-      signingKey: deps.keys.privateKey,
-    });
+    const { farm, device } = await pairedPhone(db, "span");
+    const ticket = await ticketFor(deps, farm, device, ["span"]);
 
     const op = punch("in", "2026-06-01T04:12:00.000Z");
     for (const _ of [1, 2]) {
@@ -132,21 +92,8 @@ test("the same punch uploaded twice lands once", async () => {
 test("a device paired for boord cannot upload a punch", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
-    const { farm, person, membership } = await seedFarm(db);
-    await db.insert(entitlements).values({ farmId: farm.id, moduleCode: "boord", status: "active" });
-    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
-    await db.insert(deviceModules).values({ deviceId: device.id, moduleCode: "boord" });
-    await db.insert(deviceAssignments).values({ deviceId: device.id, personId: person.id, assignedBy: membership.id });
-
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["boord"],
-      deviceModules: ["boord"],
-      language: "af",
-      seasonId: null,
-      signingKey: deps.keys.privateKey,
-    });
+    const { farm, device } = await pairedPhone(db, "boord");
+    const ticket = await ticketFor(deps, farm, device, ["boord"]);
 
     const response = await app.inject({
       method: "POST",
@@ -163,16 +110,8 @@ test("a device paired for boord cannot upload a punch", async () => {
 test("a suspended Span licence holds the punch instead of dropping it", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
-    const { farm, device } = await pairedSpanPhone(db, "suspended");
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: [],
-      deviceModules: ["span"],
-      language: "af",
-      seasonId: null,
-      signingKey: deps.keys.privateKey,
-    });
+    const { farm, device } = await pairedPhone(db, "span", "suspended");
+    const ticket = await ticketFor(deps, farm, device, ["span"], { farmModules: [] });
 
     const response = await app.inject({
       method: "POST",

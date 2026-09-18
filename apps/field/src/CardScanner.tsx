@@ -13,8 +13,6 @@ interface BarcodeDetectorLike {
 }
 type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
 
-const detectorCtor = () => (globalThis as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector;
-
 /**
  * Mirrors the server's `normaliseCardCode`. Only used for the local lookup in
  * the cached card list — the server normalises again and is authoritative, so
@@ -40,7 +38,7 @@ export function CardScanner({ onCode }: { onCode: (code: string) => void }) {
   useEffect(() => {
     if (!scanning) return;
 
-    const Detector = detectorCtor();
+    const Detector = (globalThis as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector;
     if (!Detector) {
       // No camera API on this handset — the printed code is the fallback.
       setFailed(true);
@@ -49,12 +47,12 @@ export function CardScanner({ onCode }: { onCode: (code: string) => void }) {
     }
 
     let stream: MediaStream | null = null;
-    let timer: ReturnType<typeof setInterval> | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     let stopped = false;
 
     const stop = () => {
       stopped = true;
-      if (timer) clearInterval(timer);
+      if (timer) clearTimeout(timer);
       stream?.getTracks().forEach((track) => track.stop());
     };
 
@@ -69,18 +67,27 @@ export function CardScanner({ onCode }: { onCode: (code: string) => void }) {
         await video.play().catch(() => {});
 
         const detector = new Detector({ formats: ["qr_code"] });
-        timer = setInterval(async () => {
+
+        // Self-scheduling, not an interval: a decode on a cheap handset can
+        // take longer than the gap, and overlapping detections pile up frames
+        // faster than they finish.
+        const look = async () => {
           try {
             const [found] = await detector.detect(video);
-            if (!found) return;
-            stop();
-            setScanning(false);
-            navigator.vibrate?.(40);
-            onCode(normaliseCardCode(found.rawValue));
+            if (found) {
+              // The effect's cleanup stops the camera when `scanning` flips.
+              setScanning(false);
+              navigator.vibrate?.(40);
+              onCode(normaliseCardCode(found.rawValue));
+              return;
+            }
           } catch {
             // A frame that will not decode is the normal case, not an error.
           }
-        }, 300);
+          if (!stopped) timer = setTimeout(look, 300);
+        };
+
+        timer = setTimeout(look, 300);
       })
       .catch(() => {
         // Permission refused, or no camera — say so once and offer the keyboard.

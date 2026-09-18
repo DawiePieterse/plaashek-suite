@@ -28,11 +28,13 @@ export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-/** Module codes are the module names in both languages (plan §4.5) — add a map only if one ever diverges. */
-export const moduleName = (code: string) => code.charAt(0).toUpperCase() + code.slice(1);
-
 export const formatWhen = (iso: string) =>
   new Date(iso).toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" });
+
+/** `attachment; filename="boord.csv"` → `boord.csv`; anything unexpected falls back to a name the browser will accept. */
+function filenameFrom(disposition: string | null): string {
+  return /filename="?([^";]+)"?/.exec(disposition ?? "")?.[1] ?? "plaashek.csv";
+}
 
 export class ApiError extends Error {
   constructor(
@@ -61,8 +63,13 @@ export async function api<T>(path: string, init?: RequestInit & { token?: string
   return (await response.json()) as T;
 }
 
-/** CSV comes back as a file, not JSON — fetch it as a blob and hand the browser a download, same auth as `api()`. */
-export async function downloadCsv(path: string, token: string, filename: string): Promise<void> {
+/**
+ * CSV comes back as a file, not JSON — fetch it as a blob and hand the
+ * browser a download, same auth as `api()`. The filename is the server's:
+ * it sets `content-disposition`, so a farm's files are named in one place
+ * rather than here and there.
+ */
+export async function downloadCsv(path: string, token: string): Promise<void> {
   const response = await fetch(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } });
 
   if (!response.ok) {
@@ -73,17 +80,9 @@ export async function downloadCsv(path: string, token: string, filename: string)
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement("a");
   link.href = url;
-  link.download = filename;
+  link.download = filenameFrom(response.headers.get("content-disposition"));
   link.click();
   URL.revokeObjectURL(url);
-}
-
-export interface FarmContext {
-  farm: { id: string; name: string };
-  people: { id: string; name: string }[];
-  modules: string[];
-  /** What the office has to act on: held captures (plan §5) and captures with no season (§6). */
-  waiting: { held: number; withoutSeason: number };
 }
 
 export interface PendingToken {

@@ -17,9 +17,7 @@ const af = {
   signingIn: "Wag…",
 
   offline: "Kan nie aan die bediener koppel nie.",
-  loading: "Laai…",
 
-  farmSettings: "Plaasinstellings",
   devicesHeading: "Toestelle",
   noDevices: "Nog geen toestelle nie. Voeg die eerste een by.",
   deviceCol: "Toestel",
@@ -111,9 +109,7 @@ const en: typeof af = {
   signingIn: "Wait…",
 
   offline: "Cannot reach the server.",
-  loading: "Loading…",
 
-  farmSettings: "Farm settings",
   devicesHeading: "Devices",
   noDevices: "No devices yet. Add the first one.",
   deviceCol: "Device",

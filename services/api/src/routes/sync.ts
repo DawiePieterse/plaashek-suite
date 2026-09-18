@@ -1,4 +1,4 @@
-import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people, workerCards } from "@plaashek/schema";
+import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, workerCards } from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
@@ -6,10 +6,10 @@ import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
 import { normaliseCardCode } from "../lib/worker-card.js";
-import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp } from "../schemas/sync.js";
+import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type UploadOp } from "../schemas/sync.js";
 
 /** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, then span). */
-const MODULE_CODE: Record<NoteOp["entity"] | HarvestEventOp["entity"] | AttendancePunchOp["entity"], string> = {
+const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
   attendance_punches: "span",
@@ -148,19 +148,16 @@ async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, devi
  * The phone never sends a person id, only the code it scanned — so a device
  * cannot assert who picked a crate, it can only report what it read off a
  * card. This function is the only place a code becomes an attribution.
+ *
+ * Takes an already-normalised code — the caller normalises once, on the way in.
  */
-async function resolvePicker(
-  tx: Pick<Db, "select">,
-  farmId: string,
-  code: string | null | undefined,
-): Promise<string | null> {
+async function resolvePicker(tx: Pick<Db, "select">, farmId: string, code: string | null): Promise<string | null> {
   if (!code) return null;
 
   const [card] = await tx
     .select({ personId: workerCards.personId })
     .from(workerCards)
-    .innerJoin(people, eq(people.id, workerCards.personId))
-    .where(and(eq(workerCards.farmId, farmId), eq(workerCards.code, normaliseCardCode(code)), isNull(workerCards.revokedAt)));
+    .where(and(eq(workerCards.farmId, farmId), eq(workerCards.code, code), isNull(workerCards.revokedAt)));
 
   return card?.personId ?? null;
 }

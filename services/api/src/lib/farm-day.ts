@@ -9,3 +9,10 @@
 const FARM_TIME_ZONE = "Africa/Johannesburg";
 
 export const farmDayKey = (at: Date) => at.toLocaleDateString("en-CA", { timeZone: FARM_TIME_ZONE });
+
+/** SAST is UTC+2 year round — no DST, so a farm day's edges are a fixed offset. */
+const FARM_UTC_OFFSET = "+02:00";
+
+/** The first and last instant of a farm-local `YYYY-MM-DD`, for bounding a query to whole farm days. */
+export const farmDayStart = (day: string) => new Date(`${day}T00:00:00${FARM_UTC_OFFSET}`);
+export const farmDayEnd = (day: string) => new Date(`${day}T23:59:59.999${FARM_UTC_OFFSET}`);

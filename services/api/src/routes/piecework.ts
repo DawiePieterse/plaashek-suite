@@ -1,4 +1,4 @@
-import { harvestEvents, people, pieceRates, seasons, workerCards } from "@plaashek/schema";
+import { harvestEvents, people, pieceRates, workerCards } from "@plaashek/schema";
 import { and, asc, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
@@ -6,14 +6,11 @@ import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { notFound } from "../lib/errors.js";
-import { rollUpPiecework, type Crate } from "../lib/piecework.js";
+import { farmDayEnd, farmDayStart } from "../lib/farm-day.js";
+import { activeSeason } from "../lib/farm.js";
+import { netKg, rollUpPiecework, type Crate } from "../lib/piecework.js";
 import { randomCardCode } from "../lib/worker-card.js";
 import { createPieceRateRequestSchema, createWorkerRequestSchema, payoutQuerySchema } from "../schemas/piecework.js";
-
-/** A day's start and end in UTC, from a farm-local `YYYY-MM-DD`. SAST is UTC+2, no DST (lib/farm-day.ts). */
-const SAST_OFFSET = "+02:00";
-const dayStart = (day: string) => new Date(`${day}T00:00:00${SAST_OFFSET}`);
-const dayEnd = (day: string) => new Date(`${day}T23:59:59.999${SAST_OFFSET}`);
 
 /** Issues a card for a person, standing down whatever card they hold now — a reissue is a new code, never an edit (ADR 0009). */
 async function issueCard(tx: Pick<Db, "update" | "insert">, farmId: string, personId: string, issuedBy: string) {
@@ -127,20 +124,16 @@ export function registerPieceworkRoutes(app: App, deps: AppDeps) {
   app.get("/piece-rates", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const farmId = request.staff!.farmId;
 
-    const [activeSeason] = await deps.db
-      .select({ id: seasons.id, name: seasons.name })
-      .from(seasons)
-      .where(and(eq(seasons.farmId, farmId), eq(seasons.isActive, true)));
-
-    if (!activeSeason) return { season: null, rates: [] };
+    const season = await activeSeason(deps.db, farmId);
+    if (!season) return { season: null, rates: [] };
 
     const rates = await deps.db
       .select()
       .from(pieceRates)
-      .where(and(eq(pieceRates.farmId, farmId), eq(pieceRates.seasonId, activeSeason.id)))
+      .where(and(eq(pieceRates.farmId, farmId), eq(pieceRates.seasonId, season.id)))
       .orderBy(desc(pieceRates.effectiveFrom));
 
-    return { season: activeSeason, rates };
+    return { season: { id: season.id, name: season.name }, rates };
   });
 
   /** A rate change is a new row, never an edit — last week keeps the rate it was picked under (ADR 0010). */
@@ -148,18 +141,15 @@ export function registerPieceworkRoutes(app: App, deps: AppDeps) {
     const staff = request.staff!;
     const body = createPieceRateRequestSchema.parse(request.body);
 
-    const [activeSeason] = await deps.db
-      .select({ id: seasons.id })
-      .from(seasons)
-      .where(and(eq(seasons.farmId, staff.farmId), eq(seasons.isActive, true)));
-    if (!activeSeason) throw notFound("No active season to set a rate for");
+    const season = await activeSeason(deps.db, staff.farmId);
+    if (!season) throw notFound("No active season to set a rate for");
 
     return deps.db.transaction(async (tx) => {
       const [rate] = await tx
         .insert(pieceRates)
         .values({
           farmId: staff.farmId,
-          seasonId: activeSeason.id,
+          seasonId: season.id,
           effectiveFrom: body.effectiveFrom,
           baseCentsPerKg: body.baseCentsPerKg,
           targetKg: body.targetKg ?? null,
@@ -182,63 +172,61 @@ export function registerPieceworkRoutes(app: App, deps: AppDeps) {
     const farmId = request.staff!.farmId;
     const query = payoutQuerySchema.parse(request.query);
 
-    const [activeSeason] = await deps.db
-      .select({ id: seasons.id, name: seasons.name, startsOn: seasons.startsOn, endsOn: seasons.endsOn })
-      .from(seasons)
-      .where(and(eq(seasons.farmId, farmId), eq(seasons.isActive, true)));
+    const season = await activeSeason(deps.db, farmId);
+    if (!season) return { season: null, from: null, to: null, people: [], unattributedCrates: 0, unattributedKg: 0 };
 
-    if (!activeSeason) return { season: null, from: null, to: null, people: [], unattributedCrates: 0, unattributedKg: 0 };
+    const from = query.from ?? season.startsOn;
+    const to = query.to ?? season.endsOn;
 
-    const from = query.from ?? activeSeason.startsOn;
-    const to = query.to ?? activeSeason.endsOn;
-
-    const crateRows = await deps.db
-      .select({
-        pickerId: harvestEvents.pickerId,
-        pickerName: people.name,
-        at: harvestEvents.createdAt,
-        weightKg: harvestEvents.weightKg,
-        deductionKg: harvestEvents.deductionKg,
-      })
-      .from(harvestEvents)
-      .leftJoin(people, eq(people.id, harvestEvents.pickerId))
-      .where(
-        and(
-          eq(harvestEvents.farmId, farmId),
-          eq(harvestEvents.seasonId, activeSeason.id),
-          gte(harvestEvents.createdAt, dayStart(from)),
-          lte(harvestEvents.createdAt, dayEnd(to)),
+    // Both reads depend only on the season, not on each other.
+    const [crateRows, rates] = await Promise.all([
+      deps.db
+        .select({
+          pickerId: harvestEvents.pickerId,
+          pickerName: people.name,
+          at: harvestEvents.createdAt,
+          weightKg: harvestEvents.weightKg,
+          deductionKg: harvestEvents.deductionKg,
+        })
+        .from(harvestEvents)
+        .leftJoin(people, eq(people.id, harvestEvents.pickerId))
+        .where(
+          and(
+            eq(harvestEvents.farmId, farmId),
+            eq(harvestEvents.seasonId, season.id),
+            gte(harvestEvents.createdAt, farmDayStart(from)),
+            lte(harvestEvents.createdAt, farmDayEnd(to)),
+          ),
         ),
-      );
-
-    const rates = await deps.db
-      .select({
-        effectiveFrom: pieceRates.effectiveFrom,
-        baseCentsPerKg: pieceRates.baseCentsPerKg,
-        targetKg: pieceRates.targetKg,
-        bonusCentsPerKg: pieceRates.bonusCentsPerKg,
-      })
-      .from(pieceRates)
-      .where(and(eq(pieceRates.farmId, farmId), eq(pieceRates.seasonId, activeSeason.id)));
+      deps.db
+        .select({
+          effectiveFrom: pieceRates.effectiveFrom,
+          baseCentsPerKg: pieceRates.baseCentsPerKg,
+          targetKg: pieceRates.targetKg,
+          bonusCentsPerKg: pieceRates.bonusCentsPerKg,
+        })
+        .from(pieceRates)
+        .where(and(eq(pieceRates.farmId, farmId), eq(pieceRates.seasonId, season.id))),
+    ]);
 
     const attributed: Crate[] = [];
     let unattributedCrates = 0;
     let unattributedKg = 0;
 
     for (const row of crateRows) {
-      const netKg = row.weightKg - (row.deductionKg ?? 0);
+      const kg = netKg(row.weightKg, row.deductionKg);
       // A crate whose card never resolved is not nobody's work — it is work
       // the office still has to place, so it is counted and shown, not dropped.
       if (!row.pickerId || !row.pickerName) {
         unattributedCrates += 1;
-        unattributedKg += netKg;
+        unattributedKg += kg;
         continue;
       }
-      attributed.push({ pickerId: row.pickerId, pickerName: row.pickerName, at: row.at, netKg });
+      attributed.push({ pickerId: row.pickerId, pickerName: row.pickerName, at: row.at, netKg: kg });
     }
 
     return {
-      season: { id: activeSeason.id, name: activeSeason.name },
+      season: { id: season.id, name: season.name },
       from,
       to,
       people: rollUpPiecework(attributed, rates),

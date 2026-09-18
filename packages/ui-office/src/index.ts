@@ -7,10 +7,8 @@
  *
  * The look (`office.css`) is imported separately, by each app's entry point.
  */
-export { OfficeProvider, useOffice, useOfficeLoader, type OfficeContextValue, type OfficeSession } from "./context.js";
-export { officeCopy, type Lang, type OfficeCopy } from "./copy.js";
-export { FARM_SETTINGS_TAB, MODULE_TABS, moduleName, officeTabs, TabPanel, Tabs, useActiveTab, type Tab } from "./tabs.js";
-export { Exports, type ExportKind } from "./panels/exports.js";
-export { FarmSummary, type FarmContext } from "./panels/farm-summary.js";
-export { AttendanceRollup, HarvestRollup, PieceworkPayout, type AttendanceSummary, type HarvestSummary, type PayoutSummary } from "./panels/rollups.js";
-export { Seasons } from "./panels/seasons.js";
+export { useOffice, useOfficeLoader } from "./context.js";
+export { officeCopy, type Lang } from "./copy.js";
+export { OfficeShell, type OfficeShellProps } from "./shell.js";
+export type { FarmContext } from "./farm-context.js";
+export { moduleName } from "./tabs.js";

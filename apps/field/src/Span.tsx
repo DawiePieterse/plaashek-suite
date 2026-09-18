@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useFlush, useGpsFix, useSavedToast } from "./capture.js";
 import { locale, t } from "./copy.js";
 import { enqueue } from "./queue.js";
+import { readStored, writeStored } from "./storage.js";
 import { type Claims } from "./ticket.js";
 
 const LAST_PUNCH_KEY = "plaashek.field.span.last";
@@ -12,28 +13,18 @@ interface LastPunch {
 }
 
 /**
- * What this phone punched last, kept locally because the answer has to be
- * right with no signal — the queue may already be flushed and the server is
- * not reachable to ask. Only ever this phone's own punches, which is the
- * whole of Span (ADR 0008).
- */
-function readLastPunch(): LastPunch | null {
-  try {
-    const raw = globalThis.localStorage?.getItem(LAST_PUNCH_KEY);
-    return raw ? (JSON.parse(raw) as LastPunch) : null;
-  } catch {
-    // A corrupt entry must not white-screen a phone at 05:50 — start from "not clocked in".
-    return null;
-  }
-}
-
-/**
  * Span capture (docs/span-build-scope.md): one button, and it says which way.
  * No weather (a punch is not an observation) and no block picker — a punch is
  * about a person and a clock.
  */
 export function Span({ ticket, claims }: { ticket: string; claims: Claims }) {
-  const [last, setLast] = useState<LastPunch | null>(readLastPunch);
+  /**
+   * What this phone punched last, kept locally because the answer has to be
+   * right with no signal — the queue may already be flushed and the server is
+   * not reachable to ask. Only ever this phone's own punches, which is the
+   * whole of Span (ADR 0008).
+   */
+  const [last, setLast] = useState<LastPunch | null>(() => readStored<LastPunch | null>(LAST_PUNCH_KEY, null));
   const [saved, markSaved] = useSavedToast();
   const fixRef = useGpsFix();
   const { pending, setPending, refused, flush } = useFlush(ticket, t().errors);
@@ -61,7 +52,7 @@ export function Span({ ticket, claims }: { ticket: string; claims: Claims }) {
     );
 
     const punched: LastPunch = { direction: next, at };
-    globalThis.localStorage?.setItem(LAST_PUNCH_KEY, JSON.stringify(punched));
+    writeStored(LAST_PUNCH_KEY, punched);
     setLast(punched);
     markSaved();
     navigator.vibrate?.(60);

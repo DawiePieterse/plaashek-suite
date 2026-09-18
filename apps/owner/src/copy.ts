@@ -15,8 +15,6 @@ const af = {
   signIn: "Meld aan",
   signingIn: "Wag…",
   offline: "Kan nie aan die bediener koppel nie.",
-  loading: "Laai…",
-  farmSettings: "Plaasinstellings",
 
   errors: {
     invalid_credentials: "Verkeerde e-pos of wagwoord.",
@@ -35,8 +33,6 @@ const en: typeof af = {
   signIn: "Sign in",
   signingIn: "Wait…",
   offline: "Cannot reach the server.",
-  loading: "Loading…",
-  farmSettings: "Farm settings",
 
   errors: {
     invalid_credentials: "Incorrect email or password.",

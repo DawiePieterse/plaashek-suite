@@ -23,6 +23,7 @@ export * from "./tables/attendance-punches.js";
 export * from "./tables/piecework.js";
 export * from "./tables/staff.js";
 export * from "./workspace-row.js";
+export * from "./capture-tables.js";
 
 export const insertOrganisation = createInsertSchema(organisations);
 export const selectOrganisation = createSelectSchema(organisations);

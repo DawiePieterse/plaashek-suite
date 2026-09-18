@@ -1,6 +1,5 @@
-import { toDataURL } from "qrcode";
-import { useEffect, useState } from "react";
 import { t } from "./copy.js";
+import { PrintableSlip } from "./PrintableSlip.js";
 
 export interface CardDetails {
   code: string;
@@ -15,40 +14,20 @@ export interface CardDetails {
  * case — the supervisor types it instead.
  */
 export function WorkerCard({ card, onClose }: { card: CardDetails; onClose: () => void }) {
-  const [qr, setQr] = useState("");
   const c = t();
 
-  useEffect(() => {
-    toDataURL(card.code, { width: 320, margin: 1 }).then(setQr).catch(() => setQr(""));
-  }, [card.code]);
-
   return (
-    <div className="modal-backdrop">
-      <div className="modal">
-        <div className="slip">
-          <h2>{c.cardTitle}</h2>
-          <dl>
-            <dt>{c.slipFarm}</dt>
-            <dd>{card.farmName}</dd>
-            <dt>{c.cardWorker}</dt>
-            <dd>{card.personName}</dd>
-          </dl>
-
-          {qr ? <img src={qr} alt={c.cardTitle} /> : <p>{c.qrLoading}</p>}
-
-          <p className="card-code">{card.code}</p>
-          <p className="slip-note">{c.cardNote}</p>
-        </div>
-
-        <div className="modal-actions no-print">
-          <button type="button" onClick={() => window.print()}>
-            {c.print}
-          </button>
-          <button type="button" className="link" onClick={onClose}>
-            {c.close}
-          </button>
-        </div>
-      </div>
-    </div>
+    <PrintableSlip
+      title={c.cardTitle}
+      facts={[
+        [c.slipFarm, card.farmName],
+        [c.cardWorker, card.personName],
+      ]}
+      qrValue={card.code}
+      note={c.cardNote}
+      onClose={onClose}
+    >
+      <p className="card-code">{card.code}</p>
+    </PrintableSlip>
   );
 }

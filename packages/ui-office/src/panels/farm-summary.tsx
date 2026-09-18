@@ -10,15 +10,8 @@ import { moduleName } from "../tabs.js";
  * a lapsed licence holds captures across every module (plan §5), and
  * captures with no season are a season problem, which is a farm setting.
  */
-export interface FarmContext {
-  farm: { id: string; name: string };
-  people: { id: string; name: string }[];
-  modules: string[];
-  waiting: { held: number; withoutSeason: number };
-}
-
-export function FarmSummary({ context }: { context: FarmContext }) {
-  const { c, lang } = useOffice();
+export function FarmSummary() {
+  const { c, lang, context } = useOffice();
 
   return (
     <section>

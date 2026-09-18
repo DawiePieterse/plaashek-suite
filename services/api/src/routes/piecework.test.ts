@@ -1,29 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocks, deviceAssignments, deviceModules, devices, entitlements, harvestEvents, people, seasons, workerCards } from "@plaashek/schema";
-import { mintTicket } from "@plaashek/tickets";
+import { blocks, harvestEvents, people, seasons, workerCards } from "@plaashek/schema";
 import { and, eq } from "drizzle-orm";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import type { Db } from "../db.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
-import { seedFarm } from "../test/fixtures.js";
+import { pairedPhone, ticketFor } from "../test/fixtures.js";
 
 /** A farm mid-pick: an active season, a block, and a Boord phone at the scale. */
 async function pickingFarm(db: Db) {
-  const { farm, person, membership } = await seedFarm(db);
-  await db.insert(entitlements).values({ farmId: farm.id, moduleCode: "boord", status: "active" });
+  const { farm, person, membership, device } = await pairedPhone(db, "boord");
   const [block] = await db.insert(blocks).values({ farmId: farm.id, name: "Blok A" }).returning();
   const [season] = await db
     .insert(seasons)
     .values({ farmId: farm.id, name: "Lietsjie 2026", startsOn: "2026-09-01", endsOn: "2026-12-31", isActive: true })
     .returning();
-
-  const [device] = await db.insert(devices).values({ farmId: farm.id, label: "Skaal" }).returning();
-  await db.insert(deviceModules).values({ deviceId: device.id, moduleCode: "boord" });
-  await db
-    .insert(deviceAssignments)
-    .values({ deviceId: device.id, personId: person.id, assignedBy: membership.id, assignedAt: new Date("2026-01-01T00:00:00Z") });
 
   return { farm, person, membership, block, season, device };
 }
@@ -100,15 +92,7 @@ test("a scanned card attributes the crate to its picker, not to the device's per
     });
     const { person: picker, card } = registered.json() as { person: { id: string }; card: { code: string } };
 
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["boord"],
-      deviceModules: ["boord"],
-      language: "af",
-      seasonId: season.id,
-      signingKey: deps.keys.privateKey,
-    });
+    const ticket = await ticketFor(deps, farm, device, ["boord"], { seasonId: season.id });
 
     const upload = await app.inject({
       method: "POST",
@@ -141,15 +125,7 @@ test("a card the server does not know keeps the crate and the code, unattributed
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership, block, season, device } = await pickingFarm(db);
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["boord"],
-      deviceModules: ["boord"],
-      language: "af",
-      seasonId: season.id,
-      signingKey: deps.keys.privateKey,
-    });
+    const ticket = await ticketFor(deps, farm, device, ["boord"], { seasonId: season.id });
 
     const upload = await app.inject({
       method: "POST",
@@ -195,15 +171,7 @@ test("a revoked card stops attributing crates", async () => {
 
     await app.inject({ method: "POST", url: `/piecework/cards/${card.id}/revoke`, headers: { authorization: `Bearer ${staff}` } });
 
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["boord"],
-      deviceModules: ["boord"],
-      language: "af",
-      seasonId: season.id,
-      signingKey: deps.keys.privateKey,
-    });
+    const ticket = await ticketFor(deps, farm, device, ["boord"], { seasonId: season.id });
 
     await app.inject({
       method: "POST",
@@ -393,15 +361,7 @@ test("the phone's card list carries only live cards for its own farm", async () 
       payload: { name: "Other Farm Picker" },
     });
 
-    const ticket = await mintTicket({
-      farmId: farm.id,
-      deviceId: device.id,
-      farmModules: ["boord"],
-      deviceModules: ["boord"],
-      language: "af",
-      seasonId: season.id,
-      signingKey: deps.keys.privateKey,
-    });
+    const ticket = await ticketFor(deps, farm, device, ["boord"], { seasonId: season.id });
 
     const response = await app.inject({ method: "GET", url: "/worker-cards", headers: { authorization: `Bearer ${ticket}` } });
 

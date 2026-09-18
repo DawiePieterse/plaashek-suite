@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import { officeCopy, type Lang, type OfficeCopy } from "./copy.js";
+import type { FarmContext } from "./farm-context.js";
 
 /**
  * What a shared panel needs from whichever app is hosting it. Both office
@@ -15,9 +16,12 @@ export interface OfficeSession {
 
 export interface OfficeContextValue {
   session: OfficeSession;
+  /** Loaded once by the shell before any panel renders — no panel fetches `/farm` again. */
+  context: FarmContext;
   /** The host app's fetch wrapper: adds the bearer token, throws its own ApiError with a `code`. */
   api: <T>(path: string, init?: RequestInit & { token?: string }) => Promise<T>;
-  downloadCsv: (path: string, token: string, filename: string) => Promise<void>;
+  /** No filename: the server names the file on `content-disposition`, so a farm's files are named in one place. */
+  downloadCsv: (path: string, token: string) => Promise<void>;
   /** The farm's language (plan §6) — the host reads it off the login response. */
   lang: Lang;
   /** The host's translation of an ApiError code, so one wording covers both apps' screens. */
