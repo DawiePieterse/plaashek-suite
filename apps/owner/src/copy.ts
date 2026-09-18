@@ -37,6 +37,7 @@ const af = {
   exportNotes: "Voer veldnotas uit (CSV)",
   exportHarvest: "Voer oes uit (CSV)",
   exportAttendance: "Voer span uit (CSV)",
+  exportPiecework: "Voer stukwerk uit (CSV)",
 
   errors: {
     invalid_credentials: "Verkeerde e-pos of wagwoord.",
@@ -77,6 +78,7 @@ const en: typeof af = {
   exportNotes: "Export veldnotas (CSV)",
   exportHarvest: "Export harvest (CSV)",
   exportAttendance: "Export attendance (CSV)",
+  exportPiecework: "Export piece-work (CSV)",
 
   errors: {
     invalid_credentials: "Incorrect email or password.",

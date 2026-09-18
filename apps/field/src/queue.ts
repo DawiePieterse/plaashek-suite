@@ -34,6 +34,8 @@ export interface HarvestEventOp {
     block_id: string;
     weight_kg: number;
     deduction_kg?: number | null;
+    /** The scanned worker card (ADR 0009). The server turns it into a picker — the phone never asserts one. */
+    picker_card_code?: string | null;
     weather_temp?: number | null;
     weather_humidity?: number | null;
     weather_condition?: string | null;

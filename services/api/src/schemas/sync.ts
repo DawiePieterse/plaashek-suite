@@ -24,7 +24,16 @@ const noteOp = z.object({
   }),
 });
 
-/** Boord capture (docs/boord-reuse-audit.md): block + weight + optional deduction, same weather stamp as notes. */
+/**
+ * Boord capture (docs/boord-reuse-audit.md): block + weight + optional
+ * deduction, same weather stamp as notes.
+ *
+ * `picker_card_code` is what the card scan produced (ADR 0009). The phone
+ * sends only the code — never a person id, even though it resolved one
+ * locally to show the picker's name — so the server is the single place a
+ * card becomes an attribution. Optional: a farm running Boord without
+ * piece-work sends nothing.
+ */
 const harvestEventOp = z.object({
   entity: z.literal("harvest_events"),
   entity_id: z.string().uuid(),
@@ -34,6 +43,7 @@ const harvestEventOp = z.object({
     block_id: z.string().uuid(),
     weight_kg: z.number().positive(),
     deduction_kg: z.number().nullable().optional(),
+    picker_card_code: z.string().min(1).max(64).nullable().optional(),
     weather_temp: z.number().nullable().optional(),
     weather_humidity: z.number().nullable().optional(),
     weather_condition: z.string().nullable().optional(),

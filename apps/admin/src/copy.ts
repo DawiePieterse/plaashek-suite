@@ -57,10 +57,51 @@ const af = {
   heldWaiting: (count: number) => `Lisensie het verval — ${count} opname(s) wag. Praat met Plaashek.`,
   withoutSeason: (count: number) => `${count} opname(s) sonder seisoen.`,
 
+  pieceworkHeading: "Stukwerk — seisoenwerkers",
+  rateHeading: "Tarief",
+  noRate: "Nog geen tarief nie. Sonder 'n tarief tel die kilogramme, maar die rande bly leeg.",
+  rateFlat: (base: string, from: string) => `R${base}/kg vanaf ${from}.`,
+  rateTiered: (base: string, target: number, bonus: string, from: string) =>
+    `R${base}/kg tot ${target} kg per dag, daarna R${bonus}/kg — vanaf ${from}.`,
+  effectiveFrom: "Geldig vanaf",
+  baseRate: "Basistarief (R/kg)",
+  targetKgLabel: "Dagteiken (kg)",
+  bonusRate: "Bonustarief (R/kg)",
+  saveRate: "Stoor tarief",
+
+  workersHeading: "Werkers",
+  worker: "Werker",
+  workerNamePlaceholder: "Naam van die werker",
+  registerWorker: "Registreer en druk kaart",
+  cardCode: "Kaartkode",
+  noCard: "geen kaart",
+  noWorkers: "Nog geen seisoenwerkers nie.",
+  printCard: "Druk kaart",
+  reissueCard: "Nuwe kaart",
+  revokeCard: "Herroep kaart",
+
+  payoutHeading: "Uitbetaling",
+  payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} tot ${to}`,
+  noPiecework: "Nog geen kratte aan 'n werker gekoppel nie.",
+  noSeason: "Geen aktiewe seisoen nie.",
+  days: "Dae",
+  kg: "kg",
+  rand: "Rand",
+  total: "Totaal",
+  unattributed: (crates: number, kg: number) =>
+    `${crates} krat(te) (${kg.toFixed(1)} kg) is nog aan niemand gekoppel nie — die kaart is nie herken nie. Kyk na die kaarte.`,
+  payoutDisclaimer:
+    "Hierdie bedrag is wat die plaas se eie tarief uitwerk. Plaashek betaal niemand nie en toets nie of dit die minimumloon haal nie — daar is geen ure vir seisoenwerkers nie.",
+
+  cardTitle: "Werkerskaart",
+  cardWorker: "Werker",
+  cardNote: "Skandeer hierdie kaart by die skaal voor die krat geweeg word. Verlore kaart? Die kantoor druk 'n nuwe een.",
+
   exportHeading: "Uitvoer",
   exportNotes: "Voer veldnotas uit (CSV)",
   exportHarvest: "Voer oes uit (CSV)",
   exportAttendance: "Voer span uit (CSV)",
+  exportPiecework: "Voer stukwerk uit (CSV)",
 
   slipTitle: "Paringstrokie",
   slipFarm: "Plaas",
@@ -137,10 +178,51 @@ const en: typeof af = {
   heldWaiting: (count: number) => `Licence has lapsed — ${count} capture(s) waiting. Talk to Plaashek.`,
   withoutSeason: (count: number) => `${count} capture(s) with no season.`,
 
+  pieceworkHeading: "Piece-work — seasonal workers",
+  rateHeading: "Rate",
+  noRate: "No rate yet. Without one the kilograms still count, but the rand stay empty.",
+  rateFlat: (base: string, from: string) => `R${base}/kg from ${from}.`,
+  rateTiered: (base: string, target: number, bonus: string, from: string) =>
+    `R${base}/kg up to ${target} kg a day, then R${bonus}/kg — from ${from}.`,
+  effectiveFrom: "Effective from",
+  baseRate: "Base rate (R/kg)",
+  targetKgLabel: "Daily target (kg)",
+  bonusRate: "Bonus rate (R/kg)",
+  saveRate: "Save rate",
+
+  workersHeading: "Workers",
+  worker: "Worker",
+  workerNamePlaceholder: "Worker's name",
+  registerWorker: "Register and print card",
+  cardCode: "Card code",
+  noCard: "no card",
+  noWorkers: "No seasonal workers yet.",
+  printCard: "Print card",
+  reissueCard: "New card",
+  revokeCard: "Revoke card",
+
+  payoutHeading: "Payout",
+  payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} to ${to}`,
+  noPiecework: "No crates tied to a worker yet.",
+  noSeason: "No active season.",
+  days: "Days",
+  kg: "kg",
+  rand: "Rand",
+  total: "Total",
+  unattributed: (crates: number, kg: number) =>
+    `${crates} crate(s) (${kg.toFixed(1)} kg) are not tied to anyone — the card was not recognised. Check the cards.`,
+  payoutDisclaimer:
+    "This is what the farm's own rate works out to. Plaashek pays nobody and does not check it against the minimum wage — there are no hours for seasonal workers.",
+
+  cardTitle: "Worker card",
+  cardWorker: "Worker",
+  cardNote: "Scan this card at the scale before the crate is weighed. Lost card? The office prints a new one.",
+
   exportHeading: "Export",
   exportNotes: "Export veldnotas (CSV)",
   exportHarvest: "Export harvest (CSV)",
   exportAttendance: "Export attendance (CSV)",
+  exportPiecework: "Export piece-work (CSV)",
 
   slipTitle: "Pairing slip",
   slipFarm: "Farm",

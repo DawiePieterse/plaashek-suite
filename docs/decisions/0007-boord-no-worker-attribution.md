@@ -1,7 +1,13 @@
 # ADR 0007 — Boord does not track per-crate worker/team attribution
 
 **Date:** 17 September 2026
-**Status:** accepted
+**Status:** superseded by [ADR 0009](0009-piecework-picker-attribution.md) —
+17 September 2026. The farm asked for seasonal pickers paid per kilogram,
+which needs exactly the per-crate attribution refused here. This ADR's own
+"Consequences" named that case as the one to revisit it on. Per-crate
+attribution now exists, sourced from a scanned printed card rather than an
+in-app picker; everything below is kept as the record of why it was refused
+while wages were out of scope.
 
 ## Question
 

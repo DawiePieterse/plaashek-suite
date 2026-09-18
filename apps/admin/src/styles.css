@@ -124,6 +124,24 @@ button.small {
   color: var(--ink-soft);
 }
 
+/* The card's code in readable characters, for the scale phone whose camera
+   will not focus in the sun (ADR 0009). Big, spaced, unambiguous. */
+.card-code {
+  margin: 0.5rem 0 0;
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-align: center;
+}
+
+/* Several small actions per row (print / reissue / revoke a worker card). */
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 /* Print exactly the slip — it is the credential that leaves the office. */
 @media print {
   body {

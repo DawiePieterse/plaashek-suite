@@ -24,7 +24,9 @@ import {
   organisations,
   pairingTokens,
   people,
+  pieceRates,
   seasons,
+  workerCards,
 } from "@plaashek/schema";
 import { eq, inArray } from "drizzle-orm";
 import { hashPassword } from "../src/auth/password.js";
@@ -78,6 +80,8 @@ async function wipeDemoData() {
     await db.delete(notes).where(inArray(notes.farmId, farmIds));
     await db.delete(harvestEvents).where(inArray(harvestEvents.farmId, farmIds));
     await db.delete(attendancePunches).where(inArray(attendancePunches.farmId, farmIds));
+    await db.delete(pieceRates).where(inArray(pieceRates.farmId, farmIds));
+    await db.delete(workerCards).where(inArray(workerCards.farmId, farmIds));
     await db.delete(heldWrites).where(inArray(heldWrites.farmId, farmIds));
 
     await db.delete(devices).where(inArray(devices.farmId, farmIds));

@@ -4,6 +4,7 @@ import { t } from "./copy.js";
 import { Devices } from "./Devices.js";
 import { Export } from "./Export.js";
 import { Login } from "./Login.js";
+import { Piecework } from "./Piecework.js";
 import { Seasons } from "./Seasons.js";
 
 export function App() {
@@ -29,6 +30,7 @@ export function App() {
       </header>
       <main className="app">
         <Devices session={session} onSessionExpired={signOut} />
+        <Piecework session={session} onSessionExpired={signOut} />
         <Seasons session={session} onSessionExpired={signOut} />
         <Export session={session} />
       </main>

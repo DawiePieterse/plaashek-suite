@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { attendancePunches, blocks, devices, harvestEvents, notes } from "@plaashek/schema";
+import { attendancePunches, blocks, devices, harvestEvents, notes, people, pieceRates, seasons } from "@plaashek/schema";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
@@ -98,5 +98,58 @@ test("GET /export/attendance.csv exports every punch for the farm, one row each"
     assert.equal(lines.length, 3);
     assert.match(lines[1], /,Person,in,,-25.75,28.23$/);
     assert.match(lines[2], /,Person,out,,,$/);
+  });
+});
+
+test("GET /export/piecework.csv prices each picker's day and keeps the unplaced crates in the file", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+
+    const [block] = await db.insert(blocks).values({ farmId: farm.id, name: "Blok A" }).returning();
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [season] = await db
+      .insert(seasons)
+      .values({ farmId: farm.id, name: "Lietsjie 2026", startsOn: "2026-09-01", endsOn: "2026-12-31", isActive: true })
+      .returning();
+    const [picker] = await db.insert(people).values({ farmId: farm.id, name: "Sara Sithole", kind: "seasonal" }).returning();
+
+    await db.insert(pieceRates).values({
+      farmId: farm.id,
+      seasonId: season.id,
+      effectiveFrom: "2026-09-01",
+      baseCentsPerKg: 250,
+      targetKg: 100,
+      bonusCentsPerKg: 400,
+    });
+
+    const crate = (weightKg: number, at: string, extra: Record<string, unknown> = {}) => ({
+      farmId: farm.id,
+      moduleCode: "boord",
+      seasonId: season.id,
+      createdBy: person.id,
+      deviceId: device.id,
+      blockId: block.id,
+      weightKg,
+      createdAt: new Date(at),
+      ...extra,
+    });
+
+    await db.insert(harvestEvents).values([
+      crate(70, "2026-09-10T06:00:00Z", { pickerId: picker.id }),
+      crate(50, "2026-09-10T11:00:00Z", { pickerId: picker.id }),
+      crate(8, "2026-09-10T12:00:00Z", { pickerCardCode: "ZZZZ9999" }),
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/piecework.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "\ufeffday,picker,card_code,season,net_kg,base_cents_per_kg,target_kg,bonus_cents_per_kg,cents,rand");
+    // 120kg in one day: 100 at 250c + 20 at 400c = R330.00, on one row.
+    assert.equal(lines[1], "2026-09-10,Sara Sithole,,Lietsjie 2026,120,250,100,400,33000,330.00");
+    // The unplaced crate is still in the file, with its code and no pay line.
+    assert.equal(lines[2], "2026-09-10,,ZZZZ9999,Lietsjie 2026,8,250,100,400,,");
   });
 });

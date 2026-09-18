@@ -5,6 +5,8 @@
  * answer, and a stored total would quietly not change with it.
  */
 
+import { farmDayKey } from "./farm-day.js";
+
 export interface Punch {
   personId: string;
   personName: string;
@@ -21,15 +23,6 @@ export interface PersonAttendance {
   /** Punches that never paired: still clocked in, a forgotten `out`, or an `out` with no `in`. */
   openPunches: number;
 }
-
-/**
- * Plaashek hosts and sells in one country (plan §10), so the farm's day is
- * SAST. Give `farms` a timezone column the day that stops being true — the
- * only thing this decides is which calendar day a shift is counted on.
- */
-const FARM_TIME_ZONE = "Africa/Johannesburg";
-
-const dayKey = (at: Date) => at.toLocaleDateString("en-CA", { timeZone: FARM_TIME_ZONE });
 
 /**
  * Pairs each `in` with the `out` that follows it, in time order, per person.
@@ -69,7 +62,7 @@ export function rollUpAttendance(punches: Punch[]): PersonAttendance[] {
       }
 
       milliseconds += punch.at.getTime() - openedAt.getTime();
-      days.add(dayKey(openedAt));
+      days.add(farmDayKey(openedAt));
       openedAt = null;
     }
 

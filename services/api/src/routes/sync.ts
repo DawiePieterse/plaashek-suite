@@ -1,10 +1,11 @@
-import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes } from "@plaashek/schema";
-import { and, desc, eq, lte } from "drizzle-orm";
+import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people, workerCards } from "@plaashek/schema";
+import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
+import { normaliseCardCode } from "../lib/worker-card.js";
 import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp } from "../schemas/sync.js";
 
 /** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, then span). */
@@ -138,10 +139,39 @@ async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, devi
     .onConflictDoNothing();
 }
 
-/** Same append-only shape as a note — no edit path (ADR 0007's precedent). */
+/**
+ * Who the scanned card belongs to. The phone resolves this from its cached
+ * card list, but a card issued after that cache was filled resolves here
+ * instead — which is why the phone is allowed to save the crate with a code
+ * it does not recognise (plan §8: never block a capture over configuration).
+ *
+ * The phone never sends a person id, only the code it scanned — so a device
+ * cannot assert who picked a crate, it can only report what it read off a
+ * card. This function is the only place a code becomes an attribution.
+ */
+async function resolvePicker(
+  tx: Pick<Db, "select">,
+  farmId: string,
+  code: string | null | undefined,
+): Promise<string | null> {
+  if (!code) return null;
+
+  const [card] = await tx
+    .select({ personId: workerCards.personId })
+    .from(workerCards)
+    .innerJoin(people, eq(people.id, workerCards.personId))
+    .where(and(eq(workerCards.farmId, farmId), eq(workerCards.code, normaliseCardCode(code)), isNull(workerCards.revokedAt)));
+
+  return card?.personId ?? null;
+}
+
+/** Same append-only shape as a note — no edit path (ADR 0006's precedent, kept by ADR 0009). */
 async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: HarvestEventOp, clientTime: Date) {
   const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
   if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  const cardCode = op.payload.picker_card_code ? normaliseCardCode(op.payload.picker_card_code) : null;
+  const pickerId = await resolvePicker(tx, farmId, cardCode);
 
   await tx
     .insert(harvestEvents)
@@ -155,6 +185,8 @@ async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: stri
       blockId: op.payload.block_id,
       weightKg: op.payload.weight_kg,
       deductionKg: op.payload.deduction_kg ?? null,
+      pickerId,
+      pickerCardCode: cardCode,
       weatherTemp: op.payload.weather_temp ?? null,
       weatherHumidity: op.payload.weather_humidity ?? null,
       weatherCondition: op.payload.weather_condition ?? null,

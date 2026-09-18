@@ -1,30 +1,41 @@
 import { useEffect, useState } from "react";
+import { CardScanner, normaliseCardCode } from "./CardScanner.js";
 import { raceWeather, useFlush, useGpsFix, useSavedToast } from "./capture.js";
 import { t } from "./copy.js";
 import { enqueue } from "./queue.js";
-import { fetchBlocks, type Claims } from "./ticket.js";
+import { fetchBlocks, fetchWorkerCards, type Claims } from "./ticket.js";
 
 interface Block {
   id: string;
   name: string;
 }
 
-const BLOCKS_KEY = "plaashek.field.blocks";
+interface WorkerCard {
+  code: string;
+  personId: string;
+  personName: string;
+}
 
-function readCachedBlocks(): Block[] {
+const BLOCKS_KEY = "plaashek.field.blocks";
+const CARDS_KEY = "plaashek.field.cards";
+
+function readCached<T>(key: string): T[] {
   try {
-    return JSON.parse(globalThis.localStorage?.getItem(BLOCKS_KEY) ?? "[]");
+    return JSON.parse(globalThis.localStorage?.getItem(key) ?? "[]");
   } catch {
     return [];
   }
 }
 
-/** Boord capture. Block + weight + optional deduction — same shape as Notes.tsx (ADR 0007). */
+/** Boord capture. Block + weight + optional deduction, and — for a farm paying per kg — the picker's scanned card (ADR 0009). */
 export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) {
-  const [blocks, setBlocks] = useState<Block[]>(readCachedBlocks);
+  const [blocks, setBlocks] = useState<Block[]>(() => readCached<Block>(BLOCKS_KEY));
+  const [cards, setCards] = useState<WorkerCard[]>(() => readCached<WorkerCard>(CARDS_KEY));
   const [blockId, setBlockId] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [deductionKg, setDeductionKg] = useState("");
+  /** The card scanned for the crates being weighed now. Kept between saves — one picker fills several crates. */
+  const [picker, setPicker] = useState<{ code: string; name: string | null } | null>(null);
   const [saved, markSaved] = useSavedToast();
   const fixRef = useGpsFix();
   const { pending, setPending, refused, flush } = useFlush(ticket, t().errors);
@@ -37,7 +48,21 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
         globalThis.localStorage?.setItem(BLOCKS_KEY, JSON.stringify(fresh));
       })
       .catch(() => {}); // offline — the cached list stands
+
+    // Cached so a scan resolves to a name with no signal. An unknown code is
+    // still saved (plan §8) and resolved by the server at sync.
+    fetchWorkerCards(ticket)
+      .then(({ cards: fresh }) => {
+        setCards(fresh);
+        globalThis.localStorage?.setItem(CARDS_KEY, JSON.stringify(fresh));
+      })
+      .catch(() => {});
   }, [ticket]);
+
+  function scanned(code: string) {
+    const known = cards.find((card) => normaliseCardCode(card.code) === code);
+    setPicker({ code, name: known?.personName ?? null });
+  }
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -54,6 +79,8 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
           block_id: blockId,
           weight_kg: Number(weightKg),
           deduction_kg: deductionKg ? Number(deductionKg) : null,
+          // Only ever the code: the server decides whose crate this is.
+          picker_card_code: picker?.code ?? null,
           weather_temp: weather?.temp ?? null,
           weather_humidity: weather?.humidity ?? null,
           weather_condition: weather?.condition ?? null,
@@ -69,6 +96,19 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
 
   return (
     <main>
+      <section className="picker">
+        {picker ? (
+          <p className="status">
+            {picker.name ?? c.unknownCard(picker.code)}{" "}
+            <button type="button" className="quiet" onClick={() => setPicker(null)}>
+              {c.changeCard}
+            </button>
+          </p>
+        ) : (
+          <CardScanner onCode={scanned} />
+        )}
+      </section>
+
       <form onSubmit={save}>
         <label className="field">
           {c.blockLabel}

@@ -1,8 +1,10 @@
-import { attendancePunches, blocks, harvestEvents, notes, people, seasons } from "@plaashek/schema";
-import { asc, eq } from "drizzle-orm";
+import { attendancePunches, blocks, harvestEvents, notes, people, pieceRates, seasons } from "@plaashek/schema";
+import { and, asc, eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import { sendCsv, toCsv } from "../lib/csv.js";
+import { farmDayKey } from "../lib/farm-day.js";
+import { dayCents, rateOn, type Rate } from "../lib/piecework.js";
 
 /**
  * Excel export for the office tools (plan §10 offboarding, §12 Phase 4) — one
@@ -127,5 +129,102 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
     );
 
     return sendCsv(reply, "span.csv", csv);
+  });
+
+  /**
+   * The file payroll actually uses (ADR 0010): one row per picker per day,
+   * with the rate that was in force on that day spelled out beside it so the
+   * rand can be checked rather than trusted. Crates whose card never resolved
+   * are in here too, with an empty picker and the code that was scanned —
+   * they are work the office still has to place, not work that disappears.
+   *
+   * It is not a payslip and it is not a minimum-wage check: no hours exist
+   * for a seasonal picker (ADR 0008, ADR 0010).
+   */
+  app.get("/export/piecework.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const crates = await deps.db
+      .select({
+        at: harvestEvents.createdAt,
+        pickerId: harvestEvents.pickerId,
+        picker: people.name,
+        cardCode: harvestEvents.pickerCardCode,
+        season: seasons.name,
+        seasonId: harvestEvents.seasonId,
+        weightKg: harvestEvents.weightKg,
+        deductionKg: harvestEvents.deductionKg,
+      })
+      .from(harvestEvents)
+      .leftJoin(people, eq(people.id, harvestEvents.pickerId))
+      .leftJoin(seasons, eq(seasons.id, harvestEvents.seasonId))
+      .where(eq(harvestEvents.farmId, farmId))
+      .orderBy(asc(harvestEvents.createdAt));
+
+    const rateRows = await deps.db
+      .select({
+        seasonId: pieceRates.seasonId,
+        effectiveFrom: pieceRates.effectiveFrom,
+        baseCentsPerKg: pieceRates.baseCentsPerKg,
+        targetKg: pieceRates.targetKg,
+        bonusCentsPerKg: pieceRates.bonusCentsPerKg,
+      })
+      .from(pieceRates)
+      .where(eq(pieceRates.farmId, farmId));
+
+    // picker+day is the pay unit: the tier is daily, and rounding happens once per day.
+    const buckets = new Map<string, { day: string; picker: string | null; cardCode: string | null; season: string | null; seasonId: string | null; kg: number }>();
+
+    for (const crate of crates) {
+      const day = farmDayKey(crate.at);
+      const key = `${crate.pickerId ?? `card:${crate.cardCode ?? "none"}`}|${day}`;
+      const bucket = buckets.get(key) ?? {
+        day,
+        picker: crate.picker,
+        cardCode: crate.cardCode,
+        season: crate.season,
+        seasonId: crate.seasonId,
+        kg: 0,
+      };
+      bucket.kg += crate.weightKg - (crate.deductionKg ?? 0);
+      buckets.set(key, bucket);
+    }
+
+    const rows = [...buckets.values()]
+      // Day, then named pickers, then the day's unplaced crates at the bottom
+      // where payroll can see what is still missing rather than scrolling past it.
+      .sort(
+        (a, b) =>
+          a.day.localeCompare(b.day) ||
+          Number(a.picker === null) - Number(b.picker === null) ||
+          (a.picker ?? a.cardCode ?? "").localeCompare(b.picker ?? b.cardCode ?? ""),
+      )
+      .map((bucket) => {
+        const seasonRates: Rate[] = rateRows.filter((rate) => rate.seasonId === bucket.seasonId);
+        const rate = rateOn(bucket.day, seasonRates);
+        const kg = Math.round(bucket.kg * 100) / 100;
+        // No picker means no pay line — the kilograms are real, whose they are is not yet known.
+        const cents = rate && bucket.picker ? dayCents(bucket.kg, rate) : null;
+
+        return [
+          bucket.day,
+          bucket.picker,
+          bucket.cardCode,
+          bucket.season,
+          kg,
+          rate?.baseCentsPerKg ?? null,
+          rate?.targetKg ?? null,
+          rate?.bonusCentsPerKg ?? null,
+          cents,
+          cents === null ? null : (cents / 100).toFixed(2),
+        ];
+      });
+
+    const csv = toCsv(
+      ["day", "picker", "card_code", "season", "net_kg", "base_cents_per_kg", "target_kg", "bonus_cents_per_kg", "cents", "rand"],
+      rows,
+    );
+
+    return sendCsv(reply, "stukwerk.csv", csv);
   });
 }

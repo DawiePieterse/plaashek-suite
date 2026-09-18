@@ -30,6 +30,9 @@ export function Export({ session }: { session: Session }) {
         <button type="button" className="quiet" onClick={() => download("/export/attendance.csv", "span.csv")}>
           {c.exportAttendance}
         </button>
+        <button type="button" className="quiet" onClick={() => download("/export/piecework.csv", "stukwerk.csv")}>
+          {c.exportPiecework}
+        </button>
       </div>
     </section>
   );

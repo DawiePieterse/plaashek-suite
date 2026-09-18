@@ -12,7 +12,13 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
 
     const [[farm], farmPeople, modules, [held], [withoutSeason]] = await Promise.all([
       deps.db.select({ id: farms.id, name: farms.name }).from(farms).where(eq(farms.id, farmId)),
-      deps.db.select({ id: people.id, name: people.name }).from(people).where(eq(people.farmId, farmId)),
+      // Staff only: a seasonal picker carries a printed card, never a phone
+      // (ADR 0009), so forty of them have no business in the device-assignment
+      // list. The piece-work register is where they live.
+      deps.db
+        .select({ id: people.id, name: people.name })
+        .from(people)
+        .where(and(eq(people.farmId, farmId), eq(people.kind, "staff"))),
       activeModuleCodes(deps.db, farmId),
       // What the office has to act on: captures waiting behind a lapsed licence
       // (plan §5) and captures the phone could not stamp with a season (§6).
