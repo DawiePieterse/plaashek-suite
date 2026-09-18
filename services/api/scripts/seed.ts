@@ -40,7 +40,7 @@ const LANGUAGE = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("-
 if (LANGUAGE !== "af" && LANGUAGE !== "en") throw new Error(`Unknown --lang: ${LANGUAGE} (af or en)`);
 
 /** Licensed, plus one deliberately left out so the unlicensed-QR-fails test has something to fail against. */
-const LICENSED = ["veldnotas", "boord", "span"];
+const LICENSED = ["veldnotas", "boord", "span", "stoor"];
 const UNLICENSED = "kudde";
 
 try {

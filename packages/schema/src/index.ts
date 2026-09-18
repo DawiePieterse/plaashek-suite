@@ -10,6 +10,7 @@ import { notes } from "./tables/notes.js";
 import { harvestEvents } from "./tables/harvest-events.js";
 import { farmMemberships, people } from "./tables/people.js";
 import { plaashekStaff } from "./tables/staff.js";
+import { stockItems, stockMoves } from "./tables/stock.js";
 
 export * from "./tables/core.js";
 export * from "./tables/entitlements.js";
@@ -21,6 +22,7 @@ export * from "./tables/notes.js";
 export * from "./tables/harvest-events.js";
 export * from "./tables/attendance-punches.js";
 export * from "./tables/piecework.js";
+export * from "./tables/stock.js";
 export * from "./tables/staff.js";
 export * from "./workspace-row.js";
 export * from "./capture-tables.js";
@@ -81,3 +83,9 @@ export const selectPieceRate = createSelectSchema(pieceRates);
 
 export const insertPlaashekStaff = createInsertSchema(plaashekStaff);
 export const selectPlaashekStaff = createSelectSchema(plaashekStaff);
+
+export const insertStockItem = createInsertSchema(stockItems);
+export const selectStockItem = createSelectSchema(stockItems);
+
+export const insertStockMove = createInsertSchema(stockMoves);
+export const selectStockMove = createSelectSchema(stockMoves);

@@ -61,6 +61,16 @@ const af = {
   campBlockCol: "Blok",
   noBlockOption: "Geen blok",
 
+  stoorCatalogHeading: "Voorraaditems",
+  itemName: "Item",
+  itemUnit: "Eenheid",
+  itemActive: "Aktief",
+  itemNamePlaceholder: "bv. Glifosaat",
+  itemUnitPlaceholder: "bv. L",
+  addItem: "Voeg item by",
+  saveItem: "Stoor",
+  noStockItemsYet: "Nog geen voorraaditems nie.",
+
   pieceworkHeading: "Stukwerk — seisoenwerkers",
   rateHeading: "Tarief",
   noRate: "Nog geen tarief nie. Sonder 'n tarief tel die kilogramme, maar die rande bly leeg.",
@@ -184,6 +194,16 @@ const en: typeof af = {
   addCamp: "Add camp",
   campBlockCol: "Block",
   noBlockOption: "No block",
+
+  stoorCatalogHeading: "Stock items",
+  itemName: "Item",
+  itemUnit: "Unit",
+  itemActive: "Active",
+  itemNamePlaceholder: "e.g. Glyphosate",
+  itemUnitPlaceholder: "e.g. L",
+  addItem: "Add item",
+  saveItem: "Save",
+  noStockItemsYet: "No stock items yet.",
 
   pieceworkHeading: "Piece-work — seasonal workers",
   rateHeading: "Rate",

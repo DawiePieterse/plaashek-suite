@@ -45,6 +45,12 @@ const af = {
   open: "Oop",
   openNote: "\"Oop\" is 'n inklok sonder uitklok (of andersom) — die ure tel eers wanneer die paar volledig is.",
 
+  stockHeading: "Voorraad",
+  noStockItems: "Nog geen voorraaditems nie.",
+  item: "Item",
+  unit: "Eenheid",
+  onHand: "Op hand",
+
   payoutHeading: "Uitbetaling",
   payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} tot ${to}`,
   noPiecework: "Nog geen kratte aan 'n werker gekoppel nie.",
@@ -60,6 +66,7 @@ const af = {
   exportNotes: "Voer veldnotas uit (CSV)",
   exportHarvest: "Voer oes uit (CSV)",
   exportAttendance: "Voer span uit (CSV)",
+  exportStock: "Voer voorraad uit (CSV)",
   exportPiecework: "Voer stukwerk uit (CSV)",
 };
 
@@ -100,6 +107,12 @@ const en: typeof af = {
   open: "Open",
   openNote: '"Open" is a clock-in with no clock-out (or the other way round) — hours only count once the pair is complete.',
 
+  stockHeading: "Stock",
+  noStockItems: "No stock items yet.",
+  item: "Item",
+  unit: "Unit",
+  onHand: "On hand",
+
   payoutHeading: "Payout",
   payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} to ${to}`,
   noPiecework: "No crates tied to a worker yet.",
@@ -115,6 +128,7 @@ const en: typeof af = {
   exportNotes: "Export veldnotas (CSV)",
   exportHarvest: "Export harvest (CSV)",
   exportAttendance: "Export attendance (CSV)",
+  exportStock: "Export stock (CSV)",
   exportPiecework: "Export piece-work (CSV)",
 };
 

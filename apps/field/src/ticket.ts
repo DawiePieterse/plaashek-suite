@@ -99,3 +99,6 @@ export const fetchBlocks = (ticket: string) => get<{ blocks: { id: string; name:
 /** The farm's numbered pickers, so a scan at the scale resolves to a name with no signal (ADR 0009, ADR 0011). */
 export const fetchPickers = (ticket: string) =>
   get<{ pickers: { workerNumber: string; personId: string; personName: string }[] }>("/pickers", ticket);
+
+/** Stoor's catalog, active items only — fetched once with signal, cached by the caller (docs/stoor-build-scope.md). */
+export const fetchStockItems = (ticket: string) => get<{ items: { id: string; name: string; unit: string }[] }>("/stock-catalog", ticket);

@@ -1,4 +1,4 @@
-import { attendancePunches, blocks, harvestEvents, notes, people, pieceRates, seasons } from "@plaashek/schema";
+import { attendancePunches, blocks, harvestEvents, notes, people, pieceRates, seasons, stockItems, stockMoves } from "@plaashek/schema";
 import { and, asc, eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
@@ -129,6 +129,43 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
     );
 
     return sendCsv(reply, "span.csv", csv);
+  });
+
+  /**
+   * Stoor's ledger, raw (docs/stoor-build-scope.md) — one row per move, not
+   * the on-hand total `/eienaar/stock` shows. Whoever runs the store's own
+   * books can pair receipts and uses however they need.
+   */
+  app.get("/export/stock.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: stockMoves.id,
+        createdAt: stockMoves.createdAt,
+        person: people.name,
+        item: stockItems.name,
+        unit: stockItems.unit,
+        direction: stockMoves.direction,
+        quantity: stockMoves.quantity,
+        block: blocks.name,
+        season: seasons.name,
+        note: stockMoves.note,
+      })
+      .from(stockMoves)
+      .leftJoin(people, eq(people.id, stockMoves.createdBy))
+      .leftJoin(stockItems, eq(stockItems.id, stockMoves.itemId))
+      .leftJoin(blocks, eq(blocks.id, stockMoves.blockId))
+      .leftJoin(seasons, eq(seasons.id, stockMoves.seasonId))
+      .where(eq(stockMoves.farmId, farmId))
+      .orderBy(asc(stockMoves.createdAt));
+
+    const csv = toCsv(
+      ["id", "created_at", "person", "item", "unit", "direction", "quantity", "block", "season", "note"],
+      rows.map((row) => [row.id, row.createdAt.toISOString(), row.person, row.item, row.unit, row.direction, row.quantity, row.block, row.season, row.note]),
+    );
+
+    return sendCsv(reply, "stoor.csv", csv);
   });
 
   /**
