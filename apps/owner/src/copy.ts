@@ -15,19 +15,6 @@ const af = {
   signIn: "Meld aan",
   signingIn: "Wag…",
   offline: "Kan nie aan die bediener koppel nie.",
-  loading: "Laai…",
-
-  harvestHeading: "Oes",
-  noSeason: "Geen aktiewe seisoen nie. Stel een op in die Plaaskantoor.",
-  noHarvest: "Nog geen oes gevang vir hierdie seisoen nie.",
-  block: "Blok",
-  crates: "Kratte",
-  kg: "kg",
-  total: "Totaal",
-
-  exportHeading: "Uitvoer",
-  exportNotes: "Voer veldnotas uit (CSV)",
-  exportHarvest: "Voer oes uit (CSV)",
 
   errors: {
     invalid_credentials: "Verkeerde e-pos of wagwoord.",
@@ -46,19 +33,6 @@ const en: typeof af = {
   signIn: "Sign in",
   signingIn: "Wait…",
   offline: "Cannot reach the server.",
-  loading: "Loading…",
-
-  harvestHeading: "Harvest",
-  noSeason: "No active season. Set one up in the Farm Admin Tool.",
-  noHarvest: "No harvest captured for this season yet.",
-  block: "Block",
-  crates: "Crates",
-  kg: "kg",
-  total: "Total",
-
-  exportHeading: "Export",
-  exportNotes: "Export veldnotas (CSV)",
-  exportHarvest: "Export harvest (CSV)",
 
   errors: {
     invalid_credentials: "Incorrect email or password.",

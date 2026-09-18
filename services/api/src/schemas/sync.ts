@@ -24,7 +24,16 @@ const noteOp = z.object({
   }),
 });
 
-/** Boord capture (docs/boord-reuse-audit.md): block + weight + optional deduction, same weather stamp as notes. */
+/**
+ * Boord capture (docs/boord-reuse-audit.md): block + weight + optional
+ * deduction, same weather stamp as notes.
+ *
+ * `picker_card_code` is the worker number the card scan produced (ADR 0009,
+ * ADR 0011). The phone sends only the number — never a person id, even
+ * though it resolved one locally to show the picker's name — so the server
+ * is the single place a number becomes an attribution. Optional: a farm
+ * running Boord without piece-work sends nothing.
+ */
 const harvestEventOp = z.object({
   entity: z.literal("harvest_events"),
   entity_id: z.string().uuid(),
@@ -34,9 +43,24 @@ const harvestEventOp = z.object({
     block_id: z.string().uuid(),
     weight_kg: z.number().positive(),
     deduction_kg: z.number().nullable().optional(),
+    picker_card_code: z.string().min(1).max(64).nullable().optional(),
     weather_temp: z.number().nullable().optional(),
     weather_humidity: z.number().nullable().optional(),
     weather_condition: z.string().nullable().optional(),
+  }),
+});
+
+/** Span punch (docs/span-build-scope.md): a direction and, if the phone has a fix, where it happened. The person is the stamp (ADR 0008). */
+const attendancePunchOp = z.object({
+  entity: z.literal("attendance_punches"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    direction: z.enum(["in", "out"]),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
+    location_accuracy_m: z.number().nullable().optional(),
   }),
 });
 
@@ -45,9 +69,10 @@ const harvestEventOp = z.object({
  * person — is stamped by the server from the ticket, never read from here.
  */
 export const uploadRequestSchema = z.object({
-  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp])).min(1).max(500),
+  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp])).min(1).max(500),
 });
 
 export type UploadOp = z.infer<typeof uploadRequestSchema>["ops"][number];
 export type NoteOp = z.infer<typeof noteOp>;
 export type HarvestEventOp = z.infer<typeof harvestEventOp>;
+export type AttendancePunchOp = z.infer<typeof attendancePunchOp>;

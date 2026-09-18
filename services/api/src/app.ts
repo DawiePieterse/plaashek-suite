@@ -10,6 +10,7 @@ import { registerFarmRoutes } from "./routes/farm.js";
 import { registerJwksRoutes } from "./routes/jwks.js";
 import { registerManagementRoutes } from "./routes/management.js";
 import { registerPairingRoutes } from "./routes/pairing.js";
+import { registerPieceworkRoutes } from "./routes/piecework.js";
 import { registerSeasonRoutes } from "./routes/seasons.js";
 import { registerSyncRoutes } from "./routes/sync.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
@@ -28,7 +29,14 @@ export interface AppDeps {
 export function buildApp(deps: AppDeps) {
   const app = Fastify({ logger: true });
 
-  app.register(cors, { origin: deps.env.corsOrigins });
+  // `content-disposition` is not a CORS-safelisted response header: without
+  // this the office tools cannot read the filename the export routes set, and
+  // every download lands under a generic name.
+  app.register(cors, { origin: deps.env.corsOrigins, exposedHeaders: ["content-disposition"] });
+
+  // The worker-register import is a file the farm already has, posted as-is
+  // rather than re-encoded into JSON by the browser.
+  app.addContentTypeParser("text/csv", { parseAs: "string" }, (_request, body, done) => done(null, body));
 
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ApiError) {
@@ -57,6 +65,7 @@ export function buildApp(deps: AppDeps) {
   registerBlockRoutes(app, deps);
   registerEienaarRoutes(app, deps);
   registerExportRoutes(app, deps);
+  registerPieceworkRoutes(app, deps);
   registerManagementRoutes(app, deps);
 
   return app;

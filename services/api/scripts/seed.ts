@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import {
   assets,
   auditLog,
+  captureTables,
   blocks,
   camps,
   deviceAssignments,
@@ -17,12 +18,11 @@ import {
   entitlements,
   farmMemberships,
   farms,
-  harvestEvents,
   heldWrites,
-  notes,
   organisations,
   pairingTokens,
   people,
+  pieceRates,
   seasons,
 } from "@plaashek/schema";
 import { eq, inArray } from "drizzle-orm";
@@ -40,7 +40,7 @@ const LANGUAGE = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("-
 if (LANGUAGE !== "af" && LANGUAGE !== "en") throw new Error(`Unknown --lang: ${LANGUAGE} (af or en)`);
 
 /** Licensed, plus one deliberately left out so the unlicensed-QR-fails test has something to fail against. */
-const LICENSED = ["veldnotas", "boord"];
+const LICENSED = ["veldnotas", "boord", "span"];
 const UNLICENSED = "kudde";
 
 try {
@@ -73,9 +73,11 @@ async function wipeDemoData() {
       await db.delete(deviceAssignments).where(inArray(deviceAssignments.deviceId, deviceIds));
     }
     // Workspace rows carry no foreign key to farms (plan §6: no cross-farm FKs),
-    // so nothing cascades — every new module's table has to be listed here.
-    await db.delete(notes).where(inArray(notes.farmId, farmIds));
-    await db.delete(harvestEvents).where(inArray(harvestEvents.farmId, farmIds));
+    // so nothing cascades — `captureTables` is the list every new module joins.
+    for (const table of captureTables) {
+      await db.delete(table).where(inArray(table.farmId, farmIds));
+    }
+    await db.delete(pieceRates).where(inArray(pieceRates.farmId, farmIds));
     await db.delete(heldWrites).where(inArray(heldWrites.farmId, farmIds));
 
     await db.delete(devices).where(inArray(devices.farmId, farmIds));

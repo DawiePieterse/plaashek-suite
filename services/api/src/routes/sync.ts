@@ -1,16 +1,18 @@
-import { deviceAssignments, deviceModules, harvestEvents, heldWrites, notes } from "@plaashek/schema";
-import { and, desc, eq, lte } from "drizzle-orm";
+import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people } from "@plaashek/schema";
+import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
-import { uploadRequestSchema, type HarvestEventOp, type NoteOp } from "../schemas/sync.js";
+import { normaliseWorkerNumber } from "../lib/worker-number.js";
+import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type UploadOp } from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, then boord). */
-const MODULE_CODE: Record<NoteOp["entity"] | HarvestEventOp["entity"], string> = {
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, then span). */
+const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
+  attendance_punches: "span",
 };
 
 /**
@@ -92,8 +94,10 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
 
         if (op.entity === "notes") {
           await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else {
+        } else if (op.entity === "harvest_events") {
           await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else {
+          await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
         }
         accepted.push(op.entity_id);
       }
@@ -135,10 +139,37 @@ async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, devi
     .onConflictDoNothing();
 }
 
-/** Same append-only shape as a note — no edit path (ADR 0007's precedent). */
+/**
+ * Whose worker number was scanned (ADR 0011). The phone resolves this from
+ * its cached register, but a worker added after that cache was filled
+ * resolves here instead — which is why the phone is allowed to save the
+ * crate with a number it does not recognise (plan §8: never block a capture
+ * over configuration).
+ *
+ * The phone never sends a person id, only the number it read — so a device
+ * cannot assert who picked a crate. This function is the only place a number
+ * becomes an attribution, and it will not credit a worker who has left.
+ *
+ * Takes an already-normalised number — the caller normalises once, on the way in.
+ */
+async function resolvePicker(tx: Pick<Db, "select">, farmId: string, workerNumber: string | null): Promise<string | null> {
+  if (!workerNumber) return null;
+
+  const [picker] = await tx
+    .select({ id: people.id })
+    .from(people)
+    .where(and(eq(people.farmId, farmId), eq(people.workerNumber, workerNumber), eq(people.active, true)));
+
+  return picker?.id ?? null;
+}
+
+/** Same append-only shape as a note — no edit path (ADR 0006's precedent, kept by ADR 0009). */
 async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: HarvestEventOp, clientTime: Date) {
   const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
   if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  const scannedNumber = op.payload.picker_card_code ? normaliseWorkerNumber(op.payload.picker_card_code) : null;
+  const pickerId = await resolvePicker(tx, farmId, scannedNumber);
 
   await tx
     .insert(harvestEvents)
@@ -152,9 +183,47 @@ async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: stri
       blockId: op.payload.block_id,
       weightKg: op.payload.weight_kg,
       deductionKg: op.payload.deduction_kg ?? null,
+      pickerId,
+      pickerCardCode: scannedNumber,
       weatherTemp: op.payload.weather_temp ?? null,
       weatherHumidity: op.payload.weather_humidity ?? null,
       weatherCondition: op.payload.weather_condition ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * A punch is the thinnest capture in the suite: a direction, and whichever
+ * person the device was assigned to at the time (ADR 0008 — the phone clocks
+ * itself). Append-only like the other two; the server never rejects a second
+ * `in` (docs/span-build-scope.md — the office reads the sequence, the phone
+ * does not argue with a worker at 05:50).
+ */
+async function applyAttendancePunch(
+  tx: Pick<Db, "select" | "insert">,
+  farmId: string,
+  deviceId: string,
+  op: AttendancePunchOp,
+  clientTime: Date,
+) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(attendancePunches)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.attendance_punches,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      direction: op.payload.direction,
+      latitude: op.payload.latitude ?? null,
+      longitude: op.payload.longitude ?? null,
+      locationAccuracyM: op.payload.location_accuracy_m ?? null,
       createdAt: clientTime,
       updatedAt: clientTime,
     })

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, ApiError, type Session } from "./api.js";
-import { t } from "./copy.js";
+import { useOffice, useOfficeLoader } from "../context.js";
 
 interface Season {
   id: string;
@@ -11,24 +10,28 @@ interface Season {
 }
 
 /**
- * Farm-owned master data (plan §4.2). One active at a time — the server stands
- * the old one down — and everything stays editable, because a pick runs late.
+ * Farm-owned master data (plan §4.2). One active at a time — the server
+ * stands the old one down — and everything stays editable, because a pick
+ * runs late more often than not.
+ *
+ * Shared because both tools show it: the Farm Admin Tool edits it, the Owner
+ * Module reads it. The owner sees the same table with the inputs replaced by
+ * text, which is the difference the role makes everywhere else too.
  */
-export function Seasons({ session, onSessionExpired }: { session: Session; onSessionExpired: () => void }) {
+export function Seasons() {
+  const { api, session, c } = useOffice();
+  const guard = useOfficeLoader();
   const [seasons, setSeasons] = useState<Season[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const c = t();
 
   const isAdmin = session.role === "admin";
 
   async function load() {
-    try {
-      setSeasons((await api<{ seasons: Season[] }>("/seasons", { token: session.token })).seasons);
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : c.offline);
-    }
+    await guard(
+      async () => setSeasons((await api<{ seasons: Season[] }>("/seasons", { token: session.token })).seasons),
+      setError,
+    );
   }
 
   useEffect(() => {
@@ -38,15 +41,11 @@ export function Seasons({ session, onSessionExpired }: { session: Session; onSes
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     setError("");
-    try {
+    await guard(async () => {
       await action();
       await load();
-    } catch (caught) {
-      if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : c.offline);
-    } finally {
-      setBusy(false);
-    }
+    }, setError);
+    setBusy(false);
   }
 
   if (!seasons) return null;
@@ -116,10 +115,10 @@ function EditableSeasonRow({
   onSave: (body: { name: string; startsOn: string; endsOn: string }) => void;
   onActivate: () => void;
 }) {
+  const { c } = useOffice();
   const [name, setName] = useState(season.name);
   const [startsOn, setStartsOn] = useState(season.startsOn);
   const [endsOn, setEndsOn] = useState(season.endsOn);
-  const c = t();
 
   return (
     <tr>
@@ -145,10 +144,10 @@ function EditableSeasonRow({
 }
 
 function NewSeasonRow({ busy, onCreate }: { busy: boolean; onCreate: (body: { name: string; startsOn: string; endsOn: string }) => void }) {
+  const { c } = useOffice();
   const [name, setName] = useState("");
   const [startsOn, setStartsOn] = useState("");
   const [endsOn, setEndsOn] = useState("");
-  const c = t();
 
   function submit() {
     onCreate({ name, startsOn, endsOn });

@@ -1,4 +1,4 @@
-import { farms, heldWrites, notes, people } from "@plaashek/schema";
+import { farms, heldWrites, people, seasonStampedTables } from "@plaashek/schema";
 import { and, count, eq, isNull } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
@@ -10,9 +10,15 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
   app.get("/farm", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const farmId = request.staff!.farmId;
 
-    const [[farm], farmPeople, modules, [held], [withoutSeason]] = await Promise.all([
+    const [[farm], farmPeople, modules, [held], withoutSeason] = await Promise.all([
       deps.db.select({ id: farms.id, name: farms.name }).from(farms).where(eq(farms.id, farmId)),
-      deps.db.select({ id: people.id, name: people.name }).from(people).where(eq(people.farmId, farmId)),
+      // Staff only: a seasonal picker carries a printed card, never a phone
+      // (ADR 0009), so forty of them have no business in the device-assignment
+      // list. The piece-work register is where they live.
+      deps.db
+        .select({ id: people.id, name: people.name })
+        .from(people)
+        .where(and(eq(people.farmId, farmId), eq(people.kind, "staff"))),
       activeModuleCodes(deps.db, farmId),
       // What the office has to act on: captures waiting behind a lapsed licence
       // (plan §5) and captures the phone could not stamp with a season (§6).
@@ -20,13 +26,21 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
         .select({ n: count() })
         .from(heldWrites)
         .where(and(eq(heldWrites.farmId, farmId), isNull(heldWrites.releasedAt))),
-      deps.db
-        .select({ n: count() })
-        .from(notes)
-        .where(and(eq(notes.farmId, farmId), isNull(notes.seasonId))),
+      // Every season-stamped module, not just veldnotas: a capture the phone
+      // could not stamp is the office's to place whichever module it came from.
+      Promise.all(
+        seasonStampedTables.map((table) =>
+          deps.db
+            .select({ n: count() })
+            .from(table)
+            .where(and(eq(table.farmId, farmId), isNull(table.seasonId))),
+        ),
+      ),
     ]);
     if (!farm) throw notFound();
 
-    return { farm, people: farmPeople, modules, waiting: { held: held.n, withoutSeason: withoutSeason.n } };
+    const unstamped = withoutSeason.reduce((total, [row]) => total + row.n, 0);
+
+    return { farm, people: farmPeople, modules, waiting: { held: held.n, withoutSeason: unstamped } };
   });
 }

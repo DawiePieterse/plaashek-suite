@@ -17,11 +17,9 @@ const af = {
   signingIn: "Wag…",
 
   offline: "Kan nie aan die bediener koppel nie.",
-  loading: "Laai…",
 
-  devicesHeading: (farm: string) => `Toestelle — ${farm}`,
+  devicesHeading: "Toestelle",
   noDevices: "Nog geen toestelle nie. Voeg die eerste een by.",
-  noLicence: "Die plaas het nog geen aktiewe lisensie nie. Kontak Plaashek.",
   deviceCol: "Toestel",
   pendingCol: "Wagtend",
   actionsCol: "Aksies",
@@ -46,20 +44,50 @@ const af = {
   addApp: "Voeg program by…",
   printQr: "Druk QR",
 
-  seasonsHeading: "Seisoene",
-  seasonName: "Naam",
-  startsOn: "Begin",
-  endsOn: "Einde",
-  activeSeason: "Aktief",
-  saveSeason: "Stoor",
-  addSeason: "Voeg seisoen by",
-  noSeasons: "Nog geen seisoen nie. Opnames word gemerk vir die kantoor totdat daar een is.",
-  heldWaiting: (count: number) => `Lisensie het verval — ${count} opname(s) wag. Praat met Plaashek.`,
-  withoutSeason: (count: number) => `${count} opname(s) sonder seisoen.`,
 
-  exportHeading: "Uitvoer",
-  exportNotes: "Voer veldnotas uit (CSV)",
-  exportHarvest: "Voer oes uit (CSV)",
+  pieceworkHeading: "Stukwerk — seisoenwerkers",
+  rateHeading: "Tarief",
+  noRate: "Nog geen tarief nie. Sonder 'n tarief tel die kilogramme, maar die rande bly leeg.",
+  rateFlat: (base: string, from: string) => `R${base}/kg vanaf ${from}.`,
+  rateTiered: (base: string, target: number, bonus: string, from: string) =>
+    `R${base}/kg tot ${target} kg per dag, daarna R${bonus}/kg — vanaf ${from}.`,
+  effectiveFrom: "Geldig vanaf",
+  baseRate: "Basistarief (R/kg)",
+  targetKgLabel: "Dagteiken (kg)",
+  bonusRate: "Bonustarief (R/kg)",
+  saveRate: "Stoor tarief",
+
+  workersHeading: "Werkers",
+  worker: "Werker",
+  workerNumber: "Nommer",
+  workerNumberPlaceholder: "bv. 014",
+  workerActive: "Aktief",
+  workerNamePlaceholder: "Naam van die werker",
+  registerWorker: "Registreer en druk kaart",
+  saveWorker: "Stoor",
+  noWorkers: "Nog geen seisoenwerkers nie.",
+  printCard: "Druk kaart",
+  yes: "Ja",
+  no: "Nee",
+
+  importWorkers: "Voer werkerslys in (CSV)",
+  exportWorkers: "Voer werkerslys uit (CSV)",
+  importNote:
+    "Die lêer se kolomme: worker_number, name, active. Die nommer sê wie elke ry is — 'n nommer wat die plaas al ken word bygewerk, 'n nuwe een word bygevoeg. Niemand word uitgevee nie.",
+  imported: (created: number, updated: number) => `${created} bygevoeg, ${updated} bygewerk.`,
+  importSkipped: (rows: string) => `Oorgeslaan: ${rows}.`,
+  importSkippedRow: (row: number, reason: string) => `ry ${row} (${reason})`,
+  importReason: {
+    no_number: "geen werkernommer nie",
+    no_name: "geen naam nie",
+    duplicate_number: "nommer kom twee keer voor in hierdie lêer",
+  } as Record<string, string>,
+
+
+  cardTitle: "Werkerskaart",
+  cardWorker: "Werker",
+  cardNote: "Skandeer hierdie kaart by die skaal voor die krat geweeg word. Verlore kaart? Die kantoor druk dieselfde nommer weer.",
+
 
   slipTitle: "Paringstrokie",
   slipFarm: "Plaas",
@@ -75,6 +103,7 @@ const af = {
   /** Server messages are English; these are the Afrikaans equivalents by error code. */
   errors: {
     invalid_credentials: "Verkeerde e-pos of wagwoord.",
+    worker_number_taken: "Daardie nommer is al aan 'n ander werker gegee.",
     unauthenticated: "Jou sessie het verval. Meld weer aan.",
     forbidden: "Jy het nie regte vir hierdie aksie nie.",
     not_licensed: "Die plaas het nie 'n lisensie vir hierdie program nie.",
@@ -96,11 +125,9 @@ const en: typeof af = {
   signingIn: "Wait…",
 
   offline: "Cannot reach the server.",
-  loading: "Loading…",
 
-  devicesHeading: (farm: string) => `Devices — ${farm}`,
+  devicesHeading: "Devices",
   noDevices: "No devices yet. Add the first one.",
-  noLicence: "This farm has no active licence yet. Contact Plaashek.",
   deviceCol: "Device",
   pendingCol: "Pending",
   actionsCol: "Actions",
@@ -125,20 +152,50 @@ const en: typeof af = {
   addApp: "Add an app…",
   printQr: "Print QR",
 
-  seasonsHeading: "Seasons",
-  seasonName: "Name",
-  startsOn: "Starts",
-  endsOn: "Ends",
-  activeSeason: "Active",
-  saveSeason: "Save",
-  addSeason: "Add season",
-  noSeasons: "No season yet. Captures are flagged for the office until there is one.",
-  heldWaiting: (count: number) => `Licence has lapsed — ${count} capture(s) waiting. Talk to Plaashek.`,
-  withoutSeason: (count: number) => `${count} capture(s) with no season.`,
 
-  exportHeading: "Export",
-  exportNotes: "Export veldnotas (CSV)",
-  exportHarvest: "Export harvest (CSV)",
+  pieceworkHeading: "Piece-work — seasonal workers",
+  rateHeading: "Rate",
+  noRate: "No rate yet. Without one the kilograms still count, but the rand stay empty.",
+  rateFlat: (base: string, from: string) => `R${base}/kg from ${from}.`,
+  rateTiered: (base: string, target: number, bonus: string, from: string) =>
+    `R${base}/kg up to ${target} kg a day, then R${bonus}/kg — from ${from}.`,
+  effectiveFrom: "Effective from",
+  baseRate: "Base rate (R/kg)",
+  targetKgLabel: "Daily target (kg)",
+  bonusRate: "Bonus rate (R/kg)",
+  saveRate: "Save rate",
+
+  workersHeading: "Workers",
+  worker: "Worker",
+  workerNumber: "Number",
+  workerNumberPlaceholder: "e.g. 014",
+  workerActive: "Active",
+  workerNamePlaceholder: "Worker's name",
+  registerWorker: "Register and print card",
+  saveWorker: "Save",
+  noWorkers: "No seasonal workers yet.",
+  printCard: "Print card",
+  yes: "Yes",
+  no: "No",
+
+  importWorkers: "Import worker list (CSV)",
+  exportWorkers: "Export worker list (CSV)",
+  importNote:
+    "The file's columns: worker_number, name, active. The number says who each row is — a number the farm already knows is updated, a new one is added. Nobody is deleted.",
+  imported: (created: number, updated: number) => `${created} added, ${updated} updated.`,
+  importSkipped: (rows: string) => `Skipped: ${rows}.`,
+  importSkippedRow: (row: number, reason: string) => `row ${row} (${reason})`,
+  importReason: {
+    no_number: "no worker number",
+    no_name: "no name",
+    duplicate_number: "number appears twice in this file",
+  },
+
+
+  cardTitle: "Worker card",
+  cardWorker: "Worker",
+  cardNote: "Scan this card at the scale before the crate is weighed. Lost card? The office prints the same number again.",
+
 
   slipTitle: "Pairing slip",
   slipFarm: "Farm",
@@ -153,6 +210,7 @@ const en: typeof af = {
 
   errors: {
     invalid_credentials: "Incorrect email or password.",
+    worker_number_taken: "Another worker already has that number.",
     unauthenticated: "Your session expired. Sign in again.",
     forbidden: "You do not have rights for this action.",
     not_licensed: "This farm is not licensed for that app.",

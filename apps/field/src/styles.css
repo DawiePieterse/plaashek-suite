@@ -37,6 +37,7 @@ h1 {
 /* Every tap target is a full-width slab: gloves, one hand, no aiming. */
 .modules button,
 form button,
+.big,
 .back {
   display: block;
   width: 100%;
@@ -64,6 +65,50 @@ form button,
   text-decoration: underline;
   font-size: 1rem;
   font-weight: 400;
+}
+
+/* Span: the screen is one decision, so the button is the screen (docs/span-build-scope.md). */
+.big {
+  padding: 2.5rem 1.5rem;
+  font-size: 1.8rem;
+}
+
+.status {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* The card scan sits above the weigh form: read the card, then weigh (ADR 0009). */
+.scanner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview {
+  width: 100%;
+  max-height: 40dvh;
+  border-radius: 0.75rem;
+  background: #1c2321;
+  object-fit: cover;
+}
+
+.quiet {
+  background: none;
+  color: #1c2321;
+  border: 2px solid #1c2321;
+  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+.picker .status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .field {

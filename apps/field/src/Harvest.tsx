@@ -1,30 +1,38 @@
 import { useEffect, useState } from "react";
+import { CardScanner, normaliseWorkerNumber } from "./CardScanner.js";
 import { raceWeather, useFlush, useGpsFix, useSavedToast } from "./capture.js";
 import { t } from "./copy.js";
 import { enqueue } from "./queue.js";
-import { fetchBlocks, type Claims } from "./ticket.js";
+import { readStored, writeStored } from "./storage.js";
+import { fetchBlocks, fetchPickers, type Claims } from "./ticket.js";
 
 interface Block {
   id: string;
   name: string;
 }
 
-const BLOCKS_KEY = "plaashek.field.blocks";
-
-function readCachedBlocks(): Block[] {
-  try {
-    return JSON.parse(globalThis.localStorage?.getItem(BLOCKS_KEY) ?? "[]");
-  } catch {
-    return [];
-  }
+interface Picker {
+  workerNumber: string;
+  personId: string;
+  personName: string;
 }
 
-/** Boord capture. Block + weight + optional deduction — same shape as Notes.tsx (ADR 0007). */
+const BLOCKS_KEY = "plaashek.field.blocks";
+const PICKERS_KEY = "plaashek.field.pickers";
+
+/** Boord capture. Block + weight + optional deduction, and — for a farm paying per kg — the picker's scanned card (ADR 0009). */
 export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) {
-  const [blocks, setBlocks] = useState<Block[]>(readCachedBlocks);
+  const [blocks, setBlocks] = useState<Block[]>(() => readStored<Block[]>(BLOCKS_KEY, []));
+  const [pickers, setPickers] = useState<Picker[]>(() => readStored<Picker[]>(PICKERS_KEY, []));
   const [blockId, setBlockId] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [deductionKg, setDeductionKg] = useState("");
+  /**
+   * The worker number scanned for the crates being weighed now — the number
+   * only, with the name looked up at render. Kept between saves, because one
+   * picker fills several crates.
+   */
+  const [pickerNumber, setPickerNumber] = useState<string | null>(null);
   const [saved, markSaved] = useSavedToast();
   const fixRef = useGpsFix();
   const { pending, setPending, refused, flush } = useFlush(ticket, t().errors);
@@ -34,9 +42,18 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
     fetchBlocks(ticket)
       .then(({ blocks: fresh }) => {
         setBlocks(fresh);
-        globalThis.localStorage?.setItem(BLOCKS_KEY, JSON.stringify(fresh));
+        writeStored(BLOCKS_KEY, fresh);
       })
       .catch(() => {}); // offline — the cached list stands
+
+    // Cached so a scan resolves to a name with no signal. An unknown number is
+    // still saved (plan §8) and resolved by the server at sync.
+    fetchPickers(ticket)
+      .then(({ pickers: fresh }) => {
+        setPickers(fresh);
+        writeStored(PICKERS_KEY, fresh);
+      })
+      .catch(() => {});
   }, [ticket]);
 
   async function save(event: React.FormEvent) {
@@ -54,6 +71,8 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
           block_id: blockId,
           weight_kg: Number(weightKg),
           deduction_kg: deductionKg ? Number(deductionKg) : null,
+          // Only ever the code: the server decides whose crate this is.
+          picker_card_code: pickerNumber,
           weather_temp: weather?.temp ?? null,
           weather_humidity: weather?.humidity ?? null,
           weather_condition: weather?.condition ?? null,
@@ -69,6 +88,24 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
 
   return (
     <main>
+      {/* A farm that does not pay per kilogram has no numbered pickers, so it
+          is never asked to scan — ADR 0009 promises Boord is unchanged for them. */}
+      {pickers.length > 0 && (
+        <section className="picker">
+          {pickerNumber ? (
+            <p className="status">
+              {/* Looked up each render: a register that lands a second after the scan still names the picker. */}
+              {pickers.find((picker) => normaliseWorkerNumber(picker.workerNumber) === pickerNumber)?.personName ?? c.unknownCard(pickerNumber)}{" "}
+              <button type="button" className="quiet" onClick={() => setPickerNumber(null)}>
+                {c.changeCard}
+              </button>
+            </p>
+          ) : (
+            <CardScanner onCode={setPickerNumber} />
+          )}
+        </section>
+      )}
+
       <form onSubmit={save}>
         <label className="field">
           {c.blockLabel}

@@ -28,6 +28,11 @@ export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+/** `attachment; filename="boord.csv"` → `boord.csv`; anything unexpected falls back to a name the browser will accept. */
+function filenameFrom(disposition: string | null): string {
+  return /filename="?([^";]+)"?/.exec(disposition ?? "")?.[1] ?? "plaashek.csv";
+}
+
 export class ApiError extends Error {
   constructor(
     public code: string,
@@ -55,8 +60,13 @@ export async function api<T>(path: string, init?: RequestInit & { token?: string
   return (await response.json()) as T;
 }
 
-/** CSV comes back as a file, not JSON — fetch it as a blob and hand the browser a download, same auth as `api()`. */
-export async function downloadCsv(path: string, token: string, filename: string): Promise<void> {
+/**
+ * CSV comes back as a file, not JSON — fetch it as a blob and hand the
+ * browser a download, same auth as `api()`. The filename is the server's:
+ * it sets `content-disposition`, so a farm's files are named in one place
+ * rather than here and there.
+ */
+export async function downloadCsv(path: string, token: string): Promise<void> {
   const response = await fetch(`${BASE}${path}`, { headers: { authorization: `Bearer ${token}` } });
 
   if (!response.ok) {
@@ -67,13 +77,7 @@ export async function downloadCsv(path: string, token: string, filename: string)
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement("a");
   link.href = url;
-  link.download = filename;
+  link.download = filenameFrom(response.headers.get("content-disposition"));
   link.click();
   URL.revokeObjectURL(url);
-}
-
-/** Eienaar's first screen (docs/boord-reuse-audit.md): totals only, by block, for the active season. */
-export interface HarvestSummary {
-  season: { id: string; name: string } | null;
-  blocks: { blockId: string; blockName: string; crates: number; kg: number }[];
 }

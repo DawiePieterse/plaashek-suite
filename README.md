@@ -14,14 +14,16 @@ a screen or a data shape by copying it in and adapting it to outbox +
 |---|---|
 | `apps/management` | Staff only. `hek.plaashek.co.za` |
 | `apps/admin` | Farm office. `admin.plaashek.co.za` |
-| `apps/field` | Pairing shell for the phones. `app.plaashek.co.za` |
-| `packages/*` | Shared schema, sync, tickets, master data |
+| `apps/field` | The phones: pairing shell + Veldnotas, Boord, Span. `app.plaashek.co.za` |
+| `apps/owner` | Owner module (`eienaar`). Read-only rollups |
+| `packages/*` | Shared schema, sync, tickets, and the office tools' shared UI |
 | `services/api` | hek-api + sync-api |
 | `services/migrations` | Postgres migrations, numbered, checked in |
 | `infra/seed` | Fake farm for Phase 1 exit tests |
 | `infra/backup` | Nightly script + quarterly restore drill |
 
-`apps/field-*`, `apps/owner`, and a field-app template land in Phase 2/3 (plan §11), not before — no scaffolding for a phase that hasn't started.
+No scaffolding for a phase that hasn't started: a module gets a table, a
+screen and a route when it is being built, not before.
 
 ## Rules that are easy to break later
 
@@ -36,6 +38,12 @@ a screen or a data shape by copying it in and adapting it to outbox +
   the farm is set up. English in the database, the farm's language on screen.
   The office reads it from the login response, the phone from its ticket.
 - Field workers never see billing copy.
+- Identity on a phone comes from scanned paper — a pairing QR, a worker card —
+  never from a list of people on screen (ADR 0009).
+- The office tools are one tab per licensed field module plus Farm settings,
+  and a tab exists only if Plaashek Management switched that module on. Both
+  tools draw the same panels from `packages/ui-office`; the owner's are the
+  read-only ones.
 - A phone shows only modules whose QR it has scanned, even if the farm is
   licensed for more.
 
@@ -65,3 +73,32 @@ pairing, licence lifecycle, seasons, outbox migration) is done.
 Closed 17 September 2026 — see §12 of the plan. Real veldnotas capture
 (GPS stamp, weather via `/weather/current`, offline badge, correction model)
 is done; Phase 3 (`boord` + `eienaar`) is next.
+
+## Phase 3 exit checklist
+
+Closed 17 September 2026 — see §12 of the plan. `boord` (harvest capture) and
+the first `eienaar` rollup are done.
+
+## Phase 4 — first real farm
+
+**Open.** Laughing Waters / Bekfontein exists as a real org, farm and licence,
+and Excel export and CI are done. What's left is on-site: real people and
+blocks, real pairing, a proven offline day, a revoke on a real phone, and the
+backup/restore drill against the farm's own data. Phase 5 runs in parallel
+(plan §12) — it closes nothing here.
+
+## Phase 5 — remaining modules
+
+In progress, §11 order. `span` is done (clock in/out on the phone, days and
+hours in Eienaar) — see `docs/span-build-scope.md`.
+
+Seasonal piece-work is done too, outside that order: the farm pays its litchi
+pickers per kilogram, which Span does not cover. A picker carries a printed
+worker card holding the farm's own worker number (ADR 0011), the scale phone
+scans it before the weight, and the office sets a tiered rate and reads the
+payout — see `docs/piecework-build-scope.md`. The worker register is editable
+and moves in and out as CSV keyed on that number, so it joins to whatever
+pays the workers. It calculates pay and exports it; it does not issue
+payslips, move money, or check the minimum wage (ADR 0010).
+
+`stoor` is next; write its build scope before any code.
