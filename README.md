@@ -38,6 +38,8 @@ screen and a route when it is being built, not before.
   the farm is set up. English in the database, the farm's language on screen.
   The office reads it from the login response, the phone from its ticket.
 - Field workers never see billing copy.
+- Identity on a phone comes from scanned paper — a pairing QR, a worker card —
+  never from a list of people on screen (ADR 0009).
 - A phone shows only modules whose QR it has scanned, even if the farm is
   licensed for more.
 
@@ -84,5 +86,13 @@ backup/restore drill against the farm's own data. Phase 5 runs in parallel
 ## Phase 5 — remaining modules
 
 In progress, §11 order. `span` is done (clock in/out on the phone, days and
-hours in Eienaar) — see `docs/span-build-scope.md`. `stoor` is next; write its
-build scope before any code.
+hours in Eienaar) — see `docs/span-build-scope.md`.
+
+Seasonal piece-work is done too, outside that order: the farm pays its litchi
+pickers per kilogram, which Span does not cover. A picker carries a printed
+worker card, the scale phone scans it before the weight, and the office sets a
+tiered rate and reads the payout — see `docs/piecework-build-scope.md`. It
+calculates pay and exports it; it does not issue payslips, move money, or
+check the minimum wage (ADR 0010).
+
+`stoor` is next; write its build scope before any code.

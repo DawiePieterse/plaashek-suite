@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.17
+**Status:** v1.18
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -36,6 +36,8 @@
 
 **Changes from v1.16:** Phase 5 opened, and given the exit checklist it never had — §12's Phase 5 was one line ("§11 order. Each module on the same foundation"), which is not something a phase can close against. Now one checklist per remaining module, and the first of them, `span`, is built: [docs/span-build-scope.md](span-build-scope.md) (no reference app, so a build scope stands in for a reuse audit), `attendance_punches`, the clock-in/clock-out field screen, `/sync/upload` routing, `GET /eienaar/attendance` (days and hours per person, paired at read time) and `GET /export/attendance.csv`. One product call closed on the way: [ADR 0008](decisions/0008-span-self-clocking.md) — a punch belongs to the device's assigned person, no team clocking, the same wall ADR 0007 hit and the same answer. **Phase 4 is not closed** — its remaining items are all on-site at Bekfontein (real people/blocks, real pairing, an offline day, a revoke, the backup drill against real data) and none of them are code. §12's "proceed to Phase 5 only after Bekfontein is live" is being run out of order deliberately: build work continues while the pilot waits on farm-side access, and no Phase 4 item is being counted as done because of it.
 
+**Changes from v1.17:** seasonal piece-work built — the farm pays its litchi pickers per kilogram, which Span (permanent employees, ADR 0008) does not cover. Two locked decisions reopened deliberately rather than worked around: [ADR 0009](decisions/0009-piecework-picker-attribution.md) supersedes ADR 0007 and narrows §2.1 below — a crate is tied to its picker by a **printed worker card, scanned at the scale**, so identity still comes from paper and never from a list of names on the phone; [ADR 0010](decisions/0010-piecework-pay-boundary.md) splits the wages non-goal — §2.1's "no payments" is about Plaashek being paid by the farm (ADR 0004), not the farm paying its workers, so kilograms and rand are in while payslips, payment and any minimum-wage claim are out. Built on Boord's existing capture rather than a new module: `worker_cards`, `piece_rates` (effective-dated, integer cents, base + daily target + bonus), `harvest_events.picker_id`/`picker_card_code`, `people.kind`, the scan-then-weigh step on the scale phone, and a Farm Admin Tool section for the register, the printed cards, the rate and the payout, plus `/export/piecework.csv`. See [docs/piecework-build-scope.md](piecework-build-scope.md).
+
 ---
 
 ## 1. What we are building
@@ -60,7 +62,7 @@ The four existing apps (Boord, Boord Owner, Notes, Kudde) are **reference only**
 | Device role | One app per phone until a second printed QR is scanned |
 | Licence ceiling | Plaashek Management switches modules on for the farm |
 | Licence floor | A phone only runs modules whose QRs it has scanned |
-| Attribution | Every save stamped with assigned person + device + farm. Admin assigns the name |
+| Attribution | Every save stamped with assigned person + device + farm. Admin assigns the name. A seasonal picker's crate also carries the picker, read off a scanned printed card — [ADR 0009](decisions/0009-piecework-picker-attribution.md) |
 | Owner view | Separate `eienaar` module, read-only. Not folded into Boord |
 | Old apps | Reference implementations, not a data migration programme |
 | Module code spelling | `werkswinkel` — code matches the Afrikaans name. Fix the v1.1 typo everywhere |
@@ -70,8 +72,8 @@ The four existing apps (Boord, Boord Owner, Notes, Kudde) are **reference only**
 Say these out loud so they don't creep back in:
 
 - **No contractor / multi-farm person.** One device, one farm, full stop. If a picking team works three farms, that is three devices or three re-pairings. Revisit only when a paying farm demands it.
-- **No in-app person switching.** The admin assigns the name; the phone never asks.
-- **No payments inside Plaashek Management in year one** unless §13 Q3 says otherwise.
+- **No in-app person switching.** The admin assigns the name; the phone never asks. Narrowed 17 September 2026 ([ADR 0009](decisions/0009-piecework-picker-attribution.md)): identity may come from a **scanned printed card** — the same "paper is the credential" model as the pairing QR — but never from a list of people on the phone. A dropdown of names is still ruled out.
+- **No payments inside Plaashek Management in year one** unless §13 Q3 says otherwise. This is about *Plaashek being paid by the farm* ([ADR 0004](decisions/0004-year-one-billing.md)). The farm paying its own workers is a separate question, settled by [ADR 0010](decisions/0010-piecework-pay-boundary.md): piece-work kilograms and rand are calculated and exported; payslips, moving money, and any minimum-wage compliance claim are not.
 - **No end-to-end encryption** that would block server-side Excel export and support.
 - **No Play Store listing.** PWA install only.
 - **No CRDT.** Last-write-wins plus append-only events (§7).
@@ -282,7 +284,9 @@ organisations
 farms
 entitlements              farm_id, module_code, status, valid_from,
                           valid_until, grace_days, source
-people                    farm name list — a person needs no login
+people                    farm name list — a person needs no login.
+                          `kind` is staff or seasonal: staff may carry a
+                          paired phone, a seasonal picker carries a card
 farm_memberships          office logins only (admin / owner)
 devices
 device_assignments        device_id, person_id, assigned_at, assigned_by
@@ -295,6 +299,13 @@ audit_log                 actor, actor_type (farm / staff), action,
                           — staff support access, revokes, entitlement
                             changes, QR prints. Farm-visible for its own farm
 
+worker_cards             farm_id, person_id, code, issued_at, issued_by,
+                         revoked_at — the printed card a seasonal picker
+                         carries (ADR 0009). Reissue mints a new code
+piece_rates              farm_id, season_id, effective_from,
+                         base_cents_per_kg, target_kg, bonus_cents_per_kg
+                         — what a kilogram is worth (ADR 0010)
+
 blocks
 camps
 lines
@@ -305,7 +316,8 @@ seasons                   farm_id, name, starts_on, ends_on, is_active
 people_farm_profile
 
 notes                     veldnotas
-harvest_events            boord
+harvest_events            boord — also picker_id + picker_card_code for
+                          seasonal piece-work (ADR 0009)
 kudde                     deferred — no schema until a real farm is
                           contracted (ADR 0005)
 attendance_punches        span
@@ -542,7 +554,22 @@ of it.
 - [x] `GET /eienaar/attendance`: days and hours per person for the active season, pairing each `in` with the `out` that follows it (`lib/attendance.ts`). Nothing derived is stored; an unpaired punch is reported open, never guessed at.
 - [x] `GET /export/attendance.csv` — raw punches, one row each, a button in both office tools.
 - [x] Proven end to end against the demo farm on 17 September 2026: printed QR → scan in a real browser → clock in → reload → clock out, both punches synced and season-stamped; a second phone's forgotten clock-out shows as open in Eienaar; a replayed batch inserts once.
-- Not in this module (closed by the scope, not deferred): team clocking and any roll-call screen (ADR 0008), leave and rosters, overtime/rounding/public-holiday rules, and wages — the same §2.1 non-goal that stopped Boord.
+- Not in this module (closed by the scope, not deferred): team clocking and any roll-call screen (ADR 0008), leave and rosters, and overtime/rounding/public-holiday rules. Span says when someone worked and never what that is worth — [ADR 0010](decisions/0010-piecework-pay-boundary.md) opened pay only for piece-work, priced per kilogram, and hourly wages stay out.
+
+**Seasonal piece-work — closed 18 September 2026.** Not a module in §11's
+order: the farm raised it once Span shipped and turned out to be for
+permanent employees only. It extends Boord rather than adding a module code
+([docs/piecework-build-scope.md](piecework-build-scope.md)).
+
+- [x] Scope written, with both product calls it raised closed as ADRs — [ADR 0009](decisions/0009-piecework-picker-attribution.md) (scanned printed card, supersedes ADR 0007, narrows §2.1) and [ADR 0010](decisions/0010-piecework-pay-boundary.md) (calculate pay, never move money, never imply a minimum-wage check).
+- [x] `worker_cards`, `piece_rates`, `harvest_events.picker_id`/`picker_card_code`, `people.kind` (`services/migrations/0008_awesome_garia.sql`).
+- [x] Scan before the weight on the scale phone (`apps/field/src/CardScanner.tsx`): `BarcodeDetector` where the handset has it, the printed code typed where it does not. Card list cached on the device, so a scan resolves offline.
+- [x] An unknown card never blocks the crate: the code is saved, resolved server-side at sync, and anything still unplaced is shown to the office (`/piecework/unattributed`, and on the payout screen).
+- [x] Only the code ever leaves the phone — a device cannot assert who picked a crate, it can only report what it read.
+- [x] Tiered pay per picker per farm-day, priced against the rate in force that day, in integer cents (`lib/piecework.ts`). Derived at read time; a late crate changes the answer.
+- [x] Farm Admin Tool section: register a worker, print the card, set the rate, read the payout, with unplaced crates and the no-minimum-wage-check caveat both on screen. `GET /export/piecework.csv` in both office tools.
+- [x] Proven end to end against the demo farm on 18 September 2026: rate set and worker registered in the browser, card printed, its code used at the scale phone, two crates (70 kg and 52 kg less 2 kg) attributed to the picker, payout showing 120 kg and R330.00 — 100 kg at R2.50 plus 20 kg at R4.00.
+- Not in this scope: payslips, payment, minimum-wage checking (no hours exist for a seasonal picker — Span is permanent staff), per-picker grading, and splitting one crate between two pickers.
 
 **`stoor` — next, not started.** Chemical and stock records with legal weight (§10), so the backup story matters more here than anywhere else.
 
@@ -588,6 +615,9 @@ of it.
 | Kudde spec unvalidated | Deferred by design — no build slot until a real livestock farm is contracted (ADR 0005) |
 | Season not set, or set late, when a pick starts early | Phone saves anyway and flags; office assigns from "opnames sonder seisoen." Never block a capture over config |
 | Backup never tested | Quarterly restore drill, diarised |
+| Worker card lost, swapped or borrowed — the wrong picker gets paid | The card is a bearer identifier and says so ([ADR 0009](decisions/0009-piecework-picker-attribution.md)). Revoke and reissue is one click, the scanned code stays on every crate so a wrong attribution is visible afterwards, and the office sees unplaced crates rather than silent gaps |
+| A rand total is read as "this is legal to pay" | It is not, and the screen and the CSV both say so ([ADR 0010](decisions/0010-piecework-pay-boundary.md)). No hours exist for a seasonal picker, so no minimum-wage check is possible. Put it in the order form too, not only on screen |
+| A card issued today is not on the scale phone's cached list | The crate saves with the raw code and the server resolves it at sync — the queue never waits on configuration (§8) |
 
 ---
 
@@ -600,7 +630,8 @@ of it.
 5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped. Build scope ready.
 6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
 7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built. Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
-8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export. `stoor` is next — write its build scope first, same as this one.
+8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export.
+9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV. `stoor` is next — write its build scope first, same as these.
 
 ---
 
