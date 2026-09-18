@@ -4,6 +4,7 @@ import { api, ApiError, clearSession, downloadCsv, loadSession, type Session } f
 import { t } from "./copy.js";
 import { Devices } from "./Devices.js";
 import { Login } from "./Login.js";
+import { MasterData } from "./MasterData.js";
 import { Piecework } from "./Piecework.js";
 
 /**
@@ -37,7 +38,15 @@ export function App() {
       storageKey="plaashek.admin.tab"
       hideChromeOnPrint
       payoutKey={payoutKey}
-      extras={{ boord: <Piecework onRateChanged={() => setPayoutKey((key) => key + 1)} />, farm: <Devices /> }}
+      extras={{
+        boord: <Piecework onRateChanged={() => setPayoutKey((key) => key + 1)} />,
+        farm: (
+          <>
+            <MasterData />
+            <Devices />
+          </>
+        ),
+      }}
     />
   );
 }

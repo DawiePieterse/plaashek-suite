@@ -228,9 +228,15 @@ is worse than no tab.
 What sits where: a module's tab holds that module's rollups, whatever the
 office sets up for it, and its CSV export. **Farm settings** holds what is
 true of the whole farm rather than one module — the farm's name and language,
-which modules are switched on, devices and their printed QRs, seasons, and
-the two things the office has to act on (captures held behind a lapsed
-licence, captures with no season).
+which modules are switched on, devices and their printed QRs, seasons, master
+data (people, blocks, camps), and the two things the office has to act on
+(captures held behind a lapsed licence, captures with no season).
+
+Either office login — `admin` or `owner` — has full read/write access here
+(devices, pairing, seasons, master data): a farm's office is one team, and
+there's no built reason for Plaashek to arbitrate who on it may add a person
+versus who may only look. The `owner` role's own read-only surface is the
+separate Owner Module (§4.3), not a restriction inside this tool.
 
 - People list
 - Add device (person + first module) and print QR
@@ -458,7 +464,7 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | 1 | `veldnotas` | Notes | Proves print-QR → one app → offline sync |
 | 2 | `boord` | Boord field | Second field module |
 | 3 | `eienaar` | Boord Owner | Built with Boord. Read-only |
-| 4 | `span` | — | Assigned-person stamp makes clocking work |
+| 4 | `span` | — | Assigned-person stamp makes clocking work. Build scope: [docs/span-scope.md](span-scope.md) |
 | 5 | `stoor` | — | New |
 | 6 | `kudde` | — | Deferred, no build slot — ADR 0005 |
 | 7 | `water`, `werkswinkel` | — | New |
@@ -541,7 +547,7 @@ Exit:
 - [x] Bekfontein created as a real organisation + farm row, replacing no seed data (ADR 0001: genuine first deployment, not a migration). Created 17 September 2026 via Plaashek Management (`POST /management/farms`) — organisation "Laughing Waters", farm "Bekfontein", `af`. Lives in the local dev database (no production VPS exists yet, plan §9) — move it when real hosting is provisioned.
 - [x] Real entitlements set for exactly `veldnotas`, `boord`, `eienaar` — no `span`, no `kudde`. Set 17 September 2026 via `PUT /management/farms/:id/entitlements`.
 - [ ] Bekfontein's litchi season(s) entered in the Farm Admin Tool with real dates (peak picking runs 1 Sep–31 Dec, ADR 0001) — informational now that go-live isn't gated to avoid that window, but the season still has to be right for captures to stamp correctly.
-- [ ] Real people, blocks, camps entered for the farm — not the fake-farm fixtures from `infra/seed`.
+- [ ] Real people, blocks, camps entered for the farm — not the fake-farm fixtures from `infra/seed`. The Farm Admin Tool can now do this (`POST /people`, `/blocks`, `/camps`, a "Mense/Blokke/Kampe" card alongside Devices/Seasons) — before this, the only way to create a person was as a side effect of an office login, and blocks/camps had no create path at all, which is why no device could be paired for Bekfontein. Still open until the real farm's data is actually entered.
 - [ ] Real devices paired on-site: printed QR → scan → correct single app opens, for each of the three modules across however many phones the farm actually runs.
 - [ ] A full offline day proven on an actual phone at Bekfontein: capture with no signal, sync once back at the gate, nothing lost.
 - [ ] Days-since-sync and pending-QR visibility (§4.2) checked against real rural signal, not the office Wi-Fi the fake farm was tested on.
@@ -654,8 +660,8 @@ permanent employees only. It extends Boord rather than adding a module code
 4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
 5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped. Build scope ready.
 6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
-7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built. Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
-8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export.
+7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists, and the Farm Admin Tool can now create the farm's own people/blocks/camps with either office role. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built, plus standing up real hosting (plan §9 — no production VPS exists yet). Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
+8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export. Built ahead of Phase 4's close — see [ADR 0013](decisions/0013-phase-5-build-ahead-of-phase-4.md), which supersedes the earlier scoping-only [ADR 0012](decisions/0012-span-prep-early.md).
 9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV. `stoor` is next — write its build scope first, same as these.
 
 ---

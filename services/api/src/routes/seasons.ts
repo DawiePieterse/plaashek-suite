@@ -30,7 +30,7 @@ export function registerSeasonRoutes(app: App, deps: AppDeps) {
     return { seasons: farmSeasons };
   });
 
-  app.post("/seasons", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+  app.post("/seasons", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const staff = request.staff!;
     const body = createSeasonRequestSchema.parse(request.body);
 
@@ -52,7 +52,7 @@ export function registerSeasonRoutes(app: App, deps: AppDeps) {
     });
   });
 
-  app.patch("/seasons/:id", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+  app.patch("/seasons/:id", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const staff = request.staff!;
     const { id } = request.params as { id: string };
     const body = updateSeasonRequestSchema.parse(request.body);

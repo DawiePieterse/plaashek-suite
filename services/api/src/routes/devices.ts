@@ -2,18 +2,12 @@ import { deviceAssignments, deviceModules, devices, pairingTokens, people } from
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
-import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
 import { activeModuleCodes } from "../lib/entitlements.js";
-import { forbidden, notFound } from "../lib/errors.js";
+import { forbidden } from "../lib/errors.js";
+import { assertFarmOwns } from "../lib/farm.js";
 import { pairingExpiry, qrUrl, randomPairingToken } from "../lib/pairing-token.js";
 import { addAppRequestSchema, addDeviceRequestSchema } from "../schemas/devices.js";
-
-async function findFarmDevice(db: Pick<Db, "select">, deviceId: string, farmId: string) {
-  const [device] = await db.select().from(devices).where(and(eq(devices.id, deviceId), eq(devices.farmId, farmId)));
-  if (!device) throw notFound();
-  return device;
-}
 
 export function registerDeviceRoutes(app: App, deps: AppDeps) {
   app.get("/devices", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
@@ -55,19 +49,12 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
   app.post(
     "/devices",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { personId, moduleCode, label } = addDeviceRequestSchema.parse(request.body);
 
-      // The people FK only proves the person exists, not that they're this
-      // farm's — without this, one farm could stamp devices with another's
-      // person (plan §6: no cross-farm foreign keys).
-      const [person] = await deps.db
-        .select({ id: people.id })
-        .from(people)
-        .where(and(eq(people.id, personId), eq(people.farmId, staff.farmId)));
-      if (!person) throw notFound();
+      await assertFarmOwns(deps.db, people, people.id, people.farmId, personId, staff.farmId);
 
       const ceiling = await activeModuleCodes(deps.db, staff.farmId);
       if (!ceiling.includes(moduleCode)) {
@@ -101,13 +88,13 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
   app.post(
     "/devices/:deviceId/apps",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { deviceId } = request.params as { deviceId: string };
       const { moduleCode } = addAppRequestSchema.parse(request.body);
 
-      await findFarmDevice(deps.db, deviceId, staff.farmId);
+      await assertFarmOwns(deps.db, devices, devices.id, devices.farmId, deviceId, staff.farmId);
 
       const ceiling = await activeModuleCodes(deps.db, staff.farmId);
       if (!ceiling.includes(moduleCode)) {
@@ -137,12 +124,12 @@ export function registerDeviceRoutes(app: App, deps: AppDeps) {
 
   app.post(
     "/devices/:deviceId/revoke",
-    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) },
+    { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) },
     async (request) => {
       const staff = request.staff!;
       const { deviceId } = request.params as { deviceId: string };
 
-      await findFarmDevice(deps.db, deviceId, staff.farmId);
+      await assertFarmOwns(deps.db, devices, devices.id, devices.farmId, deviceId, staff.farmId);
 
       return deps.db.transaction(async (tx) => {
         const revoked = await tx.delete(deviceModules).where(eq(deviceModules.deviceId, deviceId)).returning({ moduleCode: deviceModules.moduleCode });

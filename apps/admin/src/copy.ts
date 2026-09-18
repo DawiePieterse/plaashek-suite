@@ -44,6 +44,22 @@ const af = {
   addApp: "Voeg program by…",
   printQr: "Druk QR",
 
+  peopleHeading: "Mense",
+  noPeople: "Nog geen mense nie. Voeg die eerste een by.",
+  personNamePlaceholder: "Petrus",
+  addPerson: "Voeg persoon by",
+
+  blocksHeading: "Blokke",
+  noBlocks: "Nog geen blokke nie. Voeg die eerste een by.",
+  blockNamePlaceholder: "Blok A",
+  addBlock: "Voeg blok by",
+
+  campsHeading: "Kampe",
+  noCamps: "Nog geen kampe nie. Voeg die eerste een by.",
+  campNamePlaceholder: "Kamp 1",
+  addCamp: "Voeg kamp by",
+  campBlockCol: "Blok",
+  noBlockOption: "Geen blok",
 
   pieceworkHeading: "Stukwerk — seisoenwerkers",
   rateHeading: "Tarief",
@@ -152,6 +168,22 @@ const en: typeof af = {
   addApp: "Add an app…",
   printQr: "Print QR",
 
+  peopleHeading: "People",
+  noPeople: "No people yet. Add the first one.",
+  personNamePlaceholder: "Petrus",
+  addPerson: "Add person",
+
+  blocksHeading: "Blocks",
+  noBlocks: "No blocks yet. Add the first one.",
+  blockNamePlaceholder: "Block A",
+  addBlock: "Add block",
+
+  campsHeading: "Camps",
+  noCamps: "No camps yet. Add the first one.",
+  campNamePlaceholder: "Camp 1",
+  addCamp: "Add camp",
+  campBlockCol: "Block",
+  noBlockOption: "No block",
 
   pieceworkHeading: "Piece-work — seasonal workers",
   rateHeading: "Rate",
