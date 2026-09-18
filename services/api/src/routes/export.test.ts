@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { attendancePunches, blocks, devices, harvestEvents, notes, people, pieceRates, seasons } from "@plaashek/schema";
+import { attendancePunches, blocks, devices, harvestEvents, notes, people, pieceRates, seasons, stockItems, stockMoves } from "@plaashek/schema";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
@@ -98,6 +98,46 @@ test("GET /export/attendance.csv exports every punch for the farm, one row each"
     assert.equal(lines.length, 3);
     assert.match(lines[1], /,Person,in,,-25.75,28.23$/);
     assert.match(lines[2], /,Person,out,,,$/);
+  });
+});
+
+test("GET /export/stock.csv exports every move for the farm, one row each", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const { farm: otherFarm, person: otherPerson } = await seedFarm(db);
+
+    const [block] = await db.insert(blocks).values({ farmId: farm.id, name: "Blok A" }).returning();
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [otherDevice] = await db.insert(devices).values({ farmId: otherFarm.id }).returning();
+    const [item] = await db.insert(stockItems).values({ farmId: farm.id, name: "Glifosaat", unit: "L" }).returning();
+    const [otherItem] = await db.insert(stockItems).values({ farmId: otherFarm.id, name: "Ander plaas s'n", unit: "L" }).returning();
+
+    await db.insert(stockMoves).values([
+      {
+        farmId: farm.id,
+        moduleCode: "stoor",
+        createdBy: person.id,
+        deviceId: device.id,
+        itemId: item.id,
+        direction: "out",
+        quantity: 5,
+        blockId: block.id,
+        note: "Blaarluis",
+        createdAt: new Date("2026-11-02T04:00:00Z"),
+      },
+      { farmId: otherFarm.id, moduleCode: "stoor", createdBy: otherPerson.id, deviceId: otherDevice.id, itemId: otherItem.id, direction: "in", quantity: 50 },
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/stock.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.headers["content-disposition"], 'attachment; filename="stoor.csv"');
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "﻿id,created_at,person,item,unit,direction,quantity,block,season,note");
+    assert.equal(lines.length, 2);
+    assert.match(lines[1], /,Person,Glifosaat,L,out,5,Blok A,,Blaarluis$/);
   });
 });
 

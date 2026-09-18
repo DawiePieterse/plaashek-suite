@@ -4,7 +4,7 @@ import { officeCopy, type Lang } from "./copy.js";
 import { Exports } from "./panels/exports.js";
 import { FarmSummary } from "./panels/farm-summary.js";
 import type { FarmContext } from "./farm-context.js";
-import { AttendanceRollup, HarvestRollup, PieceworkPayout } from "./panels/rollups.js";
+import { AttendanceRollup, HarvestRollup, PieceworkPayout, StockRollup } from "./panels/rollups.js";
 import { Seasons } from "./panels/seasons.js";
 import { FARM_SETTINGS_TAB, officeTabs, TabPanel, Tabs, useActiveTab, type ModuleTab } from "./tabs.js";
 
@@ -48,6 +48,13 @@ const MODULE_PANELS: Record<ModuleTab, Panel> = {
       <AttendanceRollup />
       {extra}
       <Exports kinds={["attendance"]} />
+    </>
+  ),
+  stoor: (extra) => (
+    <>
+      <StockRollup />
+      {extra}
+      <Exports kinds={["stock"]} />
     </>
   ),
 };

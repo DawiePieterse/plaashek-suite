@@ -1,4 +1,4 @@
-import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people } from "@plaashek/schema";
+import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people, stockMoves } from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
@@ -6,13 +6,14 @@ import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
 import { normaliseWorkerNumber } from "../lib/worker-number.js";
-import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type UploadOp } from "../schemas/sync.js";
+import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type StockMoveOp, type UploadOp } from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, then span). */
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, then stoor). */
 const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
   attendance_punches: "span",
+  stock_moves: "stoor",
 };
 
 /**
@@ -96,8 +97,10 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
           await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
         } else if (op.entity === "harvest_events") {
           await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else {
+        } else if (op.entity === "attendance_punches") {
           await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else {
+          await applyStockMove(tx, claims.farmId, claims.deviceId, op, clientTime);
         }
         accepted.push(op.entity_id);
       }
@@ -224,6 +227,35 @@ async function applyAttendancePunch(
       latitude: op.payload.latitude ?? null,
       longitude: op.payload.longitude ?? null,
       locationAccuracyM: op.payload.location_accuracy_m ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * A move on the store's ledger (docs/stoor-build-scope.md) — item, direction,
+ * quantity, stamped with whoever the device was assigned to. Append-only like
+ * every other capture: a miscounted move is followed by a correcting one.
+ */
+async function applyStockMove(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: StockMoveOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(stockMoves)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.stock_moves,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      itemId: op.payload.item_id,
+      direction: op.payload.direction,
+      quantity: op.payload.quantity,
+      blockId: op.payload.block_id ?? null,
+      note: op.payload.note ?? null,
       createdAt: clientTime,
       updatedAt: clientTime,
     })

@@ -56,7 +56,22 @@ export interface AttendancePunchOp {
   };
 }
 
-export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp;
+/** Stoor's move (docs/stoor-build-scope.md): which item, which way, how much. */
+export interface StockMoveOp {
+  entity: "stock_moves";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    item_id: string;
+    direction: "in" | "out";
+    quantity: number;
+    block_id?: string | null;
+    note?: string | null;
+  };
+}
+
+export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp | StockMoveOp;
 
 const QUEUE_KEY = "plaashek.field.outbox";
 

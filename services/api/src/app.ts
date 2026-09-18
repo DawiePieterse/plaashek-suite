@@ -13,6 +13,7 @@ import { registerMasterDataRoutes } from "./routes/master-data.js";
 import { registerPairingRoutes } from "./routes/pairing.js";
 import { registerPieceworkRoutes } from "./routes/piecework.js";
 import { registerSeasonRoutes } from "./routes/seasons.js";
+import { registerStockRoutes } from "./routes/stock.js";
 import { registerSyncRoutes } from "./routes/sync.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
 import { registerWeatherRoutes } from "./routes/weather.js";
@@ -69,6 +70,7 @@ export function buildApp(deps: AppDeps) {
   registerPieceworkRoutes(app, deps);
   registerManagementRoutes(app, deps);
   registerMasterDataRoutes(app, deps);
+  registerStockRoutes(app, deps);
 
   return app;
 }

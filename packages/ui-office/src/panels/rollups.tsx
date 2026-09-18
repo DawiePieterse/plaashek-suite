@@ -21,6 +21,10 @@ export interface AttendanceSummary {
   people: { personId: string; personName: string; days: number; hours: number; openPunches: number }[];
 }
 
+export interface StockSummary {
+  items: { itemId: string; name: string; unit: string; active: boolean; onHand: number }[];
+}
+
 export interface PayoutSummary {
   season: { id: string; name: string } | null;
   from: string | null;
@@ -163,6 +167,46 @@ export function AttendanceRollup() {
       </div>
       {/* Never guessed at server-side, so say what the number means rather than hiding it. */}
       {anyOpen && <p className="muted">{c.openNote}</p>}
+    </section>
+  );
+}
+
+/**
+ * What is on the shelf (docs/stoor-build-scope.md) — a running total across
+ * every move ever captured, not scoped to the active season the way Harvest
+ * and Attendance are: a shed does not empty itself when a season ends.
+ */
+export function StockRollup() {
+  const { c } = useOffice();
+  const { data, error } = useRollup<StockSummary>("/eienaar/stock");
+
+  if (error) return <Empty heading={c.stockHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.stockHeading} message={c.loading} />;
+  if (data.items.length === 0) return <Empty heading={c.stockHeading} message={c.noStockItems} />;
+
+  return (
+    <section>
+      <h2>{c.stockHeading}</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.item}</th>
+              <th className="num">{c.onHand}</th>
+              <th>{c.unit}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.items.map((item) => (
+              <tr key={item.itemId} className={item.active ? "" : "muted"}>
+                <td>{item.name}</td>
+                <td className="num">{item.onHand}</td>
+                <td>{item.unit}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

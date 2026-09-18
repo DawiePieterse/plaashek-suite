@@ -65,14 +65,35 @@ const attendancePunchOp = z.object({
 });
 
 /**
+ * Stoor's move (docs/stoor-build-scope.md): which item, which way, how much.
+ * `block_id` only really means something on an `out` move but is never
+ * enforced either way — plan §8 never blocks a capture over a field the
+ * worker cannot answer.
+ */
+const stockMoveOp = z.object({
+  entity: z.literal("stock_moves"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    item_id: z.string().uuid(),
+    direction: z.enum(["in", "out"]),
+    quantity: z.number().positive(),
+    block_id: z.string().uuid().nullable().optional(),
+    note: z.string().max(200).nullable().optional(),
+  }),
+});
+
+/**
  * What a phone may say about a write. Everything identifying — farm, device,
  * person — is stamped by the server from the ticket, never read from here.
  */
 export const uploadRequestSchema = z.object({
-  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp])).min(1).max(500),
+  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp, stockMoveOp])).min(1).max(500),
 });
 
 export type UploadOp = z.infer<typeof uploadRequestSchema>["ops"][number];
 export type NoteOp = z.infer<typeof noteOp>;
 export type HarvestEventOp = z.infer<typeof harvestEventOp>;
 export type AttendancePunchOp = z.infer<typeof attendancePunchOp>;
+export type StockMoveOp = z.infer<typeof stockMoveOp>;
