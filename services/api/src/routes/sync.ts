@@ -1,4 +1,16 @@
-import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people, stockMoves } from "@plaashek/schema";
+import {
+  attendancePunches,
+  deviceAssignments,
+  deviceModules,
+  fuelLogs,
+  harvestEvents,
+  heldWrites,
+  meterReadings,
+  notes,
+  people,
+  stockMoves,
+  workOrders,
+} from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
@@ -6,14 +18,27 @@ import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
 import { normaliseWorkerNumber } from "../lib/worker-number.js";
-import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type StockMoveOp, type UploadOp } from "../schemas/sync.js";
+import {
+  uploadRequestSchema,
+  type AttendancePunchOp,
+  type FuelLogOp,
+  type HarvestEventOp,
+  type MeterReadingOp,
+  type NoteOp,
+  type StockMoveOp,
+  type UploadOp,
+  type WorkOrderOp,
+} from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, then stoor). */
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, stoor, water, werkswinkel). */
 const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
   attendance_punches: "span",
   stock_moves: "stoor",
+  meter_readings: "water",
+  work_orders: "werkswinkel",
+  fuel_logs: "werkswinkel",
 };
 
 /**
@@ -41,6 +66,13 @@ async function personAtSaveTime(db: Pick<Db, "select">, deviceId: string, client
     .limit(1);
 
   return earliest?.personId ?? null;
+}
+
+/** Every `apply*` below needs this same lookup-or-refuse — the device must have someone assigned at save time to attribute the capture to. */
+async function requireCreatedBy(db: Pick<Db, "select">, deviceId: string, clientTime: Date): Promise<string> {
+  const createdBy = await personAtSaveTime(db, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  return createdBy;
 }
 
 export function registerSyncRoutes(app: App, deps: AppDeps) {
@@ -93,14 +125,33 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
           continue;
         }
 
-        if (op.entity === "notes") {
-          await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else if (op.entity === "harvest_events") {
-          await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else if (op.entity === "attendance_punches") {
-          await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else {
-          await applyStockMove(tx, claims.farmId, claims.deviceId, op, clientTime);
+        switch (op.entity) {
+          case "notes":
+            await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "harvest_events":
+            await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "attendance_punches":
+            await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "stock_moves":
+            await applyStockMove(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "meter_readings":
+            await applyMeterReading(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "work_orders":
+            await applyWorkOrder(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "fuel_logs":
+            await applyFuelLog(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          default: {
+            // Exhaustiveness check: a new entity added to UploadOp without a case here is now a compile error, not a silent fall-through.
+            const unhandled: never = op;
+            throw new Error(`Unhandled sync entity: ${(unhandled as UploadOp).entity}`);
+          }
         }
         accepted.push(op.entity_id);
       }
@@ -116,8 +167,7 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
  * statement, with no read-then-write race.
  */
 async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: NoteOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(notes)
@@ -168,8 +218,7 @@ async function resolvePicker(tx: Pick<Db, "select">, farmId: string, workerNumbe
 
 /** Same append-only shape as a note — no edit path (ADR 0006's precedent, kept by ADR 0009). */
 async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: HarvestEventOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   const scannedNumber = op.payload.picker_card_code ? normaliseWorkerNumber(op.payload.picker_card_code) : null;
   const pickerId = await resolvePicker(tx, farmId, scannedNumber);
@@ -211,8 +260,7 @@ async function applyAttendancePunch(
   op: AttendancePunchOp,
   clientTime: Date,
 ) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(attendancePunches)
@@ -239,8 +287,7 @@ async function applyAttendancePunch(
  * every other capture: a miscounted move is followed by a correcting one.
  */
 async function applyStockMove(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: StockMoveOp, clientTime: Date) {
-  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
 
   await tx
     .insert(stockMoves)
@@ -255,6 +302,79 @@ async function applyStockMove(tx: Pick<Db, "select" | "insert">, farmId: string,
       direction: op.payload.direction,
       quantity: op.payload.quantity,
       blockId: op.payload.block_id ?? null,
+      note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * One number against one point (docs/water-build-scope.md). Append-only,
+ * always season-null (plan §6, §8).
+ */
+async function applyMeterReading(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: MeterReadingOp, clientTime: Date) {
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
+
+  await tx
+    .insert(meterReadings)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.meter_readings,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      waterPointId: op.payload.water_point_id,
+      reading: op.payload.reading,
+      note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * One half of a job's lifecycle (docs/werkswinkel-build-scope.md) — `opened`
+ * or `closed`, paired at read time. Append-only, always season-null.
+ */
+async function applyWorkOrder(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: WorkOrderOp, clientTime: Date) {
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
+
+  await tx
+    .insert(workOrders)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.work_orders,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      assetId: op.payload.asset_id,
+      event: op.payload.event,
+      description: op.payload.description ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/** One fill-up (docs/werkswinkel-build-scope.md). Append-only, always season-null. */
+async function applyFuelLog(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: FuelLogOp, clientTime: Date) {
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
+
+  await tx
+    .insert(fuelLogs)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.fuel_logs,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      assetId: op.payload.asset_id,
+      litres: op.payload.litres,
+      meterReading: op.payload.meter_reading ?? null,
       note: op.payload.note ?? null,
       createdAt: clientTime,
       updatedAt: clientTime,

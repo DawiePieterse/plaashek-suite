@@ -4,7 +4,7 @@ import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
-import { notFound } from "../lib/errors.js";
+import { assertFarmOwns } from "../lib/farm.js";
 import { createSeasonRequestSchema, updateSeasonRequestSchema } from "../schemas/seasons.js";
 
 /**
@@ -58,8 +58,7 @@ export function registerSeasonRoutes(app: App, deps: AppDeps) {
     const body = updateSeasonRequestSchema.parse(request.body);
 
     return deps.db.transaction(async (tx) => {
-      const [existing] = await tx.select().from(seasons).where(and(eq(seasons.id, id), eq(seasons.farmId, staff.farmId)));
-      if (!existing) throw notFound();
+      await assertFarmOwns(tx, seasons, seasons.id, seasons.farmId, id, staff.farmId);
 
       if (body.isActive) await standDownOthers(tx, staff.farmId, id);
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useOffice, useOfficeLoader } from "@plaashek/ui-office";
+import { rand, useOffice, useOfficeLoader } from "@plaashek/ui-office";
 import { api, downloadCsv } from "./api.js";
 import { t } from "./copy.js";
 import { WorkerCard, type CardDetails } from "./WorkerCard.js";
@@ -25,9 +25,6 @@ interface PieceRate {
   targetKg: number | null;
   bonusCentsPerKg: number | null;
 }
-
-/** Rand from cents, for the rate line — money is stored and sent as integer cents (ADR 0010). */
-const rand = (cents: number) => (cents / 100).toFixed(2);
 
 /**
  * Seasonal piece-work (docs/piecework-build-scope.md): the register, the

@@ -35,6 +35,11 @@ test("admin and owner can both create a person, a block and a camp", async () =>
     assert.equal(camp.statusCode, 200);
     assert.equal(camp.json().camp.blockId, block.json().block.id);
 
+    // Werkswinkel's own gap (docs/werkswinkel-build-scope.md): assets had a table but no create path until now.
+    const asset = await app.inject({ method: "POST", url: "/assets", headers: adminHeaders, payload: { name: "Trekker" } });
+    assert.equal(asset.statusCode, 200);
+    assert.equal(asset.json().asset.name, "Trekker");
+
     // Owner has the same rights as admin in the Farm Admin Tool.
     const ownerToken = await signStaffSession(
       { farmMembershipId: membership.id, farmId: farm.id, role: "owner" },
@@ -58,6 +63,10 @@ test("admin and owner can both create a person, a block and a camp", async () =>
     assert.deepEqual(
       farmContext.json().camps.map((c: { name: string }) => c.name),
       ["Kamp 1"],
+    );
+    assert.deepEqual(
+      farmContext.json().assets.map((a: { name: string }) => a.name),
+      ["Trekker"],
     );
   });
 });

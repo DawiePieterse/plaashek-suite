@@ -15,6 +15,8 @@ import { registerPieceworkRoutes } from "./routes/piecework.js";
 import { registerSeasonRoutes } from "./routes/seasons.js";
 import { registerStockRoutes } from "./routes/stock.js";
 import { registerSyncRoutes } from "./routes/sync.js";
+import { registerWaterRoutes } from "./routes/water.js";
+import { registerWerkswinkelRoutes } from "./routes/werkswinkel.js";
 import { registerTicketRoutes } from "./routes/tickets.js";
 import { registerWeatherRoutes } from "./routes/weather.js";
 import type { Db } from "./db.js";
@@ -71,6 +73,8 @@ export function buildApp(deps: AppDeps) {
   registerManagementRoutes(app, deps);
   registerMasterDataRoutes(app, deps);
   registerStockRoutes(app, deps);
+  registerWaterRoutes(app, deps);
+  registerWerkswinkelRoutes(app, deps);
 
   return app;
 }

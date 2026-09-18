@@ -51,6 +51,20 @@ const af = {
   unit: "Eenheid",
   onHand: "Op hand",
 
+  waterHeading: "Water",
+  noWaterPoints: "Nog geen waterpunte nie.",
+  point: "Punt",
+  latestReading: "Jongste lesing",
+  noReadingYet: "nog geen lesing nie",
+  delta: "Verskil",
+
+  werkswinkelHeading: "Werkswinkel",
+  noOpenJobs: "Geen oop werkkaarte nie.",
+  asset: "Bate",
+  jobDescription: "Beskrywing",
+  noDescription: "geen beskrywing nie",
+  openedAt: "Oopgemaak",
+
   payoutHeading: "Uitbetaling",
   payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} tot ${to}`,
   noPiecework: "Nog geen kratte aan 'n werker gekoppel nie.",
@@ -67,6 +81,9 @@ const af = {
   exportHarvest: "Voer oes uit (CSV)",
   exportAttendance: "Voer span uit (CSV)",
   exportStock: "Voer voorraad uit (CSV)",
+  exportWater: "Voer water uit (CSV)",
+  exportWorkOrders: "Voer werkkaarte uit (CSV)",
+  exportFuel: "Voer brandstof uit (CSV)",
   exportPiecework: "Voer stukwerk uit (CSV)",
 };
 
@@ -113,6 +130,20 @@ const en: typeof af = {
   unit: "Unit",
   onHand: "On hand",
 
+  waterHeading: "Water",
+  noWaterPoints: "No water points yet.",
+  point: "Point",
+  latestReading: "Latest reading",
+  noReadingYet: "no reading yet",
+  delta: "Delta",
+
+  werkswinkelHeading: "Workshop",
+  noOpenJobs: "No open jobs.",
+  asset: "Asset",
+  jobDescription: "Description",
+  noDescription: "no description",
+  openedAt: "Opened",
+
   payoutHeading: "Payout",
   payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} to ${to}`,
   noPiecework: "No crates tied to a worker yet.",
@@ -129,6 +160,9 @@ const en: typeof af = {
   exportHarvest: "Export harvest (CSV)",
   exportAttendance: "Export attendance (CSV)",
   exportStock: "Export stock (CSV)",
+  exportWater: "Export water (CSV)",
+  exportWorkOrders: "Export work orders (CSV)",
+  exportFuel: "Export fuel (CSV)",
   exportPiecework: "Export piece-work (CSV)",
 };
 

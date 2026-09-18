@@ -63,6 +63,17 @@ export function MasterData() {
         busy={busy}
         onAdd={(body) => run(() => api("/camps", { method: "POST", token: session.token, body: JSON.stringify(body) }))}
       />
+
+      <NamedListCard
+        heading={c.assetsHeading}
+        emptyText={c.noAssets}
+        placeholder={c.assetNamePlaceholder}
+        addLabel={c.addAsset}
+        items={context.assets}
+        isAdmin={isAdmin}
+        busy={busy}
+        onAdd={(name) => run(() => api("/assets", { method: "POST", token: session.token, body: JSON.stringify({ name }) }))}
+      />
     </Fragment>
   );
 }

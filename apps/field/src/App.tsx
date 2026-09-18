@@ -4,6 +4,8 @@ import { Harvest } from "./Harvest.js";
 import { Notes } from "./Notes.js";
 import { Span } from "./Span.js";
 import { Stoor } from "./Stoor.js";
+import { Water } from "./Water.js";
+import { Werkswinkel } from "./Werkswinkel.js";
 import { readQueue } from "./queue.js";
 import { claims, pair, pairTokenFromPath, PairError, readTicket, refresh, saveTicket } from "./ticket.js";
 
@@ -79,6 +81,10 @@ export function App() {
           <Span ticket={ticket} claims={ticketClaims} />
         ) : current === "stoor" ? (
           <Stoor ticket={ticket} claims={ticketClaims} />
+        ) : current === "water" ? (
+          <Water ticket={ticket} claims={ticketClaims} />
+        ) : current === "werkswinkel" ? (
+          <Werkswinkel ticket={ticket} claims={ticketClaims} />
         ) : (
           <Screen title={moduleName(current)} body={c.shellNote} />
         )}

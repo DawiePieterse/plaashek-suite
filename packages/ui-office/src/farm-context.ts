@@ -9,6 +9,11 @@ export interface Camp {
   blockId: string | null;
 }
 
+export interface Asset {
+  id: string;
+  name: string;
+}
+
 /**
  * What `/farm` answers: everything both office tools need before they can
  * draw anything — which farm, its people, blocks and camps, which modules
@@ -22,6 +27,7 @@ export interface FarmContext {
   people: { id: string; name: string }[];
   blocks: Block[];
   camps: Camp[];
+  assets: Asset[];
   modules: string[];
   waiting: { held: number; withoutSeason: number };
 }

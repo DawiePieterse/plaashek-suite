@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.21
+**Status:** v1.22
 **Date:** 18 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -43,6 +43,8 @@
 **Changes from v1.19:** worker cards now carry the **farm's own worker number**, typed by the office, and the QR holds that number and nothing else — [ADR 0011](decisions/0011-worker-numbers-are-the-farms.md), amending ADR 0009. It is the key the farm's payment system already uses, so the piece-work export joins to their payroll with no mapping table in between. The register is editable (number, name, and whether the worker still works here) and moves in and out as CSV keyed on that number: an import updates numbers the farm already has, adds new ones, and never deletes. `worker_cards` is gone with the code we used to mint — reprinting a lost card prints the same number, so there is nothing to issue or revoke, and "revoke the card" becomes "mark the worker inactive". The trade-off is written down rather than glossed: a typed number is guessable where a random code was not, so the card identifies and never authenticates.
 
 **Changes from v1.20:** `stoor` built (§11 order 5) — [docs/stoor-build-scope.md](stoor-build-scope.md): a farm-defined catalog (`stock_items`) and a move on each item, `in` or `out` (`stock_moves`), captured on `apps/field/src/Stoor.tsx` with an optional block on a `used` move and no weather or GPS (a stock move is not an observation). One deliberate break from Harvest's and Span's pattern: `GET /eienaar/stock` sums every move ever made, not just the active season's — a shed does not empty itself at a season boundary. Catalog management (`apps/admin/src/Stoor.tsx`) is admin-only, same visibility as Piecework and MasterData; the on-hand rollup and `GET /export/stock.csv` are shared with the Owner Module like every other rollup. Proven end to end against the demo farm on 18 September 2026: an item added in the Farm Admin Tool, received and used through the field screen (a receipt with no block, a use tied to Blok A), the on-hand total correct in both office tools after each move.
+
+**Changes from v1.21:** `water` and `werkswinkel` built (§11 order 7) — [docs/water-build-scope.md](water-build-scope.md), [docs/werkswinkel-build-scope.md](werkswinkel-build-scope.md), both season-less per §6/§8. Water: a catalog of points (`water_points`) and a reading capture (`meter_readings`); `GET /eienaar/water` reports the **latest reading and the delta since the one before it**, not a running total — the opposite call from Stoor's on-hand sum, because a reading replaces the current state rather than accumulating. Werkswinkel: a job's open/closed lifecycle is **two paired append-only events** (`work_orders`, Span's shape, not a status column), plus a plain `fuel_logs` capture; any paired phone can close a job a different one opened, so the phone reads open jobs back from the server (`GET /work-orders/open`) rather than trusting local state. Found and closed a real gap first: `assets` had a schema table since Phase 1 but no route at all — `POST /assets` and a "Bates" card in `MasterData.tsx` now exist, the same add-only treatment people/blocks/camps got in Phase 4. Also fixed a latent bug the Stoor work left behind: the demo seed's wipe never deleted `stock_items`, so a second re-seed after any manual testing failed on a foreign-key violation — `wipeDemoData` now clears `stock_items` and `water_points` too. Proven end to end against the demo farm on 18 September 2026: a water point read twice (500 then unchanged), a work order opened on one paired phone and closed on a second, a fuel log recorded — the office and owner rollups matched after each step.
 
 ---
 
@@ -615,7 +617,18 @@ permanent employees only. It extends Boord rather than adding a module code
 - [x] Proven end to end against the demo farm on 18 September 2026: an item added in the Farm Admin Tool, a receipt with no block and a use tied to Blok A entered through the field screen, the on-hand total (28 L, then 25 L after the use) correct in both the Farm Admin Tool and the Owner Module.
 - Not in this scope (closed by the build scope, not deferred): stock-takes/reconciliation, purchase orders and reorder alerts, chemical-application compliance fields (batch/lot, withholding period), and costing.
 
-**`water`, `werkswinkel` — not started.** Both season-less (§6) — the first modules to leave `season_id` null, which no code path has exercised yet.
+**`water` and `werkswinkel` — closed 18 September 2026:**
+
+- [x] Build scope written for each, with the open calls each raised documented rather than assumed — [docs/water-build-scope.md](water-build-scope.md) (a running total vs. a latest-plus-delta rollup) and [docs/werkswinkel-build-scope.md](werkswinkel-build-scope.md) (a work order's lifecycle as two paired events; the `assets` gap named and closed before either table could mean anything).
+- [x] `water_points`/`meter_readings` and `work_orders`/`fuel_logs` (`services/migrations/0011_long_mauler.sql`): all four workspace-row-stamped, `season_id` always null — the first modules to actually exercise that path (§6, §8).
+- [x] `POST /assets` and a "Bates" card in `MasterData.tsx` — the gap Werkswinkel found: `assets` had a table since Phase 1 and no create route at all.
+- [x] Field capture screens (`apps/field/src/Water.tsx`, `apps/field/src/Werkswinkel.tsx`): a point/reading/note form, and an asset picker behind three small forms (fuel, open a job, close a job) — the last one reading open jobs back from the server so a different phone than the one that opened a job can close it.
+- [x] `/sync/upload` routes all four new entities, idempotent by client uuid, held on a suspended/cancelled licence (`sync.water.test.ts`, `sync.werkswinkel.test.ts`).
+- [x] Office (`services/api/src/routes/water.ts`, `services/api/src/routes/werkswinkel.ts`): catalog CRUD, the two device-ticket catalog/open-jobs reads, `GET /eienaar/water` (latest + delta) and `GET /eienaar/werkswinkel` (open jobs grouped by asset, paired at read time — `lib/werkswinkel.ts`, Span's shape). `GET /export/water.csv`, `/export/work-orders.csv`, `/export/fuel.csv` alongside the others.
+- [x] Farm Admin Tool: `apps/admin/src/Water.tsx` (catalog, admin-only, same visibility as Stoor's); Werkswinkel needed no admin-only screen of its own — the asset list it depends on lives in `MasterData.tsx`. Both rollups and all three exports are shared with the Owner Module.
+- [x] Fixed a bug the Stoor work left behind, found while re-seeding: the demo wipe never deleted `stock_items`, so a second re-seed after any manual testing hit a foreign-key violation on `farms`. `wipeDemoData` now clears `stock_items` and `water_points` too.
+- [x] Proven end to end against the demo farm on 18 September 2026: a water point read (500 m³, no delta on the first reading), a work order opened on one paired phone and closed on a second (any device can close what another opened), a fuel log recorded with an odometer reading — the Farm Admin Tool's and the Owner Module's rollups matched after each step.
+- Not in this scope (closed by each build scope, not deferred): stock-takes/alerts/IoT for Water; service schedules, cost tracking and a derived fuel-consumption figure for Werkswinkel.
 
 **`oudit` — last, not started.** Packs the other modules' records; it cannot be built before they exist.
 
@@ -674,7 +687,8 @@ permanent employees only. It extends Boord rather than adding a module code
 7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists, and the Farm Admin Tool can now create the farm's own people/blocks/camps with either office role. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built, plus standing up real hosting (plan §9 — no production VPS exists yet). Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
 8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export. Built ahead of Phase 4's close — see [ADR 0013](decisions/0013-phase-5-build-ahead-of-phase-4.md), which supersedes the earlier scoping-only [ADR 0012](decisions/0012-span-prep-early.md).
 9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV.
-10. `stoor` **done**: [build scope](stoor-build-scope.md), `stock_items`/`stock_moves`, the field capture screen, sync routing, the on-hand rollup (a running total, not season-scoped — the one deliberate break from Harvest's and Span's pattern), the Farm Admin Tool catalog section and the CSV export. `water` and `werkswinkel` are next — both season-less (§6), the first modules to leave `season_id` null.
+10. `stoor` **done**: [build scope](stoor-build-scope.md), `stock_items`/`stock_moves`, the field capture screen, sync routing, the on-hand rollup (a running total, not season-scoped — the one deliberate break from Harvest's and Span's pattern), the Farm Admin Tool catalog section and the CSV export.
+11. `water` and `werkswinkel` **done**: [water build scope](water-build-scope.md), [werkswinkel build scope](werkswinkel-build-scope.md), both season-less (§6) — the first modules to leave `season_id` null. Closed the `assets` gap (a table with no routes) on the way. §11's module order is now fully built — `oudit` is next, once the modules it packs have enough real-farm history to be worth packing.
 
 ---
 
@@ -693,4 +707,4 @@ permanent employees only. It extends Boord rather than adding a module code
 
 ---
 
-*End of complete build plan v1.21.*
+*End of complete build plan v1.22.*

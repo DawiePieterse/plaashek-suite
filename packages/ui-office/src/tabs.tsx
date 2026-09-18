@@ -13,7 +13,7 @@ import { officeCopy, type Lang } from "./copy.js";
  * which has nothing to show yet is not a tab — an empty tab is worse than no
  * tab. Add the code here the day that module's panel exists.
  */
-export const MODULE_TABS = ["veldnotas", "boord", "span", "stoor"] as const;
+export const MODULE_TABS = ["veldnotas", "boord", "span", "stoor", "water", "werkswinkel"] as const;
 
 export const FARM_SETTINGS_TAB = "farm";
 
