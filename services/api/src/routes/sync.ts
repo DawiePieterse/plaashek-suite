@@ -118,20 +118,33 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
           continue;
         }
 
-        if (op.entity === "notes") {
-          await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else if (op.entity === "harvest_events") {
-          await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else if (op.entity === "attendance_punches") {
-          await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else if (op.entity === "stock_moves") {
-          await applyStockMove(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else if (op.entity === "meter_readings") {
-          await applyMeterReading(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else if (op.entity === "work_orders") {
-          await applyWorkOrder(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else {
-          await applyFuelLog(tx, claims.farmId, claims.deviceId, op, clientTime);
+        switch (op.entity) {
+          case "notes":
+            await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "harvest_events":
+            await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "attendance_punches":
+            await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "stock_moves":
+            await applyStockMove(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "meter_readings":
+            await applyMeterReading(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "work_orders":
+            await applyWorkOrder(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "fuel_logs":
+            await applyFuelLog(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          default: {
+            // Exhaustiveness check: a new entity added to UploadOp without a case here is now a compile error, not a silent fall-through.
+            const unhandled: never = op;
+            throw new Error(`Unhandled sync entity: ${(unhandled as UploadOp).entity}`);
+          }
         }
         accepted.push(op.entity_id);
       }

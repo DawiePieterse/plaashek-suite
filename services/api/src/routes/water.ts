@@ -2,16 +2,10 @@ import { meterReadings, waterPoints } from "@plaashek/schema";
 import { and, asc, desc, eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
-import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
-import { notFound } from "../lib/errors.js";
+import { assertFarmOwns } from "../lib/farm.js";
 import { createWaterPointRequestSchema, updateWaterPointRequestSchema } from "../schemas/water.js";
-
-async function ownWaterPoint(db: Pick<Db, "select">, farmId: string, pointId: string) {
-  const [point] = await db.select({ id: waterPoints.id }).from(waterPoints).where(and(eq(waterPoints.id, pointId), eq(waterPoints.farmId, farmId)));
-  return Boolean(point);
-}
 
 /**
  * Water (plan §11, docs/water-build-scope.md): the catalog of points, the
@@ -48,7 +42,7 @@ export function registerWaterRoutes(app: App, deps: AppDeps) {
     const { pointId } = request.params as { pointId: string };
     const body = updateWaterPointRequestSchema.parse(request.body);
 
-    if (!(await ownWaterPoint(deps.db, staff.farmId, pointId))) throw notFound();
+    await assertFarmOwns(deps.db, waterPoints, waterPoints.id, waterPoints.farmId, pointId, staff.farmId);
 
     return deps.db.transaction(async (tx) => {
       const [point] = await tx
