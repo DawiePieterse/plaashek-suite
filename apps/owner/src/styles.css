@@ -1,7 +1,3 @@
-/* Shared office look lives in @plaashek/ui-office — only the totals table is ours. */
-
-td.num,
-th.num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
+/* Shared office look lives in @plaashek/ui-office. The Owner Module draws
+   only shared panels today, so nothing is left here — add owner-only styles
+   below when the owner's own features land. */

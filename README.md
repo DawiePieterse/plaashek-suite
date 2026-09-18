@@ -16,7 +16,7 @@ a screen or a data shape by copying it in and adapting it to outbox +
 | `apps/admin` | Farm office. `admin.plaashek.co.za` |
 | `apps/field` | The phones: pairing shell + Veldnotas, Boord, Span. `app.plaashek.co.za` |
 | `apps/owner` | Owner module (`eienaar`). Read-only rollups |
-| `packages/*` | Shared schema, sync, tickets, master data |
+| `packages/*` | Shared schema, sync, tickets, and the office tools' shared UI |
 | `services/api` | hek-api + sync-api |
 | `services/migrations` | Postgres migrations, numbered, checked in |
 | `infra/seed` | Fake farm for Phase 1 exit tests |
@@ -40,6 +40,10 @@ screen and a route when it is being built, not before.
 - Field workers never see billing copy.
 - Identity on a phone comes from scanned paper — a pairing QR, a worker card —
   never from a list of people on screen (ADR 0009).
+- The office tools are one tab per licensed field module plus Farm settings,
+  and a tab exists only if Plaashek Management switched that module on. Both
+  tools draw the same panels from `packages/ui-office`; the owner's are the
+  read-only ones.
 - A phone shows only modules whose QR it has scanned, even if the farm is
   licensed for more.
 

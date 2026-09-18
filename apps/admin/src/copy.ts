@@ -19,9 +19,9 @@ const af = {
   offline: "Kan nie aan die bediener koppel nie.",
   loading: "Laai…",
 
-  devicesHeading: (farm: string) => `Toestelle — ${farm}`,
+  farmSettings: "Plaasinstellings",
+  devicesHeading: "Toestelle",
   noDevices: "Nog geen toestelle nie. Voeg die eerste een by.",
-  noLicence: "Die plaas het nog geen aktiewe lisensie nie. Kontak Plaashek.",
   deviceCol: "Toestel",
   pendingCol: "Wagtend",
   actionsCol: "Aksies",
@@ -46,16 +46,6 @@ const af = {
   addApp: "Voeg program by…",
   printQr: "Druk QR",
 
-  seasonsHeading: "Seisoene",
-  seasonName: "Naam",
-  startsOn: "Begin",
-  endsOn: "Einde",
-  activeSeason: "Aktief",
-  saveSeason: "Stoor",
-  addSeason: "Voeg seisoen by",
-  noSeasons: "Nog geen seisoen nie. Opnames word gemerk vir die kantoor totdat daar een is.",
-  heldWaiting: (count: number) => `Lisensie het verval — ${count} opname(s) wag. Praat met Plaashek.`,
-  withoutSeason: (count: number) => `${count} opname(s) sonder seisoen.`,
 
   pieceworkHeading: "Stukwerk — seisoenwerkers",
   rateHeading: "Tarief",
@@ -80,28 +70,11 @@ const af = {
   reissueCard: "Nuwe kaart",
   revokeCard: "Herroep kaart",
 
-  payoutHeading: "Uitbetaling",
-  payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} tot ${to}`,
-  noPiecework: "Nog geen kratte aan 'n werker gekoppel nie.",
-  noSeason: "Geen aktiewe seisoen nie.",
-  days: "Dae",
-  kg: "kg",
-  rand: "Rand",
-  total: "Totaal",
-  unattributed: (crates: number, kg: number) =>
-    `${crates} krat(te) (${kg.toFixed(1)} kg) is nog aan niemand gekoppel nie — die kaart is nie herken nie. Kyk na die kaarte.`,
-  payoutDisclaimer:
-    "Hierdie bedrag is wat die plaas se eie tarief uitwerk. Plaashek betaal niemand nie en toets nie of dit die minimumloon haal nie — daar is geen ure vir seisoenwerkers nie.",
 
   cardTitle: "Werkerskaart",
   cardWorker: "Werker",
   cardNote: "Skandeer hierdie kaart by die skaal voor die krat geweeg word. Verlore kaart? Die kantoor druk 'n nuwe een.",
 
-  exportHeading: "Uitvoer",
-  exportNotes: "Voer veldnotas uit (CSV)",
-  exportHarvest: "Voer oes uit (CSV)",
-  exportAttendance: "Voer span uit (CSV)",
-  exportPiecework: "Voer stukwerk uit (CSV)",
 
   slipTitle: "Paringstrokie",
   slipFarm: "Plaas",
@@ -140,9 +113,9 @@ const en: typeof af = {
   offline: "Cannot reach the server.",
   loading: "Loading…",
 
-  devicesHeading: (farm: string) => `Devices — ${farm}`,
+  farmSettings: "Farm settings",
+  devicesHeading: "Devices",
   noDevices: "No devices yet. Add the first one.",
-  noLicence: "This farm has no active licence yet. Contact Plaashek.",
   deviceCol: "Device",
   pendingCol: "Pending",
   actionsCol: "Actions",
@@ -167,16 +140,6 @@ const en: typeof af = {
   addApp: "Add an app…",
   printQr: "Print QR",
 
-  seasonsHeading: "Seasons",
-  seasonName: "Name",
-  startsOn: "Starts",
-  endsOn: "Ends",
-  activeSeason: "Active",
-  saveSeason: "Save",
-  addSeason: "Add season",
-  noSeasons: "No season yet. Captures are flagged for the office until there is one.",
-  heldWaiting: (count: number) => `Licence has lapsed — ${count} capture(s) waiting. Talk to Plaashek.`,
-  withoutSeason: (count: number) => `${count} capture(s) with no season.`,
 
   pieceworkHeading: "Piece-work — seasonal workers",
   rateHeading: "Rate",
@@ -201,28 +164,11 @@ const en: typeof af = {
   reissueCard: "New card",
   revokeCard: "Revoke card",
 
-  payoutHeading: "Payout",
-  payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} to ${to}`,
-  noPiecework: "No crates tied to a worker yet.",
-  noSeason: "No active season.",
-  days: "Days",
-  kg: "kg",
-  rand: "Rand",
-  total: "Total",
-  unattributed: (crates: number, kg: number) =>
-    `${crates} crate(s) (${kg.toFixed(1)} kg) are not tied to anyone — the card was not recognised. Check the cards.`,
-  payoutDisclaimer:
-    "This is what the farm's own rate works out to. Plaashek pays nobody and does not check it against the minimum wage — there are no hours for seasonal workers.",
 
   cardTitle: "Worker card",
   cardWorker: "Worker",
   cardNote: "Scan this card at the scale before the crate is weighed. Lost card? The office prints a new one.",
 
-  exportHeading: "Export",
-  exportNotes: "Export veldnotas (CSV)",
-  exportHarvest: "Export harvest (CSV)",
-  exportAttendance: "Export attendance (CSV)",
-  exportPiecework: "Export piece-work (CSV)",
 
   slipTitle: "Pairing slip",
   slipFarm: "Farm",

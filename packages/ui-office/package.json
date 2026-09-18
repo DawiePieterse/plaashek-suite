@@ -3,8 +3,25 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Shared look for the office-side apps — tokens, shell, cards, tables, forms",
+  "description": "Shared office-side UI \u2014 the tab shell, the panels both office tools draw, and the look",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
+    ".": "./dist/index.js",
     "./office.css": "./src/office.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "tsc && node --test dist"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "react": "^19.3.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.20.0"
   }
 }

@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
-import {
-  api,
-  ApiError,
-  formatWhen,
-  moduleName,
-  type Device,
-  type FarmContext,
-  type PairingToken,
-  type Session,
-} from "./api.js";
+import { moduleName, useOffice, type FarmContext } from "@plaashek/ui-office";
+import { api, ApiError, formatWhen, type Device, type PairingToken, type Session } from "./api.js";
 import { t } from "./copy.js";
 import { PairingSlip, type SlipDetails } from "./PairingSlip.js";
 
-export function Devices({ session, onSessionExpired }: { session: Session; onSessionExpired: () => void }) {
-  const [context, setContext] = useState<FarmContext | null>(null);
+export function Devices({
+  session,
+  context,
+  onReloadContext,
+  onSessionExpired,
+}: {
+  session: Session;
+  /** Loaded once by the app shell — the tab strip needs it too, so this panel does not fetch it again. */
+  context: FarmContext;
+  onReloadContext: () => Promise<void>;
+  onSessionExpired: () => void;
+}) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [slip, setSlip] = useState<SlipDetails | null>(null);
   const [error, setError] = useState("");
@@ -24,12 +26,10 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
 
   async function load() {
     try {
-      const [farmContext, deviceList] = await Promise.all([
-        api<FarmContext>("/farm", { token: session.token }),
-        api<{ devices: Device[] }>("/devices", { token: session.token }),
-      ]);
-      setContext(farmContext);
-      setDevices(deviceList.devices);
+      setDevices((await api<{ devices: Device[] }>("/devices", { token: session.token })).devices);
+      // A revoke or a new pairing can change what the farm is waiting on, and
+      // that count lives in the shell's copy of /farm.
+      await onReloadContext();
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
       setError(caught instanceof ApiError ? caught.message : c.offline);
@@ -58,25 +58,19 @@ export function Devices({ session, onSessionExpired }: { session: Session; onSes
   }
 
   function showSlip(pairingToken: PairingToken, personName: string) {
-    setSlip({ pairingToken, personName, farmName: context?.farm.name ?? "" });
+    setSlip({ pairingToken, personName, farmName: context.farm.name });
   }
-
-  // Without the error here, a first load that fails sits on "Laai…" forever.
-  if (!context) return <p className={error ? "error" : "empty"}>{error || c.loading}</p>;
 
   const personName = (device: Device) => device.assignedPerson?.personName ?? c.nobodyAssigned;
 
   return (
     <section>
       <div className="section-head no-print">
-        <h2>{c.devicesHeading(context.farm.name)}</h2>
+        <h2>{c.devicesHeading}</h2>
         <span className="pill">{devices.length}</span>
       </div>
 
       {error && <p className="error no-print">{error}</p>}
-
-      {context.waiting.held > 0 && <p className="waiting no-print">{c.heldWaiting(context.waiting.held)}</p>}
-      {context.waiting.withoutSeason > 0 && <p className="waiting no-print">{c.withoutSeason(context.waiting.withoutSeason)}</p>}
 
       {isAdmin && (
         <AddDeviceForm
@@ -206,9 +200,12 @@ function AddDeviceForm({
   const [moduleCode, setModuleCode] = useState("");
   const [label, setLabel] = useState("");
   const c = t();
+  const office = useOffice();
 
+  // Nothing licensed means nothing to pair a phone for — the farm settings
+  // tab says why, so here it is just the reason this form is missing.
   if (context.modules.length === 0) {
-    return <p className="empty no-print">{c.noLicence}</p>;
+    return <p className="empty no-print">{office.c.noLicence}</p>;
   }
 
   return (

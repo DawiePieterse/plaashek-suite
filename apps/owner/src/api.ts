@@ -71,15 +71,3 @@ export async function downloadCsv(path: string, token: string, filename: string)
   link.click();
   URL.revokeObjectURL(url);
 }
-
-/** Eienaar's first screen (docs/boord-reuse-audit.md): totals only, by block, for the active season. */
-export interface HarvestSummary {
-  season: { id: string; name: string } | null;
-  blocks: { blockId: string; blockName: string; crates: number; kg: number }[];
-}
-
-/** Span in owner form (docs/span-build-scope.md): days and hours per person, paired server-side at read time. */
-export interface AttendanceSummary {
-  season: { id: string; name: string } | null;
-  people: { personId: string; personName: string; days: number; hours: number; openPunches: number }[];
-}

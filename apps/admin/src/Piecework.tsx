@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, ApiError, type FarmContext, type Session } from "./api.js";
+import { PieceworkPayout, useOffice, type FarmContext, type PayoutSummary } from "@plaashek/ui-office";
+import { api, ApiError, type Session } from "./api.js";
 import { t } from "./copy.js";
 import { WorkerCard, type CardDetails } from "./WorkerCard.js";
 
@@ -19,15 +20,7 @@ interface PieceRate {
   bonusCentsPerKg: number | null;
 }
 
-interface Payout {
-  season: { id: string; name: string } | null;
-  from: string | null;
-  to: string | null;
-  people: { personId: string; personName: string; kg: number; days: number; cents: number; unratedKg: number }[];
-  unattributedCrates: number;
-  unattributedKg: number;
-}
-
+/** Rand from cents, for the rate line — money is stored and sent as integer cents (ADR 0010). */
 const rand = (cents: number) => (cents / 100).toFixed(2);
 
 /**
@@ -36,35 +29,32 @@ const rand = (cents: number) => (cents / 100).toFixed(2);
  * and exported — Plaashek does not issue payslips and does not move money
  * (ADR 0010).
  */
-export function Piecework({ session, onSessionExpired }: { session: Session; onSessionExpired: () => void }) {
+export function Piecework({ session, context }: { session: Session; context: FarmContext }) {
   const [workers, setWorkers] = useState<Worker[] | null>(null);
   const [rates, setRates] = useState<PieceRate[]>([]);
-  const [payout, setPayout] = useState<Payout | null>(null);
+  const [payout, setPayout] = useState<PayoutSummary | null>(null);
   const [card, setCard] = useState<CardDetails | null>(null);
-  /** Printed on the card, so the worker's own farm is on the paper they carry. */
-  const [farmName, setFarmName] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const { errorMessage, isUnauthenticated, onSessionExpired } = useOffice();
   const c = t();
 
   const isAdmin = session.role === "admin";
 
   async function load() {
     try {
-      const [workerList, rateList, paid, context] = await Promise.all([
+      const [workerList, rateList, paid] = await Promise.all([
         api<{ workers: Worker[] }>("/piecework/workers", { token: session.token }),
         api<{ rates: PieceRate[] }>("/piece-rates", { token: session.token }),
-        api<Payout>("/piecework/payout", { token: session.token }),
-        api<FarmContext>("/farm", { token: session.token }),
+        api<PayoutSummary>("/piecework/payout", { token: session.token }),
       ]);
-      setFarmName(context.farm.name);
       setWorkers(workerList.workers);
       setRates(rateList.rates);
       setPayout(paid);
     } catch (caught) {
-      if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : c.offline);
+      if (isUnauthenticated(caught)) return onSessionExpired();
+      setError(errorMessage(caught));
     }
   }
 
@@ -79,8 +69,8 @@ export function Piecework({ session, onSessionExpired }: { session: Session; onS
       await action();
       await load();
     } catch (caught) {
-      if (caught instanceof ApiError && caught.code === "unauthenticated") return onSessionExpired();
-      setError(caught instanceof ApiError ? caught.message : c.offline);
+      if (isUnauthenticated(caught)) return onSessionExpired();
+      setError(errorMessage(caught));
     } finally {
       setBusy(false);
     }
@@ -99,15 +89,13 @@ export function Piecework({ session, onSessionExpired }: { session: Session; onS
       });
       setName("");
       // Straight to the card: a worker with no printed card cannot be paid.
-      setCard({ code: issued.code, personName: workerName, farmName });
+      setCard({ code: issued.code, personName: workerName, farmName: context.farm.name });
     });
   }
 
   if (!workers) return null;
 
   const current = rates[0];
-  const totalCents = payout?.people.reduce((sum, person) => sum + person.cents, 0) ?? 0;
-  const totalKg = payout?.people.reduce((sum, person) => sum + person.kg, 0) ?? 0;
 
   return (
     <section className="no-print">
@@ -146,7 +134,7 @@ export function Piecework({ session, onSessionExpired }: { session: Session; onS
                 {isAdmin && (
                   <td className="row-actions">
                     {worker.code && (
-                      <button type="button" className="quiet" onClick={() => setCard({ code: worker.code!, personName: worker.name, farmName })}>
+                      <button type="button" className="quiet" onClick={() => setCard({ code: worker.code!, personName: worker.name, farmName: context.farm.name })}>
                         {c.printCard}
                       </button>
                     )}
@@ -160,7 +148,7 @@ export function Piecework({ session, onSessionExpired }: { session: Session; onS
                             method: "POST",
                             token: session.token,
                           });
-                          setCard({ code: issued.code, personName: worker.name, farmName });
+                          setCard({ code: issued.code, personName: worker.name, farmName: context.farm.name });
                         })
                       }
                     >
@@ -200,54 +188,7 @@ export function Piecework({ session, onSessionExpired }: { session: Session; onS
         </form>
       )}
 
-      <h3>{c.payoutHeading}</h3>
-      {!payout?.season ? (
-        <p className="empty">{c.noSeason}</p>
-      ) : (
-        <>
-          <p className="muted">{c.payoutPeriod(payout.season.name, payout.from ?? "", payout.to ?? "")}</p>
-          <div className="card">
-            <table>
-              <thead>
-                <tr>
-                  <th>{c.worker}</th>
-                  <th className="num">{c.days}</th>
-                  <th className="num">{c.kg}</th>
-                  <th className="num">{c.rand}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payout.people.map((person) => (
-                  <tr key={person.personId}>
-                    <td>{person.personName}</td>
-                    <td className="num">{person.days}</td>
-                    <td className="num">{person.kg.toFixed(1)}</td>
-                    <td className="num">{rand(person.cents)}</td>
-                  </tr>
-                ))}
-                {payout.people.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="muted">
-                      {c.noPiecework}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td>{c.total}</td>
-                  <td className="num" />
-                  <td className="num">{totalKg.toFixed(1)}</td>
-                  <td className="num">{rand(totalCents)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          {payout.unattributedCrates > 0 && <p className="error">{c.unattributed(payout.unattributedCrates, payout.unattributedKg)}</p>}
-          {/* A rand total is what the farm's own rate produced, not a statement that it is lawful (ADR 0010). */}
-          <p className="muted">{c.payoutDisclaimer}</p>
-        </>
-      )}
+      <PieceworkPayout payout={payout} />
 
       {card && <WorkerCard card={card} onClose={() => setCard(null)} />}
     </section>

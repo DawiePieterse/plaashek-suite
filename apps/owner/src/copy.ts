@@ -16,28 +16,7 @@ const af = {
   signingIn: "Wag…",
   offline: "Kan nie aan die bediener koppel nie.",
   loading: "Laai…",
-
-  harvestHeading: "Oes",
-  noSeason: "Geen aktiewe seisoen nie. Stel een op in die Plaaskantoor.",
-  noHarvest: "Nog geen oes gevang vir hierdie seisoen nie.",
-  block: "Blok",
-  crates: "Kratte",
-  kg: "kg",
-  total: "Totaal",
-
-  attendanceHeading: "Span",
-  noAttendance: "Nog geen klokke vir hierdie seisoen nie.",
-  person: "Werker",
-  days: "Dae",
-  hours: "Ure",
-  open: "Oop",
-  openNote: "\"Oop\" is 'n inklok sonder uitklok (of andersom) — die ure tel eers wanneer die paar volledig is.",
-
-  exportHeading: "Uitvoer",
-  exportNotes: "Voer veldnotas uit (CSV)",
-  exportHarvest: "Voer oes uit (CSV)",
-  exportAttendance: "Voer span uit (CSV)",
-  exportPiecework: "Voer stukwerk uit (CSV)",
+  farmSettings: "Plaasinstellings",
 
   errors: {
     invalid_credentials: "Verkeerde e-pos of wagwoord.",
@@ -57,28 +36,7 @@ const en: typeof af = {
   signingIn: "Wait…",
   offline: "Cannot reach the server.",
   loading: "Loading…",
-
-  harvestHeading: "Harvest",
-  noSeason: "No active season. Set one up in the Farm Admin Tool.",
-  noHarvest: "No harvest captured for this season yet.",
-  block: "Block",
-  crates: "Crates",
-  kg: "kg",
-  total: "Total",
-
-  attendanceHeading: "Attendance",
-  noAttendance: "No punches for this season yet.",
-  person: "Worker",
-  days: "Days",
-  hours: "Hours",
-  open: "Open",
-  openNote: "\"Open\" is a clock-in with no clock-out (or the other way round) — hours only count once the pair is complete.",
-
-  exportHeading: "Export",
-  exportNotes: "Export veldnotas (CSV)",
-  exportHarvest: "Export harvest (CSV)",
-  exportAttendance: "Export attendance (CSV)",
-  exportPiecework: "Export piece-work (CSV)",
+  farmSettings: "Farm settings",
 
   errors: {
     invalid_credentials: "Incorrect email or password.",

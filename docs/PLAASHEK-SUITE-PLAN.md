@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.18
+**Status:** v1.19
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -37,6 +37,8 @@
 **Changes from v1.16:** Phase 5 opened, and given the exit checklist it never had — §12's Phase 5 was one line ("§11 order. Each module on the same foundation"), which is not something a phase can close against. Now one checklist per remaining module, and the first of them, `span`, is built: [docs/span-build-scope.md](span-build-scope.md) (no reference app, so a build scope stands in for a reuse audit), `attendance_punches`, the clock-in/clock-out field screen, `/sync/upload` routing, `GET /eienaar/attendance` (days and hours per person, paired at read time) and `GET /export/attendance.csv`. One product call closed on the way: [ADR 0008](decisions/0008-span-self-clocking.md) — a punch belongs to the device's assigned person, no team clocking, the same wall ADR 0007 hit and the same answer. **Phase 4 is not closed** — its remaining items are all on-site at Bekfontein (real people/blocks, real pairing, an offline day, a revoke, the backup drill against real data) and none of them are code. §12's "proceed to Phase 5 only after Bekfontein is live" is being run out of order deliberately: build work continues while the pilot waits on farm-side access, and no Phase 4 item is being counted as done because of it.
 
 **Changes from v1.17:** seasonal piece-work built — the farm pays its litchi pickers per kilogram, which Span (permanent employees, ADR 0008) does not cover. Two locked decisions reopened deliberately rather than worked around: [ADR 0009](decisions/0009-piecework-picker-attribution.md) supersedes ADR 0007 and narrows §2.1 below — a crate is tied to its picker by a **printed worker card, scanned at the scale**, so identity still comes from paper and never from a list of names on the phone; [ADR 0010](decisions/0010-piecework-pay-boundary.md) splits the wages non-goal — §2.1's "no payments" is about Plaashek being paid by the farm (ADR 0004), not the farm paying its workers, so kilograms and rand are in while payslips, payment and any minimum-wage claim are out. Built on Boord's existing capture rather than a new module: `worker_cards`, `piece_rates` (effective-dated, integer cents, base + daily target + bonus), `harvest_events.picker_id`/`picker_card_code`, `people.kind`, the scan-then-weigh step on the scale phone, and a Farm Admin Tool section for the register, the printed cards, the rate and the payout, plus `/export/piecework.csv`. See [docs/piecework-build-scope.md](piecework-build-scope.md).
+
+**Changes from v1.18:** the two office tools reorganised as **tabs** — one tab per field module the farm is licensed for, plus a **Farm settings** tab for what belongs to the whole farm (§4.2, §4.3). A module tab appears only when Plaashek Management has switched that module on, so the office never looks at a screen for something it has not bought; with nothing licensed, Farm settings is the only tab. The Farm Admin Tool and the Owner Module were most of the way to being the same screen already, so the shared half now lives in `@plaashek/ui-office` (previously stylesheet-only, now the tab shell, the rollups, seasons, the exports and the farm summary, plus one copy of their wording). They stay two apps with two logins and two hosts as §4.3 requires — what differs is what each may write, and the owner's own features land as extra panels in the same tabs.
 
 ---
 
@@ -214,7 +216,19 @@ Staff only. Sale → access. Switch modules on or off per farm. Billing status. 
 
 ### 4.2 Farm Admin Tool
 
-Farm-facing, computer.
+Farm-facing, computer. **Tabbed:** one tab per field module the farm is
+licensed for, in §11's build order, then **Farm settings**. A module tab is
+drawn only when Plaashek Management has that module switched on for the farm
+(the licence ceiling, §5) — an unlicensed module has no tab, not a disabled
+one. A module with no office panel built yet has no tab either; an empty tab
+is worse than no tab.
+
+What sits where: a module's tab holds that module's rollups, whatever the
+office sets up for it, and its CSV export. **Farm settings** holds what is
+true of the whole farm rather than one module — the farm's name and language,
+which modules are switched on, devices and their printed QRs, seasons, and
+the two things the office has to act on (captures held behind a lapsed
+licence, captures with no season).
 
 - People list
 - Add device (person + first module) and print QR
@@ -229,6 +243,13 @@ Show on the device list: assigned person, installed apps, last seen, last sync, 
 ### 4.3 Owner Module (`eienaar`)
 
 Office, read-only rollup across licensed modules. Not device admin. On a small farm one person may use both office tools; keep the tools separate.
+
+**Separate tools, one shell.** The owner sees the same tab strip over the
+same panels as the Farm Admin Tool (§4.2) — the difference is what may be
+written: no devices, no piece-work rate, no season edits. They remain two
+apps, two logins and two hosts; only the drawing of them is shared, in
+`packages/ui-office`. Owner-only features land as extra panels inside the
+same tabs rather than as a third layout.
 
 Boord Owner (reference app) seeds the first version of `eienaar`. While only Boord is live, `eienaar` is Boord figures in owner form. It grows as more modules ship.
 
