@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { attendancePunches, blocks, devices, harvestEvents, people, seasons } from "@plaashek/schema";
+import { assets, attendancePunches, blocks, devices, fuelLogs, harvestEvents, meterReadings, people, seasons, workOrders } from "@plaashek/schema";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
@@ -122,5 +122,72 @@ test("GET /eienaar/attendance with no active season returns no rollup", async ()
 
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.json(), { season: null, people: [] });
+  });
+});
+
+test("GET /eienaar/water returns the latest reading per asset, no season gate", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [asset] = await db.insert(assets).values({ farmId: farm.id, name: "Boorgat 1" }).returning();
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+
+    await db.insert(meterReadings).values([
+      { farmId: farm.id, moduleCode: "water", createdBy: person.id, deviceId: device.id, assetId: asset.id, reading: 100, createdAt: new Date("2026-06-01T04:00:00Z") },
+      { farmId: farm.id, moduleCode: "water", createdBy: person.id, deviceId: device.id, assetId: asset.id, reading: 135, note: "hoog", createdAt: new Date("2026-06-02T04:00:00Z") },
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "owner" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/eienaar/water", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json() as { readings: { assetId: string; assetName: string; reading: number; note: string | null; personName: string; at: string }[] };
+    assert.deepEqual(body.readings, [{ assetId: asset.id, assetName: "Boorgat 1", reading: 135, note: "hoog", personName: "Person", at: "2026-06-02T04:00:00.000Z" }]);
+  });
+});
+
+test("GET /eienaar/work-orders reports only assets whose latest event is still open", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [trekker, pomp] = await db.insert(assets).values([{ farmId: farm.id, name: "Trekker" }, { farmId: farm.id, name: "Pomp" }]).returning();
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+
+    await db.insert(workOrders).values([
+      { farmId: farm.id, moduleCode: "werkswinkel", createdBy: person.id, deviceId: device.id, assetId: trekker.id, description: "Plat band", status: "open", createdAt: new Date("2026-06-01T04:00:00Z") },
+      { farmId: farm.id, moduleCode: "werkswinkel", createdBy: person.id, deviceId: device.id, assetId: pomp.id, description: "Lek", status: "open", createdAt: new Date("2026-06-01T04:00:00Z") },
+      { farmId: farm.id, moduleCode: "werkswinkel", createdBy: person.id, deviceId: device.id, assetId: pomp.id, description: "Reggemaak", status: "closed", createdAt: new Date("2026-06-01T10:00:00Z") },
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "owner" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/eienaar/work-orders", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json() as { open: { assetName: string; description: string }[] };
+    assert.deepEqual(
+      body.open.map((o) => [o.assetName, o.description]),
+      [["Trekker", "Plat band"]],
+    );
+  });
+});
+
+test("GET /eienaar/fuel totals litres per asset, all time", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [asset] = await db.insert(assets).values({ farmId: farm.id, name: "Trekker" }).returning();
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+
+    await db.insert(fuelLogs).values([
+      { farmId: farm.id, moduleCode: "werkswinkel", createdBy: person.id, deviceId: device.id, assetId: asset.id, litresUsed: 40 },
+      { farmId: farm.id, moduleCode: "werkswinkel", createdBy: person.id, deviceId: device.id, assetId: asset.id, litresUsed: 35.5 },
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/eienaar/fuel", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json() as { assets: { assetId: string; assetName: string; litresUsed: number; fills: number }[] };
+    assert.deepEqual(body.assets, [{ assetId: asset.id, assetName: "Trekker", litresUsed: 75.5, fills: 2 }]);
   });
 });

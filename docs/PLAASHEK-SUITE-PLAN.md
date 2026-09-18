@@ -2,8 +2,8 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.20
-**Date:** 17 September 2026
+**Status:** v1.21
+**Date:** 18 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
 **Changes from v1.1:** licence lifecycle restored (§5); offline windows defined and made a Phase 0 decision (§3.6); pairing token hardened (§3.4); PWA update/migration added (§8); tech stack restored (§9); backup, offboarding and audit log added (§11); explicit non-goals (§2.1); seasons defined as farm-owned master data, stamped on every record (§4.2, §6).
@@ -39,6 +39,24 @@
 **Changes from v1.17:** seasonal piece-work built — the farm pays its litchi pickers per kilogram, which Span (permanent employees, ADR 0008) does not cover. Two locked decisions reopened deliberately rather than worked around: [ADR 0009](decisions/0009-piecework-picker-attribution.md) supersedes ADR 0007 and narrows §2.1 below — a crate is tied to its picker by a **printed worker card, scanned at the scale**, so identity still comes from paper and never from a list of names on the phone; [ADR 0010](decisions/0010-piecework-pay-boundary.md) splits the wages non-goal — §2.1's "no payments" is about Plaashek being paid by the farm (ADR 0004), not the farm paying its workers, so kilograms and rand are in while payslips, payment and any minimum-wage claim are out. Built on Boord's existing capture rather than a new module: `worker_cards`, `piece_rates` (effective-dated, integer cents, base + daily target + bonus), `harvest_events.picker_id`/`picker_card_code`, `people.kind`, the scan-then-weigh step on the scale phone, and a Farm Admin Tool section for the register, the printed cards, the rate and the payout, plus `/export/piecework.csv`. See [docs/piecework-build-scope.md](piecework-build-scope.md).
 
 **Changes from v1.18:** the two office tools reorganised as **tabs** — one tab per field module the farm is licensed for, plus a **Farm settings** tab for what belongs to the whole farm (§4.2, §4.3). A module tab appears only when Plaashek Management has switched that module on, so the office never looks at a screen for something it has not bought; with nothing licensed, Farm settings is the only tab. The Farm Admin Tool and the Owner Module were most of the way to being the same screen already, so the shared half now lives in `@plaashek/ui-office` (previously stylesheet-only, now the tab shell, the rollups, seasons, the exports and the farm summary, plus one copy of their wording). They stay two apps with two logins and two hosts as §4.3 requires — what differs is what each may write, and the owner's own features land as extra panels in the same tabs.
+
+**Changes from v1.20:** `water` and `werkswinkel` built, out of §11's written
+order and ahead of `stoor` — [ADR 0014](decisions/0014-water-werkswinkel-before-stoor.md)
+explains why: §11's order was reuse-driven, not a dependency chain, and both
+modules are simpler than `stoor` (no legal-weight records, no new office
+rollup shape) while sharing one gap that had to close for either of them to
+work — the `assets` master-data table existed only via the seed script, with
+no create endpoint. That gap is closed once: `POST /assets` (Farm Admin
+Tool) and `GET /assets` (field device, mirrors `GET /blocks`), plus an
+Assets card in the Farm Admin Tool's master-data section. Both modules
+follow Span's "the phone never enforces state it cannot be sure of"
+precedent rather than trying to track cross-device state offline. See
+[docs/water-build-scope.md](water-build-scope.md) and
+[docs/werkswinkel-build-scope.md](werkswinkel-build-scope.md) for what each
+covers and deliberately leaves out. `meter_readings` (water) and
+`work_orders`/`fuel_logs` (werkswinkel) land in
+`services/migrations/0010_productive_peter_quill.sql`, both season-less per
+§6 and left out of `seasonStampedTables`. `stoor` remains next, not started.
 
 **Changes from v1.19:** worker cards now carry the **farm's own worker number**, typed by the office, and the QR holds that number and nothing else — [ADR 0011](decisions/0011-worker-numbers-are-the-farms.md), amending ADR 0009. It is the key the farm's payment system already uses, so the piece-work export joins to their payroll with no mapping table in between. The register is editable (number, name, and whether the worker still works here) and moves in and out as CSV keyed on that number: an import updates numbers the farm already has, adds new ones, and never deletes. `worker_cards` is gone with the code we used to mint — reprinting a lost card prints the same number, so there is nothing to issue or revoke, and "revoke the card" becomes "mark the worker inactive". The trade-off is written down rather than glossed: a typed number is guessable where a random code was not, so the card identifies and never authenticates.
 
@@ -465,9 +483,9 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | 2 | `boord` | Boord field | Second field module |
 | 3 | `eienaar` | Boord Owner | Built with Boord. Read-only |
 | 4 | `span` | — | Assigned-person stamp makes clocking work. Build scope: [docs/span-scope.md](span-scope.md) |
-| 5 | `stoor` | — | New |
+| 5 | `stoor` | — | New. Next, not started — built after `water`/`werkswinkel` in practice, see [ADR 0014](decisions/0014-water-werkswinkel-before-stoor.md) |
 | 6 | `kudde` | — | Deferred, no build slot — ADR 0005 |
-| 7 | `water`, `werkswinkel` | — | New |
+| 7 | `water`, `werkswinkel` | — | Built ahead of `stoor` (ADR 0014). Build scopes: [docs/water-build-scope.md](water-build-scope.md), [docs/werkswinkel-build-scope.md](werkswinkel-build-scope.md) |
 | 8 | `oudit` | — | Packs records. Last |
 
 Reuse a reference screen only if it fits outbox + `farm_id` + no field login. Otherwise rebuild.
@@ -602,9 +620,23 @@ permanent employees only. It extends Boord rather than adding a module code
 - [x] Proven end to end against the demo farm on 18 September 2026: rate set and worker registered in the browser, card printed, its code used at the scale phone, two crates (70 kg and 52 kg less 2 kg) attributed to the picker, payout showing 120 kg and R330.00 — 100 kg at R2.50 plus 20 kg at R4.00.
 - Not in this scope: payslips, payment, minimum-wage checking (no hours exist for a seasonal picker — Span is permanent staff), per-picker grading, and splitting one crate between two pickers.
 
-**`stoor` — next, not started.** Chemical and stock records with legal weight (§10), so the backup story matters more here than anywhere else.
+**`water`, `werkswinkel` — closed 18 September 2026, built ahead of `stoor`**
+([ADR 0014](decisions/0014-water-werkswinkel-before-stoor.md)). Both
+season-less (§6) — the first modules to leave `season_id` null, and the
+first to have no per-device offline-cached picker fetched from a new
+endpoint since Boord's `/blocks`.
 
-**`water`, `werkswinkel` — not started.** Both season-less (§6) — the first modules to leave `season_id` null, which no code path has exercised yet.
+- [x] Scope written for both, each with the product calls it raised settled inline rather than needing a new ADR — [docs/water-build-scope.md](water-build-scope.md), [docs/werkswinkel-build-scope.md](werkswinkel-build-scope.md). The one real product call across both — building them ahead of `stoor` — is [ADR 0014](decisions/0014-water-werkswinkel-before-stoor.md).
+- [x] `assets` gets its first create/list path: `POST /assets` (Farm Admin Tool, mirrors `POST /blocks`) and `GET /assets` (field device, mirrors `GET /blocks`) — until now the table only ever held seed-script rows. An Assets card in the Farm Admin Tool's master-data section, and `assets` added to `GET /farm`'s response.
+- [x] `meter_readings`, `fuel_logs`, `work_orders` tables (`services/migrations/0010_productive_peter_quill.sql`): each the workspace row stamp plus an `asset_id` FK and its own module-specific columns. All three append-only, no edit path (ADR 0006's precedent).
+- [x] Field capture screens: `apps/field/src/Water.tsx` (asset picker, reading, optional note) and `apps/field/src/Werkswinkel.tsx` (a fuel/issue kind switch over one asset picker — litres+odometer for fuel, description+open/closed for an issue). Neither requests GPS or weather — the asset is the place, not the phone. Both statuses (`open`, `closed`) are always accepted on a work order; the phone never tries to know an asset's current state across devices (ADR 0014).
+- [x] `/sync/upload` routes three more entities (`meter_readings` → `water`, `fuel_logs`/`work_orders` → `werkswinkel`): idempotent by client uuid, not-paired refused, a suspended/cancelled licence holds the capture (`sync.water.test.ts`, `sync.werkswinkel.test.ts`).
+- [x] Eienaar rollups: `GET /eienaar/water` (latest reading per asset), `GET /eienaar/work-orders` (assets whose most recent event is still open — no attempt to match a specific close to a specific open), `GET /eienaar/fuel` (litres per asset, all time). None season-gated — there is no season to gate on.
+- [x] Exports: `GET /export/water.csv`, `GET /export/fuel.csv`, `GET /export/work-orders.csv` — each raw, one row per capture, a button in both office tools.
+- [x] Proven end to end against the demo farm on 18 September 2026, in a real browser driven end to end (not just the automated test suite): asset added in the Farm Admin Tool, a Water device and a Werkswinkel device paired by printed-QR URL, a meter reading captured and synced, a fuel log and an open work order captured and synced, both showing correctly in the Farm Admin Tool's Water and Werkswinkel tabs, and all three CSV exports downloading real rows.
+- Not in this scope (docs/water-build-scope.md, docs/werkswinkel-build-scope.md): any leak/range alert or reading history (water); scheduled maintenance, cost/parts tracking, or matching a specific close to the open row it resolves (werkswinkel); fuel stock/tank reconciliation, which is `stoor`'s job once it is scoped.
+
+**`stoor` — next, not started.** Chemical and stock records with legal weight (§10), so the backup story matters more here than anywhere else. Now has `POST /assets` / `GET /assets` to build on, from `water` and `werkswinkel`.
 
 **`oudit` — last, not started.** Packs the other modules' records; it cannot be built before they exist.
 
@@ -662,7 +694,8 @@ permanent employees only. It extends Boord rather than adding a module code
 6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
 7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists, and the Farm Admin Tool can now create the farm's own people/blocks/camps with either office role. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built, plus standing up real hosting (plan §9 — no production VPS exists yet). Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
 8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export. Built ahead of Phase 4's close — see [ADR 0013](decisions/0013-phase-5-build-ahead-of-phase-4.md), which supersedes the earlier scoping-only [ADR 0012](decisions/0012-span-prep-early.md).
-9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV. `stoor` is next — write its build scope first, same as these.
+9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV.
+10. `water` and `werkswinkel` **done**, built ahead of `stoor` in §11's order ([ADR 0014](decisions/0014-water-werkswinkel-before-stoor.md)): [water build scope](water-build-scope.md), [werkswinkel build scope](werkswinkel-build-scope.md), `assets`' first create/list path, `meter_readings`/`fuel_logs`/`work_orders`, both field screens, sync routing, three eienaar rollups, three CSV exports — proven end to end in a real browser on 18 September 2026. `stoor` is next — write its build scope first, same as every module before it.
 
 ---
 
@@ -681,4 +714,4 @@ permanent employees only. It extends Boord rather than adding a module code
 
 ---
 
-*End of complete build plan v1.17.*
+*End of complete build plan v1.21.*

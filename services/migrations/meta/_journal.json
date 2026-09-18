@@ -71,6 +71,13 @@
       "when": 1789698328804,
       "tag": "0009_wandering_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789721904971,
+      "tag": "0010_productive_peter_quill",
+      "breakpoints": true
     }
   ]
 }

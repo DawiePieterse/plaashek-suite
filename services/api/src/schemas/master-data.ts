@@ -1,4 +1,4 @@
-import { insertBlock, insertCamp, insertPerson } from "@plaashek/schema";
+import { insertAsset, insertBlock, insertCamp, insertPerson } from "@plaashek/schema";
 import { z } from "zod";
 
 export const createPersonRequestSchema = z.object({
@@ -12,4 +12,8 @@ export const createBlockRequestSchema = z.object({
 export const createCampRequestSchema = z.object({
   name: insertCamp.shape.name,
   blockId: z.string().uuid().optional(),
+});
+
+export const createAssetRequestSchema = z.object({
+  name: insertAsset.shape.name,
 });

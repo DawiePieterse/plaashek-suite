@@ -1,4 +1,4 @@
-import { blocks, farms, seasons } from "@plaashek/schema";
+import { assets, blocks, farms, seasons } from "@plaashek/schema";
 import type { Language } from "@plaashek/tickets";
 import { and, asc, eq } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
@@ -44,6 +44,11 @@ export async function activeSeasonId(db: Pick<Db, "select">, farmId: string): Pr
 /** Picker data: block id + name for a farm. Shared by the field app's `GET /blocks` and the office's `GET /farm`. */
 export async function listFarmBlocks(db: Pick<Db, "select">, farmId: string) {
   return db.select({ id: blocks.id, name: blocks.name }).from(blocks).where(eq(blocks.farmId, farmId)).orderBy(asc(blocks.name));
+}
+
+/** Picker data: asset id + name for a farm — Water's meters and Werkswinkel's equipment share this one list (ADR 0014). */
+export async function listFarmAssets(db: Pick<Db, "select">, farmId: string) {
+  return db.select({ id: assets.id, name: assets.name }).from(assets).where(eq(assets.farmId, farmId)).orderBy(asc(assets.name));
 }
 
 /**

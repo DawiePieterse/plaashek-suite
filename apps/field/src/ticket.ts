@@ -96,6 +96,9 @@ export const fetchWeather = (ticket: string, latitude: number, longitude: number
 /** Picker data for Boord's block field — fetched once with signal, cached by the caller. */
 export const fetchBlocks = (ticket: string) => get<{ blocks: { id: string; name: string }[] }>("/blocks", ticket);
 
+/** Picker data for Water's meter field and Werkswinkel's equipment field (ADR 0014) — fetched once with signal, cached by the caller. */
+export const fetchAssets = (ticket: string) => get<{ assets: { id: string; name: string }[] }>("/assets", ticket);
+
 /** The farm's numbered pickers, so a scan at the scale resolves to a name with no signal (ADR 0009, ADR 0011). */
 export const fetchPickers = (ticket: string) =>
   get<{ pickers: { workerNumber: string; personId: string; personName: string }[] }>("/pickers", ticket);

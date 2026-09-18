@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocks, camps, people } from "@plaashek/schema";
+import { assets, blocks, camps, people } from "@plaashek/schema";
 import { eq } from "drizzle-orm";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
 import { seedFarm } from "../test/fixtures.js";
 
-test("admin and owner can both create a person, a block and a camp", async () => {
+test("admin and owner can both create a person, a block, a camp and an asset", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership } = await seedFarm(db);
@@ -35,6 +35,11 @@ test("admin and owner can both create a person, a block and a camp", async () =>
     assert.equal(camp.statusCode, 200);
     assert.equal(camp.json().camp.blockId, block.json().block.id);
 
+    const asset = await app.inject({ method: "POST", url: "/assets", headers: adminHeaders, payload: { name: "Boorgat 1" } });
+    assert.equal(asset.statusCode, 200);
+    assert.equal(asset.json().asset.name, "Boorgat 1");
+    assert.equal(asset.json().asset.farmId, farm.id);
+
     // Owner has the same rights as admin in the Farm Admin Tool.
     const ownerToken = await signStaffSession(
       { farmMembershipId: membership.id, farmId: farm.id, role: "owner" },
@@ -58,6 +63,10 @@ test("admin and owner can both create a person, a block and a camp", async () =>
     assert.deepEqual(
       farmContext.json().camps.map((c: { name: string }) => c.name),
       ["Kamp 1"],
+    );
+    assert.deepEqual(
+      farmContext.json().assets.map((a: { name: string }) => a.name),
+      ["Boorgat 1"],
     );
   });
 });
@@ -88,7 +97,7 @@ test("a camp cannot claim another farm's block", async () => {
   });
 });
 
-test("people, blocks and camps are farm-scoped in GET /farm", async () => {
+test("people, blocks, camps and assets are farm-scoped in GET /farm", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const mine = await seedFarm(db, { email: "mine@example.com" });
@@ -96,6 +105,7 @@ test("people, blocks and camps are farm-scoped in GET /farm", async () => {
 
     await db.insert(people).values({ farmId: theirs.farm.id, name: "Hulle persoon" });
     await db.insert(blocks).values({ farmId: theirs.farm.id, name: "Hulle blok" });
+    await db.insert(assets).values({ farmId: theirs.farm.id, name: "Hulle trekker" });
 
     const token = await signStaffSession(
       { farmMembershipId: mine.membership.id, farmId: mine.farm.id, role: "admin" },
@@ -110,5 +120,6 @@ test("people, blocks and camps are farm-scoped in GET /farm", async () => {
     );
     assert.deepEqual(body.blocks, []);
     assert.deepEqual(body.camps, []);
+    assert.deepEqual(body.assets, []);
   });
 });

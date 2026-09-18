@@ -1,6 +1,8 @@
 import { attendancePunches } from "./tables/attendance-punches.js";
 import { harvestEvents } from "./tables/harvest-events.js";
 import { notes } from "./tables/notes.js";
+import { meterReadings } from "./tables/water.js";
+import { fuelLogs, workOrders } from "./tables/werkswinkel.js";
 
 /**
  * Every table that holds captured field data — one row per capture, each
@@ -12,7 +14,7 @@ import { notes } from "./tables/notes.js";
  * FKs), so nothing cascades — without this list a new module's rows are
  * quietly missed by every such sweep.
  */
-export const captureTables = [notes, harvestEvents, attendancePunches];
+export const captureTables = [notes, harvestEvents, attendancePunches, meterReadings, fuelLogs, workOrders];
 
 /**
  * The subset that must carry a season. `season_id` is deliberately null for

@@ -54,6 +54,24 @@ const af = {
   payoutDisclaimer:
     "Hierdie bedrag is wat die plaas se eie tarief uitwerk. Plaashek betaal niemand nie en toets nie of dit die minimumloon haal nie — daar is geen ure vir seisoenwerkers nie.",
 
+  waterHeading: "Water",
+  noWater: "Nog geen lesings geneem nie.",
+  asset: "Bate",
+  reading: "Lesing",
+  readBy: "Gelees deur",
+  readAt: "Wanneer",
+
+  workOrdersHeading: "Oop probleme",
+  noWorkOrders: "Geen oop probleme nie.",
+  description: "Beskrywing",
+  openedBy: "Gemeld deur",
+  openedAt: "Sedert",
+
+  fuelHeading: "Brandstof",
+  noFuel: "Nog geen brandstof aangeteken nie.",
+  litres: "Liter",
+  fills: "Vulle",
+
   total: "Totaal",
 
   exportHeading: "Uitvoer",
@@ -61,6 +79,9 @@ const af = {
   exportHarvest: "Voer oes uit (CSV)",
   exportAttendance: "Voer span uit (CSV)",
   exportPiecework: "Voer stukwerk uit (CSV)",
+  exportWater: "Voer water uit (CSV)",
+  exportFuel: "Voer brandstof uit (CSV)",
+  exportWorkOrders: "Voer probleme uit (CSV)",
 };
 
 const en: typeof af = {
@@ -109,6 +130,24 @@ const en: typeof af = {
   payoutDisclaimer:
     "This is what the farm's own rate works out to. Plaashek pays nobody and does not check it against the minimum wage — there are no hours for seasonal workers.",
 
+  waterHeading: "Water",
+  noWater: "No readings taken yet.",
+  asset: "Asset",
+  reading: "Reading",
+  readBy: "Read by",
+  readAt: "When",
+
+  workOrdersHeading: "Open issues",
+  noWorkOrders: "No open issues.",
+  description: "Description",
+  openedBy: "Reported by",
+  openedAt: "Since",
+
+  fuelHeading: "Fuel",
+  noFuel: "No fuel logged yet.",
+  litres: "Litres",
+  fills: "Fills",
+
   total: "Total",
 
   exportHeading: "Export",
@@ -116,6 +155,9 @@ const en: typeof af = {
   exportHarvest: "Export harvest (CSV)",
   exportAttendance: "Export attendance (CSV)",
   exportPiecework: "Export piece-work (CSV)",
+  exportWater: "Export water (CSV)",
+  exportFuel: "Export fuel (CSV)",
+  exportWorkOrders: "Export issues (CSV)",
 };
 
 export type OfficeCopy = typeof af;

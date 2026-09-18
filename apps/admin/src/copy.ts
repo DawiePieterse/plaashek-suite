@@ -61,6 +61,11 @@ const af = {
   campBlockCol: "Blok",
   noBlockOption: "Geen blok",
 
+  assetsHeading: "Bates",
+  noAssets: "Nog geen bates nie. Voeg die eerste een by.",
+  assetNamePlaceholder: "Boorgat 1",
+  addAsset: "Voeg bate by",
+
   pieceworkHeading: "Stukwerk — seisoenwerkers",
   rateHeading: "Tarief",
   noRate: "Nog geen tarief nie. Sonder 'n tarief tel die kilogramme, maar die rande bly leeg.",
@@ -184,6 +189,11 @@ const en: typeof af = {
   addCamp: "Add camp",
   campBlockCol: "Block",
   noBlockOption: "No block",
+
+  assetsHeading: "Assets",
+  noAssets: "No assets yet. Add the first one.",
+  assetNamePlaceholder: "Borehole 1",
+  addAsset: "Add asset",
 
   pieceworkHeading: "Piece-work — seasonal workers",
   rateHeading: "Rate",

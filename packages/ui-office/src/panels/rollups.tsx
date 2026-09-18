@@ -30,6 +30,18 @@ export interface PayoutSummary {
   unattributedKg: number;
 }
 
+export interface WaterSummary {
+  readings: { assetId: string; assetName: string; reading: number; note: string | null; personName: string; at: string }[];
+}
+
+export interface WorkOrdersSummary {
+  open: { assetId: string; assetName: string; description: string; openedBy: string; openedAt: string }[];
+}
+
+export interface FuelSummary {
+  assets: { assetId: string; assetName: string; litresUsed: number; fills: number }[];
+}
+
 const rand = (cents: number) => (cents / 100).toFixed(2);
 
 /** A rollup with nothing in it yet — still titled, so the tab does not look broken. */
@@ -231,6 +243,131 @@ export function PieceworkPayout({ reloadKey }: { reloadKey?: number }) {
       {data.unattributedCrates > 0 && <p className="error">{c.unattributed(data.unattributedCrates, data.unattributedKg)}</p>}
       {/* A rand total is what the farm's own rate produced, not a statement that it is lawful (ADR 0010). */}
       <p className="muted">{c.payoutDisclaimer}</p>
+    </section>
+  );
+}
+
+const formatWhen = (lang: string, iso: string) =>
+  new Date(iso).toLocaleString(lang === "en" ? "en-ZA" : "af-ZA", { dateStyle: "short", timeStyle: "short" });
+
+/** Water's latest reading per asset (docs/water-build-scope.md) — no season badge, Water is season-less. */
+export function WaterRollup() {
+  const { c, lang } = useOffice();
+  const { data, error } = useRollup<WaterSummary>("/eienaar/water");
+
+  if (error) return <Empty heading={c.waterHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.waterHeading} message={c.loading} />;
+  if (data.readings.length === 0) return <Empty heading={c.waterHeading} message={c.noWater} />;
+
+  return (
+    <section>
+      <h2>{c.waterHeading}</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.asset}</th>
+              <th className="num">{c.reading}</th>
+              <th>{c.readBy}</th>
+              <th>{c.readAt}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.readings.map((reading) => (
+              <tr key={reading.assetId}>
+                <td>{reading.assetName}</td>
+                <td className="num">{reading.reading}</td>
+                <td>{reading.personName}</td>
+                <td>{formatWhen(lang, reading.at)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** Werkswinkel's currently open issues (docs/werkswinkel-build-scope.md) — every asset whose most recent event is still `open`. */
+export function WorkOrdersRollup() {
+  const { c, lang } = useOffice();
+  const { data, error } = useRollup<WorkOrdersSummary>("/eienaar/work-orders");
+
+  if (error) return <Empty heading={c.workOrdersHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.workOrdersHeading} message={c.loading} />;
+  if (data.open.length === 0) return <Empty heading={c.workOrdersHeading} message={c.noWorkOrders} />;
+
+  return (
+    <section>
+      <h2>{c.workOrdersHeading}</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.asset}</th>
+              <th>{c.description}</th>
+              <th>{c.openedBy}</th>
+              <th>{c.openedAt}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.open.map((order) => (
+              <tr key={order.assetId}>
+                <td>{order.assetName}</td>
+                <td>{order.description}</td>
+                <td>{order.openedBy}</td>
+                <td>{formatWhen(lang, order.openedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** Werkswinkel's fuel register (docs/werkswinkel-build-scope.md) — litres per asset, all time. */
+export function FuelRollup() {
+  const { c } = useOffice();
+  const { data, error } = useRollup<FuelSummary>("/eienaar/fuel");
+
+  if (error) return <Empty heading={c.fuelHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.fuelHeading} message={c.loading} />;
+  if (data.assets.length === 0) return <Empty heading={c.fuelHeading} message={c.noFuel} />;
+
+  const litres = data.assets.reduce((sum, asset) => sum + asset.litresUsed, 0);
+  const fills = data.assets.reduce((sum, asset) => sum + asset.fills, 0);
+
+  return (
+    <section>
+      <h2>{c.fuelHeading}</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.asset}</th>
+              <th className="num">{c.litres}</th>
+              <th className="num">{c.fills}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.assets.map((asset) => (
+              <tr key={asset.assetId}>
+                <td>{asset.assetName}</td>
+                <td className="num">{asset.litresUsed.toFixed(1)}</td>
+                <td className="num">{asset.fills}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>{c.total}</td>
+              <td className="num">{litres.toFixed(1)}</td>
+              <td className="num">{fills}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </section>
   );
 }

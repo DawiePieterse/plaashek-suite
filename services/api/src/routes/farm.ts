@@ -4,14 +4,14 @@ import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import { activeModuleCodes } from "../lib/entitlements.js";
 import { notFound } from "../lib/errors.js";
-import { listFarmBlocks } from "../lib/farm.js";
+import { listFarmAssets, listFarmBlocks } from "../lib/farm.js";
 
-/** Everything the Farm Admin Tool needs to draw its pickers: farm name, stamp names, blocks/camps, licensed modules. */
+/** Everything the Farm Admin Tool needs to draw its pickers: farm name, stamp names, blocks/camps/assets, licensed modules. */
 export function registerFarmRoutes(app: App, deps: AppDeps) {
   app.get("/farm", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const farmId = request.staff!.farmId;
 
-    const [[farm], farmPeople, farmBlocks, farmCamps, modules, [held], withoutSeason] = await Promise.all([
+    const [[farm], farmPeople, farmBlocks, farmCamps, farmAssets, modules, [held], withoutSeason] = await Promise.all([
       deps.db.select({ id: farms.id, name: farms.name }).from(farms).where(eq(farms.id, farmId)),
       // Staff only: a seasonal picker carries a printed card, never a phone
       // (ADR 0009), so forty of them have no business in the device-assignment
@@ -27,6 +27,7 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
         .from(camps)
         .where(eq(camps.farmId, farmId))
         .orderBy(asc(camps.name)),
+      listFarmAssets(deps.db, farmId),
       activeModuleCodes(deps.db, farmId),
       // What the office has to act on: captures waiting behind a lapsed licence
       // (plan §5) and captures the phone could not stamp with a season (§6).
@@ -54,6 +55,7 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
       people: farmPeople,
       blocks: farmBlocks,
       camps: farmCamps,
+      assets: farmAssets,
       modules,
       waiting: { held: held.n, withoutSeason: unstamped },
     };

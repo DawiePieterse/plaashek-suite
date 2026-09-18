@@ -64,15 +64,65 @@ const attendancePunchOp = z.object({
   }),
 });
 
+/** Water: a meter reading against an asset, with an optional note (docs/water-build-scope.md). No GPS/weather — the asset is the place. */
+const meterReadingOp = z.object({
+  entity: z.literal("meter_readings"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    asset_id: z.string().uuid(),
+    reading: z.number(),
+    note: z.string().nullable().optional(),
+  }),
+});
+
+/** Werkswinkel's fuel register (docs/werkswinkel-build-scope.md): litres against an asset, odometer optional. */
+const fuelLogOp = z.object({
+  entity: z.literal("fuel_logs"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    asset_id: z.string().uuid(),
+    litres_used: z.number().positive(),
+    odometer_km: z.number().nullable().optional(),
+    note: z.string().nullable().optional(),
+  }),
+});
+
+/**
+ * Werkswinkel's issue register (docs/werkswinkel-build-scope.md): a status
+ * against an asset. Both `open` and `closed` are always accepted — the phone
+ * never tries to guess whether an asset already has an open issue (ADR 0014).
+ */
+const workOrderOp = z.object({
+  entity: z.literal("work_orders"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    asset_id: z.string().uuid(),
+    description: z.string().min(1),
+    status: z.enum(["open", "closed"]),
+  }),
+});
+
 /**
  * What a phone may say about a write. Everything identifying — farm, device,
  * person — is stamped by the server from the ticket, never read from here.
  */
 export const uploadRequestSchema = z.object({
-  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp])).min(1).max(500),
+  ops: z
+    .array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp, meterReadingOp, fuelLogOp, workOrderOp]))
+    .min(1)
+    .max(500),
 });
 
 export type UploadOp = z.infer<typeof uploadRequestSchema>["ops"][number];
 export type NoteOp = z.infer<typeof noteOp>;
 export type HarvestEventOp = z.infer<typeof harvestEventOp>;
 export type AttendancePunchOp = z.infer<typeof attendancePunchOp>;
+export type MeterReadingOp = z.infer<typeof meterReadingOp>;
+export type FuelLogOp = z.infer<typeof fuelLogOp>;
+export type WorkOrderOp = z.infer<typeof workOrderOp>;

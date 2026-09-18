@@ -1,4 +1,4 @@
-import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people } from "@plaashek/schema";
+import { attendancePunches, deviceAssignments, deviceModules, fuelLogs, harvestEvents, heldWrites, meterReadings, notes, people, workOrders } from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
@@ -6,13 +6,25 @@ import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
 import { normaliseWorkerNumber } from "../lib/worker-number.js";
-import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type UploadOp } from "../schemas/sync.js";
+import {
+  uploadRequestSchema,
+  type AttendancePunchOp,
+  type FuelLogOp,
+  type HarvestEventOp,
+  type MeterReadingOp,
+  type NoteOp,
+  type UploadOp,
+  type WorkOrderOp,
+} from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, then span). */
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, then water/werkswinkel — ADR 0014). */
 const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
   attendance_punches: "span",
+  meter_readings: "water",
+  fuel_logs: "werkswinkel",
+  work_orders: "werkswinkel",
 };
 
 /**
@@ -96,8 +108,14 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
           await applyNote(tx, claims.farmId, claims.deviceId, op, clientTime);
         } else if (op.entity === "harvest_events") {
           await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else {
+        } else if (op.entity === "attendance_punches") {
           await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else if (op.entity === "meter_readings") {
+          await applyMeterReading(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else if (op.entity === "fuel_logs") {
+          await applyFuelLog(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else {
+          await applyWorkOrder(tx, claims.farmId, claims.deviceId, op, clientTime);
         }
         accepted.push(op.entity_id);
       }
@@ -224,6 +242,81 @@ async function applyAttendancePunch(
       latitude: op.payload.latitude ?? null,
       longitude: op.payload.longitude ?? null,
       locationAccuracyM: op.payload.location_accuracy_m ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/** A meter reading against an asset (docs/water-build-scope.md). Append-only — no edit path. */
+async function applyMeterReading(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: MeterReadingOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(meterReadings)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.meter_readings,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      assetId: op.payload.asset_id,
+      reading: op.payload.reading,
+      note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/** A fill-up against an asset (docs/werkswinkel-build-scope.md). Append-only — no edit path. */
+async function applyFuelLog(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: FuelLogOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(fuelLogs)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.fuel_logs,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      assetId: op.payload.asset_id,
+      litresUsed: op.payload.litres_used,
+      odometerKm: op.payload.odometer_km ?? null,
+      note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * A status change against an asset (docs/werkswinkel-build-scope.md). The
+ * server never rejects a `closed` with no matching `open`, or a second
+ * `open` — same "the phone does not argue" precedent as Span's punch
+ * (ADR 0014): the office reads the sequence.
+ */
+async function applyWorkOrder(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: WorkOrderOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(workOrders)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.work_orders,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      assetId: op.payload.asset_id,
+      description: op.payload.description,
+      status: op.payload.status,
       createdAt: clientTime,
       updatedAt: clientTime,
     })

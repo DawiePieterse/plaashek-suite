@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
+import { registerAssetRoutes } from "./routes/assets.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerBlockRoutes } from "./routes/blocks.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
@@ -64,6 +65,7 @@ export function buildApp(deps: AppDeps) {
   registerWeatherRoutes(app, deps);
   registerJwksRoutes(app, deps);
   registerBlockRoutes(app, deps);
+  registerAssetRoutes(app, deps);
   registerEienaarRoutes(app, deps);
   registerExportRoutes(app, deps);
   registerPieceworkRoutes(app, deps);

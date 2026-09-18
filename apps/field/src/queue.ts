@@ -56,7 +56,47 @@ export interface AttendancePunchOp {
   };
 }
 
-export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp;
+/** Water: a meter reading against an asset (docs/water-build-scope.md). */
+export interface MeterReadingOp {
+  entity: "meter_readings";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    asset_id: string;
+    reading: number;
+    note?: string | null;
+  };
+}
+
+/** Werkswinkel's fuel register (docs/werkswinkel-build-scope.md). */
+export interface FuelLogOp {
+  entity: "fuel_logs";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    asset_id: string;
+    litres_used: number;
+    odometer_km?: number | null;
+    note?: string | null;
+  };
+}
+
+/** Werkswinkel's issue register (docs/werkswinkel-build-scope.md) — status is always accepted, open or closed (ADR 0014). */
+export interface WorkOrderOp {
+  entity: "work_orders";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    asset_id: string;
+    description: string;
+    status: "open" | "closed";
+  };
+}
+
+export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp | MeterReadingOp | FuelLogOp | WorkOrderOp;
 
 const QUEUE_KEY = "plaashek.field.outbox";
 

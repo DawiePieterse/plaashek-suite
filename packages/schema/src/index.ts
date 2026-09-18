@@ -10,6 +10,8 @@ import { notes } from "./tables/notes.js";
 import { harvestEvents } from "./tables/harvest-events.js";
 import { farmMemberships, people } from "./tables/people.js";
 import { plaashekStaff } from "./tables/staff.js";
+import { meterReadings } from "./tables/water.js";
+import { fuelLogs, workOrders } from "./tables/werkswinkel.js";
 
 export * from "./tables/core.js";
 export * from "./tables/entitlements.js";
@@ -22,6 +24,8 @@ export * from "./tables/harvest-events.js";
 export * from "./tables/attendance-punches.js";
 export * from "./tables/piecework.js";
 export * from "./tables/staff.js";
+export * from "./tables/water.js";
+export * from "./tables/werkswinkel.js";
 export * from "./workspace-row.js";
 export * from "./capture-tables.js";
 
@@ -81,3 +85,12 @@ export const selectPieceRate = createSelectSchema(pieceRates);
 
 export const insertPlaashekStaff = createInsertSchema(plaashekStaff);
 export const selectPlaashekStaff = createSelectSchema(plaashekStaff);
+
+export const insertMeterReading = createInsertSchema(meterReadings);
+export const selectMeterReading = createSelectSchema(meterReadings);
+
+export const insertFuelLog = createInsertSchema(fuelLogs);
+export const selectFuelLog = createSelectSchema(fuelLogs);
+
+export const insertWorkOrder = createInsertSchema(workOrders);
+export const selectWorkOrder = createSelectSchema(workOrders);

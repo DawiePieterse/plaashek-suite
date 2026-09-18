@@ -1,11 +1,11 @@
-import { blocks, camps, people } from "@plaashek/schema";
+import { assets, blocks, camps, people } from "@plaashek/schema";
 import type { PgTable } from "drizzle-orm/pg-core";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
 import { assertFarmOwns } from "../lib/farm.js";
-import { createBlockRequestSchema, createCampRequestSchema, createPersonRequestSchema } from "../schemas/master-data.js";
+import { createAssetRequestSchema, createBlockRequestSchema, createCampRequestSchema, createPersonRequestSchema } from "../schemas/master-data.js";
 
 /** Insert one farm-scoped master-data row and audit-log it, inside its own transaction — the shape every route below shares. */
 function createFarmRow<Table extends PgTable>(
@@ -71,5 +71,20 @@ export function registerMasterDataRoutes(app: App, deps: AppDeps) {
     );
 
     return { camp };
+  });
+
+  /** The farm's own equipment and water points — Water and Werkswinkel both pick from this list (ADR 0014). */
+  app.post("/assets", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
+    const staff = request.staff!;
+    const body = createAssetRequestSchema.parse(request.body);
+
+    const asset = await createFarmRow(
+      deps.db,
+      assets,
+      { farmId: staff.farmId, name: body.name },
+      { actor: staff.farmMembershipId, action: "create_asset", farmId: staff.farmId },
+    );
+
+    return { asset };
   });
 }
