@@ -102,3 +102,13 @@ export const fetchPickers = (ticket: string) =>
 
 /** Stoor's catalog, active items only — fetched once with signal, cached by the caller (docs/stoor-build-scope.md). */
 export const fetchStockItems = (ticket: string) => get<{ items: { id: string; name: string; unit: string }[] }>("/stock-catalog", ticket);
+
+/** Water's catalog, active points only (docs/water-build-scope.md). */
+export const fetchWaterPoints = (ticket: string) => get<{ points: { id: string; name: string; unit: string }[] }>("/water-catalog", ticket);
+
+/** The farm's assets — Werkswinkel's own picker (docs/werkswinkel-build-scope.md). */
+export const fetchAssets = (ticket: string) => get<{ assets: { id: string; name: string }[] }>("/assets", ticket);
+
+/** What is still open, across every asset (docs/werkswinkel-build-scope.md) — any paired phone can close a job someone else opened. */
+export const fetchOpenJobs = (ticket: string) =>
+  get<{ jobs: { assetId: string; assetName: string; description: string | null; openedAt: string }[] }>("/work-orders/open", ticket);

@@ -7,6 +7,7 @@ import { Login } from "./Login.js";
 import { MasterData } from "./MasterData.js";
 import { Piecework } from "./Piecework.js";
 import { Stoor } from "./Stoor.js";
+import { Water } from "./Water.js";
 
 /**
  * The Farm Admin Tool is the shared office shell (plan §4.2) plus the two
@@ -42,6 +43,7 @@ export function App() {
       extras={{
         boord: <Piecework onRateChanged={() => setPayoutKey((key) => key + 1)} />,
         stoor: <Stoor />,
+        water: <Water />,
         farm: (
           <>
             <MasterData />

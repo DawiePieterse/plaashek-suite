@@ -24,6 +24,8 @@ import {
   people,
   pieceRates,
   seasons,
+  stockItems,
+  waterPoints,
 } from "@plaashek/schema";
 import { eq, inArray } from "drizzle-orm";
 import { hashPassword } from "../src/auth/password.js";
@@ -40,7 +42,7 @@ const LANGUAGE = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("-
 if (LANGUAGE !== "af" && LANGUAGE !== "en") throw new Error(`Unknown --lang: ${LANGUAGE} (af or en)`);
 
 /** Licensed, plus one deliberately left out so the unlicensed-QR-fails test has something to fail against. */
-const LICENSED = ["veldnotas", "boord", "span", "stoor"];
+const LICENSED = ["veldnotas", "boord", "span", "stoor", "water", "werkswinkel"];
 const UNLICENSED = "kudde";
 
 try {
@@ -88,6 +90,11 @@ async function wipeDemoData() {
     await db.delete(camps).where(inArray(camps.farmId, farmIds));
     await db.delete(blocks).where(inArray(blocks.farmId, farmIds));
     await db.delete(assets).where(inArray(assets.farmId, farmIds));
+    // Catalogs (docs/stoor-build-scope.md, docs/water-build-scope.md) — their
+    // moves/readings are already gone via `captureTables` above, so this is
+    // safe to run now, before the farm itself goes.
+    await db.delete(stockItems).where(inArray(stockItems.farmId, farmIds));
+    await db.delete(waterPoints).where(inArray(waterPoints.farmId, farmIds));
     await db.delete(seasons).where(inArray(seasons.farmId, farmIds));
     await db.delete(farms).where(inArray(farms.id, farmIds));
   }

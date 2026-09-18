@@ -1,4 +1,16 @@
-import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people, stockMoves } from "@plaashek/schema";
+import {
+  attendancePunches,
+  deviceAssignments,
+  deviceModules,
+  fuelLogs,
+  harvestEvents,
+  heldWrites,
+  meterReadings,
+  notes,
+  people,
+  stockMoves,
+  workOrders,
+} from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
@@ -6,14 +18,27 @@ import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
 import { normaliseWorkerNumber } from "../lib/worker-number.js";
-import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type StockMoveOp, type UploadOp } from "../schemas/sync.js";
+import {
+  uploadRequestSchema,
+  type AttendancePunchOp,
+  type FuelLogOp,
+  type HarvestEventOp,
+  type MeterReadingOp,
+  type NoteOp,
+  type StockMoveOp,
+  type UploadOp,
+  type WorkOrderOp,
+} from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, then stoor). */
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, stoor, water, werkswinkel). */
 const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
   attendance_punches: "span",
   stock_moves: "stoor",
+  meter_readings: "water",
+  work_orders: "werkswinkel",
+  fuel_logs: "werkswinkel",
 };
 
 /**
@@ -99,8 +124,14 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
           await applyHarvestEvent(tx, claims.farmId, claims.deviceId, op, clientTime);
         } else if (op.entity === "attendance_punches") {
           await applyAttendancePunch(tx, claims.farmId, claims.deviceId, op, clientTime);
-        } else {
+        } else if (op.entity === "stock_moves") {
           await applyStockMove(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else if (op.entity === "meter_readings") {
+          await applyMeterReading(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else if (op.entity === "work_orders") {
+          await applyWorkOrder(tx, claims.farmId, claims.deviceId, op, clientTime);
+        } else {
+          await applyFuelLog(tx, claims.farmId, claims.deviceId, op, clientTime);
         }
         accepted.push(op.entity_id);
       }
@@ -255,6 +286,82 @@ async function applyStockMove(tx: Pick<Db, "select" | "insert">, farmId: string,
       direction: op.payload.direction,
       quantity: op.payload.quantity,
       blockId: op.payload.block_id ?? null,
+      note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * One number against one point (docs/water-build-scope.md). Append-only,
+ * always season-null (plan §6, §8).
+ */
+async function applyMeterReading(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: MeterReadingOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(meterReadings)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.meter_readings,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      waterPointId: op.payload.water_point_id,
+      reading: op.payload.reading,
+      note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * One half of a job's lifecycle (docs/werkswinkel-build-scope.md) — `opened`
+ * or `closed`, paired at read time. Append-only, always season-null.
+ */
+async function applyWorkOrder(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: WorkOrderOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(workOrders)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.work_orders,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      assetId: op.payload.asset_id,
+      event: op.payload.event,
+      description: op.payload.description ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/** One fill-up (docs/werkswinkel-build-scope.md). Append-only, always season-null. */
+async function applyFuelLog(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: FuelLogOp, clientTime: Date) {
+  const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
+  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+
+  await tx
+    .insert(fuelLogs)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.fuel_logs,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      assetId: op.payload.asset_id,
+      litres: op.payload.litres,
+      meterReading: op.payload.meter_reading ?? null,
       note: op.payload.note ?? null,
       createdAt: clientTime,
       updatedAt: clientTime,

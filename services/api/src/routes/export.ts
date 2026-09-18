@@ -1,4 +1,4 @@
-import { attendancePunches, blocks, harvestEvents, notes, people, pieceRates, seasons, stockItems, stockMoves } from "@plaashek/schema";
+import { assets, attendancePunches, blocks, fuelLogs, harvestEvents, meterReadings, notes, people, pieceRates, seasons, stockItems, stockMoves, waterPoints, workOrders } from "@plaashek/schema";
 import { and, asc, eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
@@ -166,6 +166,89 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
     );
 
     return sendCsv(reply, "stoor.csv", csv);
+  });
+
+  /** Water's readings, raw (docs/water-build-scope.md) — one row per reading, not the latest-plus-delta `/eienaar/water` shows. */
+  app.get("/export/water.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: meterReadings.id,
+        createdAt: meterReadings.createdAt,
+        person: people.name,
+        point: waterPoints.name,
+        unit: waterPoints.unit,
+        reading: meterReadings.reading,
+        note: meterReadings.note,
+      })
+      .from(meterReadings)
+      .leftJoin(people, eq(people.id, meterReadings.createdBy))
+      .leftJoin(waterPoints, eq(waterPoints.id, meterReadings.waterPointId))
+      .where(eq(meterReadings.farmId, farmId))
+      .orderBy(asc(meterReadings.createdAt));
+
+    const csv = toCsv(
+      ["id", "created_at", "person", "point", "unit", "reading", "note"],
+      rows.map((row) => [row.id, row.createdAt.toISOString(), row.person, row.point, row.unit, row.reading, row.note]),
+    );
+
+    return sendCsv(reply, "water.csv", csv);
+  });
+
+  /** Werkswinkel's job log, raw (docs/werkswinkel-build-scope.md) — one row per opened or closed event, not paired. */
+  app.get("/export/work-orders.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: workOrders.id,
+        createdAt: workOrders.createdAt,
+        person: people.name,
+        asset: assets.name,
+        event: workOrders.event,
+        description: workOrders.description,
+      })
+      .from(workOrders)
+      .leftJoin(people, eq(people.id, workOrders.createdBy))
+      .leftJoin(assets, eq(assets.id, workOrders.assetId))
+      .where(eq(workOrders.farmId, farmId))
+      .orderBy(asc(workOrders.createdAt));
+
+    const csv = toCsv(
+      ["id", "created_at", "person", "asset", "event", "description"],
+      rows.map((row) => [row.id, row.createdAt.toISOString(), row.person, row.asset, row.event, row.description]),
+    );
+
+    return sendCsv(reply, "werkswinkel.csv", csv);
+  });
+
+  /** Fuel fill-ups, raw (docs/werkswinkel-build-scope.md) — no derived litres-per-hour figure, see the build scope. */
+  app.get("/export/fuel.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: fuelLogs.id,
+        createdAt: fuelLogs.createdAt,
+        person: people.name,
+        asset: assets.name,
+        litres: fuelLogs.litres,
+        meterReading: fuelLogs.meterReading,
+        note: fuelLogs.note,
+      })
+      .from(fuelLogs)
+      .leftJoin(people, eq(people.id, fuelLogs.createdBy))
+      .leftJoin(assets, eq(assets.id, fuelLogs.assetId))
+      .where(eq(fuelLogs.farmId, farmId))
+      .orderBy(asc(fuelLogs.createdAt));
+
+    const csv = toCsv(
+      ["id", "created_at", "person", "asset", "litres", "meter_reading", "note"],
+      rows.map((row) => [row.id, row.createdAt.toISOString(), row.person, row.asset, row.litres, row.meterReading, row.note]),
+    );
+
+    return sendCsv(reply, "brandstof.csv", csv);
   });
 
   /**

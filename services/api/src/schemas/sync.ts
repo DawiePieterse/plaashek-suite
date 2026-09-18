@@ -84,12 +84,59 @@ const stockMoveOp = z.object({
   }),
 });
 
+/** Water's reading (docs/water-build-scope.md): which point, what value. `season_id` is always null — Water is season-less. */
+const meterReadingOp = z.object({
+  entity: z.literal("meter_readings"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    water_point_id: z.string().uuid(),
+    reading: z.number(),
+    note: z.string().max(200).nullable().optional(),
+  }),
+});
+
+/**
+ * A work order's lifecycle is two of these, paired at read time
+ * (docs/werkswinkel-build-scope.md) — `opened` with a fault, `closed` with
+ * what was done, both optional. `season_id` is always null.
+ */
+const workOrderOp = z.object({
+  entity: z.literal("work_orders"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    asset_id: z.string().uuid(),
+    event: z.enum(["opened", "closed"]),
+    description: z.string().max(500).nullable().optional(),
+  }),
+});
+
+/** One fill-up (docs/werkswinkel-build-scope.md): no lifecycle, no pairing. `season_id` is always null. */
+const fuelLogOp = z.object({
+  entity: z.literal("fuel_logs"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    asset_id: z.string().uuid(),
+    litres: z.number().positive(),
+    meter_reading: z.number().nullable().optional(),
+    note: z.string().max(200).nullable().optional(),
+  }),
+});
+
 /**
  * What a phone may say about a write. Everything identifying — farm, device,
  * person — is stamped by the server from the ticket, never read from here.
  */
 export const uploadRequestSchema = z.object({
-  ops: z.array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp, stockMoveOp])).min(1).max(500),
+  ops: z
+    .array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp, stockMoveOp, meterReadingOp, workOrderOp, fuelLogOp]))
+    .min(1)
+    .max(500),
 });
 
 export type UploadOp = z.infer<typeof uploadRequestSchema>["ops"][number];
@@ -97,3 +144,6 @@ export type NoteOp = z.infer<typeof noteOp>;
 export type HarvestEventOp = z.infer<typeof harvestEventOp>;
 export type AttendancePunchOp = z.infer<typeof attendancePunchOp>;
 export type StockMoveOp = z.infer<typeof stockMoveOp>;
+export type MeterReadingOp = z.infer<typeof meterReadingOp>;
+export type WorkOrderOp = z.infer<typeof workOrderOp>;
+export type FuelLogOp = z.infer<typeof fuelLogOp>;

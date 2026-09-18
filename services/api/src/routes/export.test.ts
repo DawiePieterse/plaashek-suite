@@ -1,6 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { attendancePunches, blocks, devices, harvestEvents, notes, people, pieceRates, seasons, stockItems, stockMoves } from "@plaashek/schema";
+import {
+  assets,
+  attendancePunches,
+  blocks,
+  devices,
+  fuelLogs,
+  harvestEvents,
+  meterReadings,
+  notes,
+  people,
+  pieceRates,
+  seasons,
+  stockItems,
+  stockMoves,
+  waterPoints,
+  workOrders,
+} from "@plaashek/schema";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
@@ -138,6 +154,78 @@ test("GET /export/stock.csv exports every move for the farm, one row each", asyn
     assert.equal(lines[0], "﻿id,created_at,person,item,unit,direction,quantity,block,season,note");
     assert.equal(lines.length, 2);
     assert.match(lines[1], /,Person,Glifosaat,L,out,5,Blok A,,Blaarluis$/);
+  });
+});
+
+test("GET /export/water.csv exports every reading for the farm, one row each", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [point] = await db.insert(waterPoints).values({ farmId: farm.id, name: "Boorgat 1", unit: "m³" }).returning();
+
+    await db.insert(meterReadings).values({
+      farmId: farm.id,
+      moduleCode: "water",
+      createdBy: person.id,
+      deviceId: device.id,
+      waterPointId: point.id,
+      reading: 1250,
+      createdAt: new Date("2026-06-01T04:00:00Z"),
+    });
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/water.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.headers["content-disposition"], 'attachment; filename="water.csv"');
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "﻿id,created_at,person,point,unit,reading,note");
+    assert.match(lines[1], /,Person,Boorgat 1,m³,1250,$/);
+  });
+});
+
+test("GET /export/work-orders.csv and GET /export/fuel.csv export raw events for the farm", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [asset] = await db.insert(assets).values({ farmId: farm.id, name: "Trekker" }).returning();
+
+    await db.insert(workOrders).values({
+      farmId: farm.id,
+      moduleCode: "werkswinkel",
+      createdBy: person.id,
+      deviceId: device.id,
+      assetId: asset.id,
+      event: "opened",
+      description: "Band pap",
+      createdAt: new Date("2026-06-01T04:00:00Z"),
+    });
+    await db.insert(fuelLogs).values({
+      farmId: farm.id,
+      moduleCode: "werkswinkel",
+      createdBy: person.id,
+      deviceId: device.id,
+      assetId: asset.id,
+      litres: 45.5,
+      meterReading: 12345,
+      createdAt: new Date("2026-06-02T04:00:00Z"),
+    });
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+
+    const workOrdersCsv = await app.inject({ method: "GET", url: "/export/work-orders.csv", headers: { authorization: `Bearer ${token}` } });
+    assert.equal(workOrdersCsv.statusCode, 200);
+    const workOrderLines = workOrdersCsv.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(workOrderLines[0], "﻿id,created_at,person,asset,event,description");
+    assert.match(workOrderLines[1], /,Person,Trekker,opened,Band pap$/);
+
+    const fuelCsv = await app.inject({ method: "GET", url: "/export/fuel.csv", headers: { authorization: `Bearer ${token}` } });
+    assert.equal(fuelCsv.statusCode, 200);
+    const fuelLines = fuelCsv.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(fuelLines[0], "﻿id,created_at,person,asset,litres,meter_reading,note");
+    assert.match(fuelLines[1], /,Person,Trekker,45.5,12345,$/);
   });
 });
 

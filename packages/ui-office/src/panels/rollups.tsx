@@ -25,6 +25,14 @@ export interface StockSummary {
   items: { itemId: string; name: string; unit: string; active: boolean; onHand: number }[];
 }
 
+export interface WaterSummary {
+  points: { pointId: string; name: string; unit: string; active: boolean; latestReading: number | null; latestAt: string | null; delta: number | null }[];
+}
+
+export interface WerkswinkelSummary {
+  assets: { assetId: string; assetName: string; jobs: { description: string | null; openedAt: string }[] }[];
+}
+
 export interface PayoutSummary {
   season: { id: string; name: string } | null;
   from: string | null;
@@ -204,6 +212,90 @@ export function StockRollup() {
                 <td>{item.unit}</td>
               </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The latest reading per point and how much moved since the one before it
+ * (docs/water-build-scope.md) — a delta, not a running total: unlike Stoor's
+ * on-hand sum, a reading replaces the current state rather than accumulating.
+ */
+export function WaterRollup() {
+  const { c } = useOffice();
+  const { data, error } = useRollup<WaterSummary>("/eienaar/water");
+
+  if (error) return <Empty heading={c.waterHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.waterHeading} message={c.loading} />;
+  if (data.points.length === 0) return <Empty heading={c.waterHeading} message={c.noWaterPoints} />;
+
+  return (
+    <section>
+      <h2>{c.waterHeading}</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.point}</th>
+              <th className="num">{c.latestReading}</th>
+              <th>{c.unit}</th>
+              <th className="num">{c.delta}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.points.map((point) => (
+              <tr key={point.pointId} className={point.active ? "" : "muted"}>
+                <td>{point.name}</td>
+                <td className="num">{point.latestReading ?? c.noReadingYet}</td>
+                <td>{point.unit}</td>
+                <td className="num">{point.delta === null ? "" : point.delta}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * What is still open per asset (docs/werkswinkel-build-scope.md) — paired
+ * at read time from opened/closed events, nothing stored. Only assets with
+ * at least one open job appear; a quiet workshop has nothing to show.
+ */
+export function WorkOrderRollup() {
+  const { c } = useOffice();
+  const { data, error } = useRollup<WerkswinkelSummary>("/eienaar/werkswinkel");
+
+  if (error) return <Empty heading={c.werkswinkelHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.werkswinkelHeading} message={c.loading} />;
+  if (data.assets.length === 0) return <Empty heading={c.werkswinkelHeading} message={c.noOpenJobs} />;
+
+  return (
+    <section>
+      <h2>{c.werkswinkelHeading}</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.asset}</th>
+              <th>{c.jobDescription}</th>
+              <th>{c.openedAt}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.assets.flatMap((asset) =>
+              asset.jobs.map((job, index) => (
+                <tr key={`${asset.assetId}-${index}`}>
+                  <td>{index === 0 ? asset.assetName : ""}</td>
+                  <td>{job.description || c.noDescription}</td>
+                  <td>{new Date(job.openedAt).toLocaleDateString()}</td>
+                </tr>
+              )),
+            )}
           </tbody>
         </table>
       </div>

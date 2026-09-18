@@ -61,6 +61,11 @@ const af = {
   campBlockCol: "Blok",
   noBlockOption: "Geen blok",
 
+  assetsHeading: "Bates",
+  noAssets: "Nog geen bates nie. Voeg die eerste een by.",
+  assetNamePlaceholder: "Trekker",
+  addAsset: "Voeg bate by",
+
   stoorCatalogHeading: "Voorraaditems",
   itemName: "Item",
   itemUnit: "Eenheid",
@@ -70,6 +75,14 @@ const af = {
   addItem: "Voeg item by",
   saveItem: "Stoor",
   noStockItemsYet: "Nog geen voorraaditems nie.",
+
+  waterPointsHeading: "Waterpunte",
+  point: "Punt",
+  unit: "Eenheid",
+  pointNamePlaceholder: "bv. Boorgat 1",
+  pointUnitPlaceholder: "bv. m³",
+  addPoint: "Voeg punt by",
+  noWaterPointsYet: "Nog geen waterpunte nie.",
 
   pieceworkHeading: "Stukwerk — seisoenwerkers",
   rateHeading: "Tarief",
@@ -195,6 +208,11 @@ const en: typeof af = {
   campBlockCol: "Block",
   noBlockOption: "No block",
 
+  assetsHeading: "Assets",
+  noAssets: "No assets yet. Add the first one.",
+  assetNamePlaceholder: "Tractor",
+  addAsset: "Add asset",
+
   stoorCatalogHeading: "Stock items",
   itemName: "Item",
   itemUnit: "Unit",
@@ -204,6 +222,14 @@ const en: typeof af = {
   addItem: "Add item",
   saveItem: "Save",
   noStockItemsYet: "No stock items yet.",
+
+  waterPointsHeading: "Water points",
+  point: "Point",
+  unit: "Unit",
+  pointNamePlaceholder: "e.g. Borehole 1",
+  pointUnitPlaceholder: "e.g. m³",
+  addPoint: "Add point",
+  noWaterPointsYet: "No water points yet.",
 
   pieceworkHeading: "Piece-work — seasonal workers",
   rateHeading: "Rate",

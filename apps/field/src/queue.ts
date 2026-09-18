@@ -71,7 +71,47 @@ export interface StockMoveOp {
   };
 }
 
-export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp | StockMoveOp;
+/** Water's reading (docs/water-build-scope.md): which point, what value. `season_id` is always null. */
+export interface MeterReadingOp {
+  entity: "meter_readings";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    water_point_id: string;
+    reading: number;
+    note?: string | null;
+  };
+}
+
+/** Half of a job's lifecycle (docs/werkswinkel-build-scope.md) — `opened` or `closed`, paired server-side. `season_id` is always null. */
+export interface WorkOrderOp {
+  entity: "work_orders";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    asset_id: string;
+    event: "opened" | "closed";
+    description?: string | null;
+  };
+}
+
+/** One fill-up (docs/werkswinkel-build-scope.md). `season_id` is always null. */
+export interface FuelLogOp {
+  entity: "fuel_logs";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    asset_id: string;
+    litres: number;
+    meter_reading?: number | null;
+    note?: string | null;
+  };
+}
+
+export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp | StockMoveOp | MeterReadingOp | WorkOrderOp | FuelLogOp;
 
 const QUEUE_KEY = "plaashek.field.outbox";
 
