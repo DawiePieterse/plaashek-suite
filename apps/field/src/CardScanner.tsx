@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { t } from "./copy.js";
 
 /**
- * Reads a worker card at the scale (ADR 0009). The phone never shows a list
- * of people — it reads the card it is handed, or a supervisor types the code
- * printed on it when the camera cannot.
+ * Reads a worker card at the scale (ADR 0009). The card's QR holds nothing
+ * but the farm's own number for that worker (ADR 0011), so a supervisor whose
+ * camera will not focus can read the same number off the paper and type it.
+ * The phone never shows a list of people.
  */
 
 /** Not in lib.dom yet; Chromium on Android has shipped it since 83. */
@@ -14,18 +15,16 @@ interface BarcodeDetectorLike {
 type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
 
 /**
- * Mirrors the server's `normaliseCardCode`. Only used for the local lookup in
- * the cached card list — the server normalises again and is authoritative, so
- * if these two ever drift the phone just fails to name the picker locally and
- * the crate still gets attributed at sync.
+ * Mirrors the server's `normaliseWorkerNumber`. Only used for the local
+ * lookup in the cached register — the server normalises again and is
+ * authoritative, so if these two ever drift the phone just fails to name the
+ * picker locally and the crate still gets attributed at sync.
+ *
+ * Leading zeros are never stripped: "014" and "14" are different numbers in
+ * a payroll, and the farm owns the numbering (ADR 0011).
  */
-export function normaliseCardCode(raw: string): string {
-  return raw
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]/g, "")
-    .replace(/O/g, "0")
-    .replace(/[IL]/g, "1");
+export function normaliseWorkerNumber(raw: string): string {
+  return raw.trim().toUpperCase().replace(/[\s-]/g, "");
 }
 
 export function CardScanner({ onCode }: { onCode: (code: string) => void }) {
@@ -78,7 +77,7 @@ export function CardScanner({ onCode }: { onCode: (code: string) => void }) {
               // The effect's cleanup stops the camera when `scanning` flips.
               setScanning(false);
               navigator.vibrate?.(40);
-              onCode(normaliseCardCode(found.rawValue));
+              onCode(normaliseWorkerNumber(found.rawValue));
               return;
             }
           } catch {
@@ -100,10 +99,10 @@ export function CardScanner({ onCode }: { onCode: (code: string) => void }) {
 
   function submitTyped(event: React.FormEvent) {
     event.preventDefault();
-    const code = normaliseCardCode(typed);
-    if (!code) return;
+    const workerNumber = normaliseWorkerNumber(typed);
+    if (!workerNumber) return;
     setTyped("");
-    onCode(code);
+    onCode(workerNumber);
   }
 
   return (
@@ -126,7 +125,7 @@ export function CardScanner({ onCode }: { onCode: (code: string) => void }) {
       <form onSubmit={submitTyped} className="field">
         <label className="field">
           {c.cardCodeLabel}
-          <input value={typed} onChange={(event) => setTyped(event.target.value)} autoCapitalize="characters" autoComplete="off" />
+          <input value={typed} onChange={(event) => setTyped(event.target.value)} inputMode="numeric" autoCapitalize="characters" autoComplete="off" />
         </label>
         <button type="submit" className="quiet">
           {c.useCode}

@@ -34,6 +34,10 @@ export function buildApp(deps: AppDeps) {
   // every download lands under a generic name.
   app.register(cors, { origin: deps.env.corsOrigins, exposedHeaders: ["content-disposition"] });
 
+  // The worker-register import is a file the farm already has, posted as-is
+  // rather than re-encoded into JSON by the browser.
+  app.addContentTypeParser("text/csv", { parseAs: "string" }, (_request, body, done) => done(null, body));
+
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ApiError) {
       reply.status(error.statusCode).send({ error: { code: error.code, message: error.message } });

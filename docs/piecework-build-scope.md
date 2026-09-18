@@ -32,6 +32,8 @@ payroll.
 | Question | Call |
 |---|---|
 | How a crate is tied to a picker | A **printed worker card**, scanned at the scale by the supervisor's phone before the weight is entered. Cards are printed from the office, one per seasonal worker. |
+| What is on the card | **The farm's own worker number**, typed by the office — the QR holds that and nothing else ([ADR 0011](decisions/0011-worker-numbers-are-the-farms.md), 18 September 2026). It is the key the farm's payment system already uses, so the export joins to their payroll without a mapping table. |
+| Keeping the register straight | The office **edits** a worker's number, name or standing in place, and **imports and exports** the whole list as CSV keyed on the number. An import updates numbers the farm already has and adds new ones; it never deletes. |
 | Rate model | **Tiered**: a base rate per kg up to a daily target, a higher rate per kg above it. Effective-dated, so a mid-season rate change never rewrites what last week already earned. |
 | How far the money goes | **Totals and CSV out.** Kilograms and rand per picker per period, on screen and as a CSV for whoever runs payroll. No payslips, no payment execution. |
 | Where it lives | **Boord's existing capture, extended**, plus a new section in the Farm Admin Tool. No new module code, no second weighing, no parallel harvest table. |
@@ -39,9 +41,11 @@ payroll.
 ## Build scope
 
 1. **Schema**
-   - `worker_cards`: `farm_id`, `person_id`, `code` (unique per farm), issued
-     and revoked timestamps, who issued it. Reissue is a new card row, not an
-     edit — a lost card is revoked and reprinted with a new code.
+   - `people.worker_number` (unique per farm) and `people.active`. The number
+     is the farm's own, typed by the office (ADR 0011); `active` is how a
+     worker who has left stops collecting crates. There is no card table:
+     with the farm's number on the paper there is nothing separate to issue
+     or revoke, and reprinting a lost card prints the same number.
    - `piece_rates`: `farm_id`, `season_id`, `effective_from`, and the tier in
      integer cents — `base_cents_per_kg`, `target_kg`, `bonus_cents_per_kg`.
      Effective-dated history, never edited in place.
@@ -60,9 +64,11 @@ payroll.
    unresolved shows in the office as a crate needing a picker. Plan §8's rule
    holds — the scale queue does not wait for configuration.
 4. **Office** (Farm Admin Tool, new section):
-   - register seasonal workers (the first `POST /people` in the suite — until
-     now people only existed via the seed script),
-   - issue, print and revoke worker cards,
+   - register seasonal workers under the farm's own number, and edit that
+     number, the name or their standing later,
+   - print a card for any worker,
+   - import and export the register as CSV, keyed on the worker number, so
+     the payment system's list and this one stay the same list,
    - set the tiered rate for the season,
    - payout table: kg and rand per picker for a period, with the unresolved
      count visible.

@@ -28,11 +28,11 @@ const noteOp = z.object({
  * Boord capture (docs/boord-reuse-audit.md): block + weight + optional
  * deduction, same weather stamp as notes.
  *
- * `picker_card_code` is what the card scan produced (ADR 0009). The phone
- * sends only the code — never a person id, even though it resolved one
- * locally to show the picker's name — so the server is the single place a
- * card becomes an attribution. Optional: a farm running Boord without
- * piece-work sends nothing.
+ * `picker_card_code` is the worker number the card scan produced (ADR 0009,
+ * ADR 0011). The phone sends only the number — never a person id, even
+ * though it resolved one locally to show the picker's name — so the server
+ * is the single place a number becomes an attribution. Optional: a farm
+ * running Boord without piece-work sends nothing.
  */
 const harvestEventOp = z.object({
   entity: z.literal("harvest_events"),

@@ -1,7 +1,12 @@
 # ADR 0009 — A scanned printed card attributes a crate to its picker
 
 **Date:** 17 September 2026
-**Status:** accepted — supersedes [ADR 0007](0007-boord-no-worker-attribution.md)
+**Status:** accepted — supersedes [ADR 0007](0007-boord-no-worker-attribution.md);
+amended by [ADR 0011](0011-worker-numbers-are-the-farms.md) 18 September 2026.
+The scan and the printed card stand. What changed: the code on the card is
+the farm's own worker number, typed by the office, not a random code we
+generate — so the card lifecycle described below (issue, reissue, revoke)
+no longer exists, and the guessability trade-off is stated in ADR 0011.
 
 ## Question
 

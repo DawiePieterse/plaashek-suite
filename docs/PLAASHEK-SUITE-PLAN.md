@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.19
+**Status:** v1.20
 **Date:** 17 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -40,6 +40,8 @@
 
 **Changes from v1.18:** the two office tools reorganised as **tabs** — one tab per field module the farm is licensed for, plus a **Farm settings** tab for what belongs to the whole farm (§4.2, §4.3). A module tab appears only when Plaashek Management has switched that module on, so the office never looks at a screen for something it has not bought; with nothing licensed, Farm settings is the only tab. The Farm Admin Tool and the Owner Module were most of the way to being the same screen already, so the shared half now lives in `@plaashek/ui-office` (previously stylesheet-only, now the tab shell, the rollups, seasons, the exports and the farm summary, plus one copy of their wording). They stay two apps with two logins and two hosts as §4.3 requires — what differs is what each may write, and the owner's own features land as extra panels in the same tabs.
 
+**Changes from v1.19:** worker cards now carry the **farm's own worker number**, typed by the office, and the QR holds that number and nothing else — [ADR 0011](decisions/0011-worker-numbers-are-the-farms.md), amending ADR 0009. It is the key the farm's payment system already uses, so the piece-work export joins to their payroll with no mapping table in between. The register is editable (number, name, and whether the worker still works here) and moves in and out as CSV keyed on that number: an import updates numbers the farm already has, adds new ones, and never deletes. `worker_cards` is gone with the code we used to mint — reprinting a lost card prints the same number, so there is nothing to issue or revoke, and "revoke the card" becomes "mark the worker inactive". The trade-off is written down rather than glossed: a typed number is guessable where a random code was not, so the card identifies and never authenticates.
+
 ---
 
 ## 1. What we are building
@@ -64,7 +66,7 @@ The four existing apps (Boord, Boord Owner, Notes, Kudde) are **reference only**
 | Device role | One app per phone until a second printed QR is scanned |
 | Licence ceiling | Plaashek Management switches modules on for the farm |
 | Licence floor | A phone only runs modules whose QRs it has scanned |
-| Attribution | Every save stamped with assigned person + device + farm. Admin assigns the name. A seasonal picker's crate also carries the picker, read off a scanned printed card — [ADR 0009](decisions/0009-piecework-picker-attribution.md) |
+| Attribution | Every save stamped with assigned person + device + farm. Admin assigns the name. A seasonal picker's crate also carries the picker, read off a scanned printed card — [ADR 0009](decisions/0009-piecework-picker-attribution.md) — and the number on that card is the farm's own ([ADR 0011](decisions/0011-worker-numbers-are-the-farms.md)) |
 | Owner view | Separate `eienaar` module, read-only. Not folded into Boord |
 | Old apps | Reference implementations, not a data migration programme |
 | Module code spelling | `werkswinkel` — code matches the Afrikaans name. Fix the v1.1 typo everywhere |
@@ -307,7 +309,11 @@ entitlements              farm_id, module_code, status, valid_from,
                           valid_until, grace_days, source
 people                    farm name list — a person needs no login.
                           `kind` is staff or seasonal: staff may carry a
-                          paired phone, a seasonal picker carries a card
+                          paired phone, a seasonal picker carries a card.
+                          `worker_number` is the farm's own number for them,
+                          typed by the office and unique per farm (ADR 0011);
+                          `active` is how a worker who has left stops
+                          collecting crates
 farm_memberships          office logins only (admin / owner)
 devices
 device_assignments        device_id, person_id, assigned_at, assigned_by
@@ -320,9 +326,6 @@ audit_log                 actor, actor_type (farm / staff), action,
                           — staff support access, revokes, entitlement
                             changes, QR prints. Farm-visible for its own farm
 
-worker_cards             farm_id, person_id, code, issued_at, issued_by,
-                         revoked_at — the printed card a seasonal picker
-                         carries (ADR 0009). Reissue mints a new code
 piece_rates              farm_id, season_id, effective_from,
                          base_cents_per_kg, target_kg, bonus_cents_per_kg
                          — what a kilogram is worth (ADR 0010)
@@ -588,7 +591,8 @@ permanent employees only. It extends Boord rather than adding a module code
 - [x] An unknown card never blocks the crate: the code is saved, resolved server-side at sync, and anything still unplaced is shown to the office (`/piecework/unattributed`, and on the payout screen).
 - [x] Only the code ever leaves the phone — a device cannot assert who picked a crate, it can only report what it read.
 - [x] Tiered pay per picker per farm-day, priced against the rate in force that day, in integer cents (`lib/piecework.ts`). Derived at read time; a late crate changes the answer.
-- [x] Farm Admin Tool section: register a worker, print the card, set the rate, read the payout, with unplaced crates and the no-minimum-wage-check caveat both on screen. `GET /export/piecework.csv` in both office tools.
+- [x] Farm Admin Tool section: register a worker under the farm's own number, edit that number/name/standing later, print the card, set the rate, read the payout, with unplaced crates and the no-minimum-wage-check caveat both on screen. `GET /export/piecework.csv` in both office tools.
+- [x] The register imports and exports as CSV keyed on the worker number (`POST /piecework/workers/import`, `GET /export/workers.csv`), so the farm's payment system and this list stay the same list — [ADR 0011](decisions/0011-worker-numbers-are-the-farms.md), 18 September 2026.
 - [x] Proven end to end against the demo farm on 18 September 2026: rate set and worker registered in the browser, card printed, its code used at the scale phone, two crates (70 kg and 52 kg less 2 kg) attributed to the picker, payout showing 120 kg and R330.00 — 100 kg at R2.50 plus 20 kg at R4.00.
 - Not in this scope: payslips, payment, minimum-wage checking (no hours exist for a seasonal picker — Span is permanent staff), per-picker grading, and splitting one crate between two pickers.
 
@@ -636,7 +640,7 @@ permanent employees only. It extends Boord rather than adding a module code
 | Kudde spec unvalidated | Deferred by design — no build slot until a real livestock farm is contracted (ADR 0005) |
 | Season not set, or set late, when a pick starts early | Phone saves anyway and flags; office assigns from "opnames sonder seisoen." Never block a capture over config |
 | Backup never tested | Quarterly restore drill, diarised |
-| Worker card lost, swapped or borrowed — the wrong picker gets paid | The card is a bearer identifier and says so ([ADR 0009](decisions/0009-piecework-picker-attribution.md)). Revoke and reissue is one click, the scanned code stays on every crate so a wrong attribution is visible afterwards, and the office sees unplaced crates rather than silent gaps |
+| Worker card lost, swapped or borrowed — the wrong picker gets paid | The card is a bearer identifier and says so ([ADR 0009](decisions/0009-piecework-picker-attribution.md)). Since the number on it is the farm's own it is also guessable ([ADR 0011](decisions/0011-worker-numbers-are-the-farms.md)) — accepted knowingly: it identifies, it does not authenticate. The scanned number stays on every crate so a wrong attribution is visible afterwards, the supervisor at the scale sees who handed the crate over, and the office sees unplaced crates rather than silent gaps |
 | A rand total is read as "this is legal to pay" | It is not, and the screen and the CSV both say so ([ADR 0010](decisions/0010-piecework-pay-boundary.md)). No hours exist for a seasonal picker, so no minimum-wage check is possible. Put it in the order form too, not only on screen |
 | A card issued today is not on the scale phone's cached list | The crate saves with the raw code and the server resolves it at sync — the queue never waits on configuration (§8) |
 

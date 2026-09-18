@@ -1,11 +1,11 @@
-import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, workerCards } from "@plaashek/schema";
+import { attendancePunches, deviceAssignments, deviceModules, harvestEvents, heldWrites, notes, people } from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
-import { normaliseCardCode } from "../lib/worker-card.js";
+import { normaliseWorkerNumber } from "../lib/worker-number.js";
 import { uploadRequestSchema, type AttendancePunchOp, type HarvestEventOp, type NoteOp, type UploadOp } from "../schemas/sync.js";
 
 /** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, then span). */
@@ -140,26 +140,27 @@ async function applyNote(tx: Pick<Db, "select" | "insert">, farmId: string, devi
 }
 
 /**
- * Who the scanned card belongs to. The phone resolves this from its cached
- * card list, but a card issued after that cache was filled resolves here
- * instead — which is why the phone is allowed to save the crate with a code
- * it does not recognise (plan §8: never block a capture over configuration).
+ * Whose worker number was scanned (ADR 0011). The phone resolves this from
+ * its cached register, but a worker added after that cache was filled
+ * resolves here instead — which is why the phone is allowed to save the
+ * crate with a number it does not recognise (plan §8: never block a capture
+ * over configuration).
  *
- * The phone never sends a person id, only the code it scanned — so a device
- * cannot assert who picked a crate, it can only report what it read off a
- * card. This function is the only place a code becomes an attribution.
+ * The phone never sends a person id, only the number it read — so a device
+ * cannot assert who picked a crate. This function is the only place a number
+ * becomes an attribution, and it will not credit a worker who has left.
  *
- * Takes an already-normalised code — the caller normalises once, on the way in.
+ * Takes an already-normalised number — the caller normalises once, on the way in.
  */
-async function resolvePicker(tx: Pick<Db, "select">, farmId: string, code: string | null): Promise<string | null> {
-  if (!code) return null;
+async function resolvePicker(tx: Pick<Db, "select">, farmId: string, workerNumber: string | null): Promise<string | null> {
+  if (!workerNumber) return null;
 
-  const [card] = await tx
-    .select({ personId: workerCards.personId })
-    .from(workerCards)
-    .where(and(eq(workerCards.farmId, farmId), eq(workerCards.code, code), isNull(workerCards.revokedAt)));
+  const [picker] = await tx
+    .select({ id: people.id })
+    .from(people)
+    .where(and(eq(people.farmId, farmId), eq(people.workerNumber, workerNumber), eq(people.active, true)));
 
-  return card?.personId ?? null;
+  return picker?.id ?? null;
 }
 
 /** Same append-only shape as a note — no edit path (ADR 0006's precedent, kept by ADR 0009). */
@@ -167,8 +168,8 @@ async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: stri
   const createdBy = await personAtSaveTime(tx, deviceId, clientTime);
   if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
 
-  const cardCode = op.payload.picker_card_code ? normaliseCardCode(op.payload.picker_card_code) : null;
-  const pickerId = await resolvePicker(tx, farmId, cardCode);
+  const scannedNumber = op.payload.picker_card_code ? normaliseWorkerNumber(op.payload.picker_card_code) : null;
+  const pickerId = await resolvePicker(tx, farmId, scannedNumber);
 
   await tx
     .insert(harvestEvents)
@@ -183,7 +184,7 @@ async function applyHarvestEvent(tx: Pick<Db, "select" | "insert">, farmId: stri
       weightKg: op.payload.weight_kg,
       deductionKg: op.payload.deduction_kg ?? null,
       pickerId,
-      pickerCardCode: cardCode,
+      pickerCardCode: scannedNumber,
       weatherTemp: op.payload.weather_temp ?? null,
       weatherHumidity: op.payload.weather_humidity ?? null,
       weatherCondition: op.payload.weather_condition ?? null,

@@ -1,38 +1,38 @@
 import { useEffect, useState } from "react";
-import { CardScanner, normaliseCardCode } from "./CardScanner.js";
+import { CardScanner, normaliseWorkerNumber } from "./CardScanner.js";
 import { raceWeather, useFlush, useGpsFix, useSavedToast } from "./capture.js";
 import { t } from "./copy.js";
 import { enqueue } from "./queue.js";
 import { readStored, writeStored } from "./storage.js";
-import { fetchBlocks, fetchWorkerCards, type Claims } from "./ticket.js";
+import { fetchBlocks, fetchPickers, type Claims } from "./ticket.js";
 
 interface Block {
   id: string;
   name: string;
 }
 
-interface WorkerCard {
-  code: string;
+interface Picker {
+  workerNumber: string;
   personId: string;
   personName: string;
 }
 
 const BLOCKS_KEY = "plaashek.field.blocks";
-const CARDS_KEY = "plaashek.field.cards";
+const PICKERS_KEY = "plaashek.field.pickers";
 
 /** Boord capture. Block + weight + optional deduction, and — for a farm paying per kg — the picker's scanned card (ADR 0009). */
 export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) {
   const [blocks, setBlocks] = useState<Block[]>(() => readStored<Block[]>(BLOCKS_KEY, []));
-  const [cards, setCards] = useState<WorkerCard[]>(() => readStored<WorkerCard[]>(CARDS_KEY, []));
+  const [pickers, setPickers] = useState<Picker[]>(() => readStored<Picker[]>(PICKERS_KEY, []));
   const [blockId, setBlockId] = useState("");
   const [weightKg, setWeightKg] = useState("");
   const [deductionKg, setDeductionKg] = useState("");
   /**
-   * The card scanned for the crates being weighed now — the code only, with
-   * the name looked up at render. Kept between saves, because one picker
-   * fills several crates.
+   * The worker number scanned for the crates being weighed now — the number
+   * only, with the name looked up at render. Kept between saves, because one
+   * picker fills several crates.
    */
-  const [pickerCode, setPickerCode] = useState<string | null>(null);
+  const [pickerNumber, setPickerNumber] = useState<string | null>(null);
   const [saved, markSaved] = useSavedToast();
   const fixRef = useGpsFix();
   const { pending, setPending, refused, flush } = useFlush(ticket, t().errors);
@@ -46,12 +46,12 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
       })
       .catch(() => {}); // offline — the cached list stands
 
-    // Cached so a scan resolves to a name with no signal. An unknown code is
+    // Cached so a scan resolves to a name with no signal. An unknown number is
     // still saved (plan §8) and resolved by the server at sync.
-    fetchWorkerCards(ticket)
-      .then(({ cards: fresh }) => {
-        setCards(fresh);
-        writeStored(CARDS_KEY, fresh);
+    fetchPickers(ticket)
+      .then(({ pickers: fresh }) => {
+        setPickers(fresh);
+        writeStored(PICKERS_KEY, fresh);
       })
       .catch(() => {});
   }, [ticket]);
@@ -72,7 +72,7 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
           weight_kg: Number(weightKg),
           deduction_kg: deductionKg ? Number(deductionKg) : null,
           // Only ever the code: the server decides whose crate this is.
-          picker_card_code: pickerCode,
+          picker_card_code: pickerNumber,
           weather_temp: weather?.temp ?? null,
           weather_humidity: weather?.humidity ?? null,
           weather_condition: weather?.condition ?? null,
@@ -88,20 +88,20 @@ export function Harvest({ ticket, claims }: { ticket: string; claims: Claims }) 
 
   return (
     <main>
-      {/* A farm that does not pay per kilogram has no cards, so it is never
-          asked to scan one — ADR 0009 promises Boord is unchanged for them. */}
-      {cards.length > 0 && (
+      {/* A farm that does not pay per kilogram has no numbered pickers, so it
+          is never asked to scan — ADR 0009 promises Boord is unchanged for them. */}
+      {pickers.length > 0 && (
         <section className="picker">
-          {pickerCode ? (
+          {pickerNumber ? (
             <p className="status">
-              {/* Looked up each render: a card list that lands a second after the scan names the picker. */}
-              {cards.find((card) => normaliseCardCode(card.code) === pickerCode)?.personName ?? c.unknownCard(pickerCode)}{" "}
-              <button type="button" className="quiet" onClick={() => setPickerCode(null)}>
+              {/* Looked up each render: a register that lands a second after the scan still names the picker. */}
+              {pickers.find((picker) => normaliseWorkerNumber(picker.workerNumber) === pickerNumber)?.personName ?? c.unknownCard(pickerNumber)}{" "}
+              <button type="button" className="quiet" onClick={() => setPickerNumber(null)}>
                 {c.changeCard}
               </button>
             </p>
           ) : (
-            <CardScanner onCode={setPickerCode} />
+            <CardScanner onCode={setPickerNumber} />
           )}
         </section>
       )}

@@ -160,7 +160,10 @@ section > h2 {
 
 /* ---------- controls ---------- */
 
-button {
+/* `label.file` wraps a hidden file input — it is a button as far as the
+   office is concerned, so it gets the button's own shape. */
+button,
+label.file {
   font: inherit;
   font-weight: 500;
   padding: 0.5rem 0.95rem;
@@ -172,7 +175,8 @@ button {
   transition: filter 0.12s ease, opacity 0.12s ease;
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled),
+label.file:hover {
   filter: brightness(1.08);
 }
 
@@ -200,13 +204,13 @@ button.danger {
   color: #fff;
 }
 
-button.quiet {
+.quiet {
   background: var(--surface);
   border-color: var(--line);
   color: var(--ink);
 }
 
-button.quiet:hover:not(:disabled) {
+.quiet:hover:not(:disabled) {
   background: var(--line-soft);
   filter: none;
 }

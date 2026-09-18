@@ -1,8 +1,27 @@
 import { z } from "zod";
 
+/**
+ * The farm's own number for the worker (ADR 0011) — typed by the office, not
+ * generated here. Any shape a payroll uses is allowed; only its uniqueness on
+ * the farm is ours to enforce.
+ */
+const workerNumber = z.string().trim().min(1).max(32);
+const workerName = z.string().trim().min(1).max(120);
+
 export const createWorkerRequestSchema = z.object({
-  name: z.string().trim().min(1).max(120),
+  workerNumber,
+  name: workerName,
 });
+
+/** Every field optional: the office edits the one thing that was wrong. */
+export const updateWorkerRequestSchema = z
+  .object({
+    workerNumber: workerNumber.optional(),
+    name: workerName.optional(),
+    /** A worker who has left. Their captures keep their attribution; new scans of the number stop resolving. */
+    active: z.boolean().optional(),
+  })
+  .refine((body) => Object.keys(body).length > 0, { message: "Nothing to change" });
 
 /**
  * Cents, not rand: money never touches a float in this codebase (ADR 0010).

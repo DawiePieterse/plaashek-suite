@@ -1,124 +1,225 @@
-import { harvestEvents, people, pieceRates, workerCards } from "@plaashek/schema";
-import { and, asc, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
+import { harvestEvents, people, pieceRates } from "@plaashek/schema";
+import { and, asc, desc, eq, gte, isNull, lte, ne, sql } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import type { Db } from "../db.js";
 import { logAudit } from "../lib/audit.js";
+import { parseCsv, sendCsv, toCsv } from "../lib/csv.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
-import { notFound } from "../lib/errors.js";
+import { conflict, notFound } from "../lib/errors.js";
 import { farmDayEnd, farmDayStart } from "../lib/farm-day.js";
 import { activeSeason } from "../lib/farm.js";
 import { netKg, rollUpPiecework, type Crate } from "../lib/piecework.js";
-import { randomCardCode } from "../lib/worker-card.js";
-import { createPieceRateRequestSchema, createWorkerRequestSchema, payoutQuerySchema } from "../schemas/piecework.js";
+import { normaliseWorkerNumber } from "../lib/worker-number.js";
+import {
+  createPieceRateRequestSchema,
+  createWorkerRequestSchema,
+  payoutQuerySchema,
+  updateWorkerRequestSchema,
+} from "../schemas/piecework.js";
 
-/** Issues a card for a person, standing down whatever card they hold now — a reissue is a new code, never an edit (ADR 0009). */
-async function issueCard(tx: Pick<Db, "update" | "insert">, farmId: string, personId: string, issuedBy: string) {
-  await tx
-    .update(workerCards)
-    .set({ revokedAt: new Date() })
-    .where(and(eq(workerCards.farmId, farmId), eq(workerCards.personId, personId), isNull(workerCards.revokedAt)));
+/**
+ * A number belongs to one worker on a farm (ADR 0011) — the office owns the
+ * numbering, so the one thing we enforce is that they have not handed the
+ * same number to two people. `exceptPersonId` lets an edit keep its own.
+ */
+async function numberTaken(db: Pick<Db, "select">, farmId: string, workerNumber: string, exceptPersonId?: string) {
+  const [clash] = await db
+    .select({ id: people.id })
+    .from(people)
+    .where(
+      and(
+        eq(people.farmId, farmId),
+        eq(people.workerNumber, workerNumber),
+        ...(exceptPersonId ? [ne(people.id, exceptPersonId)] : []),
+      ),
+    );
 
-  const [card] = await tx
-    .insert(workerCards)
-    .values({ farmId, personId, code: randomCardCode(), issuedBy })
-    .returning();
+  return Boolean(clash);
+}
 
-  return card;
+async function seasonalWorker(db: Pick<Db, "select">, farmId: string, personId: string) {
+  const [person] = await db
+    .select({ id: people.id, name: people.name, workerNumber: people.workerNumber })
+    .from(people)
+    .where(and(eq(people.id, personId), eq(people.farmId, farmId), eq(people.kind, "seasonal")));
+
+  return person ?? null;
 }
 
 export function registerPieceworkRoutes(app: App, deps: AppDeps) {
-  /**
-   * The seasonal register (docs/piecework-build-scope.md): every seasonal
-   * person with the card they currently hold, plus what they have picked
-   * so far this season.
-   */
+  /** The seasonal register (docs/piecework-build-scope.md): the farm's numbered pickers, in number order. */
   app.get("/piecework/workers", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
     const farmId = request.staff!.farmId;
 
     const workers = await deps.db
-      .select({
-        personId: people.id,
-        name: people.name,
-        cardId: workerCards.id,
-        code: workerCards.code,
-        issuedAt: workerCards.issuedAt,
-      })
+      .select({ personId: people.id, name: people.name, workerNumber: people.workerNumber, active: people.active })
       .from(people)
-      .leftJoin(workerCards, and(eq(workerCards.personId, people.id), isNull(workerCards.revokedAt)))
       .where(and(eq(people.farmId, farmId), eq(people.kind, "seasonal")))
-      .orderBy(asc(people.name));
+      .orderBy(asc(people.workerNumber), asc(people.name));
 
     return { workers };
   });
 
-  /** Registering a worker creates the person and their first card in one step — the office never wants one without the other. */
+  /** The office types the number (ADR 0011). We only check it is not already someone else's. */
   app.post("/piecework/workers", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
     const staff = request.staff!;
-    const { name } = createWorkerRequestSchema.parse(request.body);
+    const body = createWorkerRequestSchema.parse(request.body);
+    const workerNumber = normaliseWorkerNumber(body.workerNumber);
+
+    if (await numberTaken(deps.db, staff.farmId, workerNumber)) {
+      throw conflict("worker_number_taken", `Another worker already has number ${workerNumber}`);
+    }
 
     return deps.db.transaction(async (tx) => {
-      const [person] = await tx.insert(people).values({ farmId: staff.farmId, name, kind: "seasonal" }).returning();
-      const card = await issueCard(tx, staff.farmId, person.id, staff.farmMembershipId);
+      const [person] = await tx
+        .insert(people)
+        .values({ farmId: staff.farmId, name: body.name, kind: "seasonal", workerNumber })
+        .returning();
 
       await logAudit(tx, { actor: staff.farmMembershipId, action: "register_seasonal_worker", target: person.id, farmId: staff.farmId });
 
-      return { person, card };
+      return { person };
     });
-  });
-
-  /** Lost, muddy or wrongly held card: revoke it and print a new code. The old code stays on every crate it ever stamped. */
-  app.post("/piecework/workers/:personId/card", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
-    const staff = request.staff!;
-    const { personId } = request.params as { personId: string };
-
-    const [person] = await deps.db
-      .select({ id: people.id })
-      .from(people)
-      .where(and(eq(people.id, personId), eq(people.farmId, staff.farmId), eq(people.kind, "seasonal")));
-    if (!person) throw notFound();
-
-    return deps.db.transaction(async (tx) => {
-      const card = await issueCard(tx, staff.farmId, personId, staff.farmMembershipId);
-      await logAudit(tx, { actor: staff.farmMembershipId, action: "reissue_worker_card", target: personId, farmId: staff.farmId });
-      return { card };
-    });
-  });
-
-  /** Revoke without reissuing — the worker has left. Their crates keep their attribution. */
-  app.post("/piecework/cards/:cardId/revoke", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
-    const staff = request.staff!;
-    const { cardId } = request.params as { cardId: string };
-
-    const [card] = await deps.db
-      .update(workerCards)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(workerCards.id, cardId), eq(workerCards.farmId, staff.farmId), isNull(workerCards.revokedAt)))
-      .returning();
-    if (!card) throw notFound();
-
-    await logAudit(deps.db, { actor: staff.farmMembershipId, action: "revoke_worker_card", target: cardId, farmId: staff.farmId });
-
-    return { card };
   });
 
   /**
-   * The phone's copy of the card list, cached on the device the same way
-   * blocks are so a scan resolves with no signal (docs/piecework-build-scope.md).
-   * Device-ticket-gated: it names the farm's seasonal workers, so it is not
-   * something a phone gets before it is paired.
+   * Fix a typo, renumber someone, or mark a worker who has left inactive.
+   * Nothing here touches crates already captured: a renumbered worker keeps
+   * every crate attributed to their person, and `picker_card_code` still
+   * shows the number that was actually scanned at the time.
    */
-  app.get("/worker-cards", async (request) => {
+  app.patch("/piecework/workers/:personId", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+    const staff = request.staff!;
+    const { personId } = request.params as { personId: string };
+    const body = updateWorkerRequestSchema.parse(request.body);
+
+    if (!(await seasonalWorker(deps.db, staff.farmId, personId))) throw notFound();
+
+    const workerNumber = body.workerNumber === undefined ? undefined : normaliseWorkerNumber(body.workerNumber);
+    if (workerNumber && (await numberTaken(deps.db, staff.farmId, workerNumber, personId))) {
+      throw conflict("worker_number_taken", `Another worker already has number ${workerNumber}`);
+    }
+
+    return deps.db.transaction(async (tx) => {
+      const [person] = await tx
+        .update(people)
+        .set({
+          ...(body.name === undefined ? {} : { name: body.name }),
+          ...(workerNumber === undefined ? {} : { workerNumber }),
+          ...(body.active === undefined ? {} : { active: body.active }),
+        })
+        .where(eq(people.id, personId))
+        .returning();
+
+      await logAudit(tx, { actor: staff.farmMembershipId, action: "edit_seasonal_worker", target: personId, farmId: staff.farmId });
+
+      return { person };
+    });
+  });
+
+  /**
+   * The register, in and out as CSV, keyed on the farm's own worker number
+   * (ADR 0011) — that is what makes the payment system's file and this list
+   * the same list.
+   */
+  app.get("/export/workers.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const workers = await deps.db
+      .select({ workerNumber: people.workerNumber, name: people.name, active: people.active })
+      .from(people)
+      .where(and(eq(people.farmId, farmId), eq(people.kind, "seasonal")))
+      .orderBy(asc(people.workerNumber), asc(people.name));
+
+    const csv = toCsv(
+      ["worker_number", "name", "active"],
+      workers.map((worker) => [worker.workerNumber, worker.name, worker.active ? "yes" : "no"]),
+    );
+
+    return sendCsv(reply, "werkers.csv", csv);
+  });
+
+  /**
+   * The same file back again: `worker_number` decides who each row is, so a
+   * number the farm already knows is updated and a new one is added. Nothing
+   * is deleted — a worker missing from the file has not resigned, they are
+   * just not in that file; mark them inactive deliberately instead.
+   *
+   * A row the farm cannot act on (no number, a blank name, the same number
+   * twice in one file) is reported back rather than guessed at, and the
+   * rows around it still land.
+   */
+  app.post("/piecework/workers/import", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+    const staff = request.staff!;
+    const rows = parseCsv(typeof request.body === "string" ? request.body : "");
+
+    const existing = await deps.db
+      .select({ id: people.id, workerNumber: people.workerNumber })
+      .from(people)
+      .where(and(eq(people.farmId, staff.farmId), eq(people.kind, "seasonal")));
+    const byNumber = new Map(existing.filter((row) => row.workerNumber).map((row) => [row.workerNumber!, row.id]));
+
+    // A code, not a sentence: the office tools word it in the farm's language.
+    const skipped: { row: number; reason: "no_number" | "no_name" | "duplicate_number"; workerNumber?: string }[] = [];
+    const seen = new Set<string>();
+    let created = 0;
+    let updated = 0;
+
+    await deps.db.transaction(async (tx) => {
+      for (const [index, row] of rows.entries()) {
+        // The header line is row 1 in the file the office is looking at.
+        const line = index + 2;
+        const workerNumber = normaliseWorkerNumber(row["worker_number"] ?? row["number"] ?? "");
+        const name = (row["name"] ?? row["full_name"] ?? "").trim();
+        const active = !/^(no|nee|false|0|inactive)$/i.test(row["active"] ?? "");
+
+        if (!workerNumber) {
+          skipped.push({ row: line, reason: "no_number" });
+          continue;
+        }
+        if (!name) {
+          skipped.push({ row: line, reason: "no_name" });
+          continue;
+        }
+        if (seen.has(workerNumber)) {
+          skipped.push({ row: line, reason: "duplicate_number", workerNumber });
+          continue;
+        }
+        seen.add(workerNumber);
+
+        const personId = byNumber.get(workerNumber);
+        if (personId) {
+          await tx.update(people).set({ name, active }).where(eq(people.id, personId));
+          updated += 1;
+        } else {
+          await tx.insert(people).values({ farmId: staff.farmId, name, kind: "seasonal", workerNumber, active });
+          created += 1;
+        }
+      }
+
+      await logAudit(tx, { actor: staff.farmMembershipId, action: "import_seasonal_workers", target: staff.farmId, farmId: staff.farmId });
+    });
+
+    return { created, updated, skipped };
+  });
+
+  /**
+   * The phone's copy of the register, cached on the device the same way
+   * blocks are so a scan resolves with no signal (docs/piecework-build-scope.md).
+   * Device-ticket-gated: it names the farm's workers, so it is not something
+   * a phone gets before it is paired.
+   */
+  app.get("/pickers", async (request) => {
     const claims = await requireDeviceTicket(request.headers, deps);
 
-    const cards = await deps.db
-      .select({ code: workerCards.code, personId: people.id, personName: people.name })
-      .from(workerCards)
-      .innerJoin(people, eq(people.id, workerCards.personId))
-      .where(and(eq(workerCards.farmId, claims.farmId), isNull(workerCards.revokedAt)))
-      .orderBy(asc(people.name));
+    const pickers = await deps.db
+      .select({ workerNumber: people.workerNumber, personId: people.id, personName: people.name })
+      .from(people)
+      .where(and(eq(people.farmId, claims.farmId), eq(people.kind, "seasonal"), eq(people.active, true), sql`${people.workerNumber} is not null`))
+      .orderBy(asc(people.workerNumber));
 
-    return { cards };
+    return { pickers };
   });
 
   app.get("/piece-rates", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
@@ -244,7 +345,7 @@ export function registerPieceworkRoutes(app: App, deps: AppDeps) {
         id: harvestEvents.id,
         createdAt: harvestEvents.createdAt,
         weightKg: harvestEvents.weightKg,
-        cardCode: harvestEvents.pickerCardCode,
+        scannedNumber: harvestEvents.pickerCardCode,
       })
       .from(harvestEvents)
       .where(and(eq(harvestEvents.farmId, farmId), isNull(harvestEvents.pickerId), sql`${harvestEvents.pickerCardCode} is not null`))

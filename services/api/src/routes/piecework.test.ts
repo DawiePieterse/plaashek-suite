@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocks, harvestEvents, people, seasons, workerCards } from "@plaashek/schema";
+import { blocks, harvestEvents, people, seasons } from "@plaashek/schema";
 import { and, eq } from "drizzle-orm";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import type { Db } from "../db.js";
@@ -23,23 +23,30 @@ async function pickingFarm(db: Db) {
 const staffToken = (farm: { id: string }, membership: { id: string }, secret: string, role: "admin" | "owner" = "admin") =>
   signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role }, secret);
 
-test("registering a seasonal worker creates the person and their first card", async () => {
+/** The office types the number; every test that needs a picker starts here. */
+async function registerWorker(app: Awaited<ReturnType<typeof buildTestApp>>["app"], token: string, workerNumber: string, name: string) {
+  const response = await app.inject({
+    method: "POST",
+    url: "/piecework/workers",
+    headers: { authorization: `Bearer ${token}` },
+    payload: { workerNumber, name },
+  });
+
+  return { response, person: (response.json() as { person?: { id: string; kind: string; workerNumber: string } }).person };
+}
+
+test("a seasonal worker is registered under the number the office typed", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership } = await pickingFarm(db);
     const token = await staffToken(farm, membership, deps.env.staffSessionSecret);
 
-    const response = await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
-      headers: { authorization: `Bearer ${token}` },
-      payload: { name: "Sara Sithole" },
-    });
+    // Typed with a stray space and lower case, as it would be off a payslip.
+    const { response, person } = await registerWorker(app, token, " emp-014 ", "Sara Sithole");
 
     assert.equal(response.statusCode, 200);
-    const body = response.json() as { person: { id: string; kind: string }; card: { code: string } };
-    assert.equal(body.person.kind, "seasonal");
-    assert.match(body.card.code, /^[0-9A-Z]{8}$/);
+    assert.equal(person!.workerNumber, "EMP014");
+    assert.equal(person!.kind, "seasonal");
 
     // Seasonal people stay out of the device-assignment list the office picks from.
     const farmResponse = await app.inject({ method: "GET", url: "/farm", headers: { authorization: `Bearer ${token}` } });
@@ -48,50 +55,167 @@ test("registering a seasonal worker creates the person and their first card", as
   });
 });
 
-test("reissuing a card revokes the old one and mints a new code", async () => {
+test("two workers cannot hold the same number", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership } = await pickingFarm(db);
     const token = await staffToken(farm, membership, deps.env.staffSessionSecret);
 
-    const registered = await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
-      headers: { authorization: `Bearer ${token}` },
-      payload: { name: "Sara Sithole" },
-    });
-    const { person, card } = registered.json() as { person: { id: string }; card: { code: string } };
+    await registerWorker(app, token, "14", "Sara Sithole");
+    const { response } = await registerWorker(app, token, "14", "Piet Plaas");
 
-    const reissued = await app.inject({
-      method: "POST",
-      url: `/piecework/workers/${person.id}/card`,
-      headers: { authorization: `Bearer ${token}` },
-    });
-
-    assert.equal(reissued.statusCode, 200);
-    const fresh = (reissued.json() as { card: { code: string } }).card;
-    assert.notEqual(fresh.code, card.code);
-
-    const cards = await db.select().from(workerCards).where(eq(workerCards.personId, person.id));
-    assert.equal(cards.length, 2);
-    assert.equal(cards.filter((row) => row.revokedAt === null).length, 1);
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.json().error.code, "worker_number_taken");
   });
 });
 
-test("a scanned card attributes the crate to its picker, not to the device's person", async () => {
+test("the same number on another farm is a different worker", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await pickingFarm(db);
+    const other = await pickingFarm(db);
+
+    await registerWorker(app, await staffToken(farm, membership, deps.env.staffSessionSecret), "14", "Sara Sithole");
+    const { response } = await registerWorker(app, await staffToken(other.farm, other.membership, deps.env.staffSessionSecret), "14", "Someone Else");
+
+    assert.equal(response.statusCode, 200);
+  });
+});
+
+test("a worker's name, number and standing can be edited", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await pickingFarm(db);
+    const token = await staffToken(farm, membership, deps.env.staffSessionSecret);
+    const { person } = await registerWorker(app, token, "14", "Sara Sithol");
+
+    const fixed = await app.inject({
+      method: "PATCH",
+      url: `/piecework/workers/${person!.id}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { name: "Sara Sithole", workerNumber: "015", active: false },
+    });
+
+    assert.equal(fixed.statusCode, 200);
+    const [row] = await db.select().from(people).where(eq(people.id, person!.id));
+    assert.equal(row.name, "Sara Sithole");
+    assert.equal(row.workerNumber, "015");
+    assert.equal(row.active, false);
+  });
+});
+
+test("an edit cannot take a number another worker already holds", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await pickingFarm(db);
+    const token = await staffToken(farm, membership, deps.env.staffSessionSecret);
+    await registerWorker(app, token, "14", "Sara Sithole");
+    const { person } = await registerWorker(app, token, "15", "Piet Plaas");
+
+    const clash = await app.inject({
+      method: "PATCH",
+      url: `/piecework/workers/${person!.id}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { workerNumber: "14" },
+    });
+
+    assert.equal(clash.statusCode, 409);
+  });
+});
+
+test("keeping your own number on an edit is not a clash", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await pickingFarm(db);
+    const token = await staffToken(farm, membership, deps.env.staffSessionSecret);
+    const { person } = await registerWorker(app, token, "14", "Sara Sithol");
+
+    const fixed = await app.inject({
+      method: "PATCH",
+      url: `/piecework/workers/${person!.id}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { workerNumber: "14", name: "Sara Sithole" },
+    });
+
+    assert.equal(fixed.statusCode, 200);
+  });
+});
+
+test("importing a payroll file adds new workers and updates the ones the farm already has", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await pickingFarm(db);
+    const token = await staffToken(farm, membership, deps.env.staffSessionSecret);
+    await registerWorker(app, token, "14", "Sara Sithol");
+
+    const csv = [
+      "Worker Number,Name,Active",
+      "14,Sara Sithole,yes", // the number the office already has, with the name corrected
+      "15,Piet Plaas,yes",
+      "16,Jan Jantjies,no",
+      ",Nobody,yes", // no number
+      "17,,yes", // no name
+      "15,Piet Again,yes", // the same number twice in one file
+      "014,Leading Zero,yes", // "014" is not "14" — a payroll number keeps its zeros
+    ].join("\r\n");
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/piecework/workers/import",
+      headers: { authorization: `Bearer ${token}`, "content-type": "text/csv" },
+      payload: csv,
+    });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json() as { created: number; updated: number; skipped: { row: number; reason: string }[] };
+    assert.equal(body.created, 3);
+    assert.equal(body.updated, 1);
+    assert.deepEqual(
+      body.skipped.map((skip) => [skip.row, skip.reason]),
+      [
+        [5, "no_number"],
+        [6, "no_name"],
+        [7, "duplicate_number"],
+      ],
+    );
+
+    const register = await app.inject({ method: "GET", url: "/piecework/workers", headers: { authorization: `Bearer ${token}` } });
+    const workers = (register.json() as { workers: { workerNumber: string; name: string; active: boolean }[] }).workers;
+    assert.deepEqual(
+      workers.map((worker) => [worker.workerNumber, worker.name, worker.active]),
+      [
+        ["014", "Leading Zero", true],
+        ["14", "Sara Sithole", true],
+        ["15", "Piet Plaas", true],
+        ["16", "Jan Jantjies", false],
+      ],
+    );
+  });
+});
+
+test("the register goes out as CSV the payment system can read back", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await pickingFarm(db);
+    const token = await staffToken(farm, membership, deps.env.staffSessionSecret);
+    await registerWorker(app, token, "14", "Sara Sithole");
+
+    const response = await app.inject({ method: "GET", url: "/export/workers.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "\ufeffworker_number,name,active");
+    assert.equal(lines[1], "14,Sara Sithole,yes");
+  });
+});
+
+test("a scanned number attributes the crate to its picker, not to the device's person", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, person, membership, block, season, device } = await pickingFarm(db);
     const staff = await staffToken(farm, membership, deps.env.staffSessionSecret);
 
-    const registered = await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
-      headers: { authorization: `Bearer ${staff}` },
-      payload: { name: "Sara Sithole" },
-    });
-    const { person: picker, card } = registered.json() as { person: { id: string }; card: { code: string } };
-
+    const { person: picker } = await registerWorker(app, staff, "EMP-014", "Sara Sithole");
     const ticket = await ticketFor(deps, farm, device, ["boord"], { seasonId: season.id });
 
     const upload = await app.inject({
@@ -105,8 +229,8 @@ test("a scanned card attributes the crate to its picker, not to the device's per
             entity_id: crypto.randomUUID(),
             client_time: "2026-09-10T07:30:00.000Z",
             season_id: season.id,
-            // Typed off the card, lower case with a stray space — normalised both sides.
-            payload: { block_id: block.id, weight_kg: 18.5, picker_card_code: ` ${card.code.toLowerCase()} ` },
+            // Typed off the card, lower case with a stray hyphen — normalised both sides.
+            payload: { block_id: block.id, weight_kg: 18.5, picker_card_code: " emp-014 " },
           },
         ],
       },
@@ -114,14 +238,14 @@ test("a scanned card attributes the crate to its picker, not to the device's per
 
     assert.equal(upload.statusCode, 200);
     const [row] = await db.select().from(harvestEvents).where(eq(harvestEvents.farmId, farm.id));
-    assert.equal(row.pickerId, picker.id);
-    assert.equal(row.pickerCardCode, card.code);
+    assert.equal(row.pickerId, picker!.id);
+    assert.equal(row.pickerCardCode, "EMP014");
     // The supervisor's device still stamps who captured it.
     assert.equal(row.createdBy, person.id);
   });
 });
 
-test("a card the server does not know keeps the crate and the code, unattributed", async () => {
+test("a number the server does not know keeps the crate and the number, unattributed", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership, block, season, device } = await pickingFarm(db);
@@ -155,21 +279,21 @@ test("a card the server does not know keeps the crate and the code, unattributed
   });
 });
 
-test("a revoked card stops attributing crates", async () => {
+test("a worker who has left stops collecting crates", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership, block, season, device } = await pickingFarm(db);
     const staff = await staffToken(farm, membership, deps.env.staffSessionSecret);
 
-    const registered = await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
-      headers: { authorization: `Bearer ${staff}` },
-      payload: { name: "Sara Sithole" },
-    });
-    const { person: picker, card } = registered.json() as { person: { id: string }; card: { id: string; code: string } };
+    const { person: picker } = await registerWorker(app, staff, "14", "Sara Sithole");
 
-    await app.inject({ method: "POST", url: `/piecework/cards/${card.id}/revoke`, headers: { authorization: `Bearer ${staff}` } });
+    // They have left: the office marks them inactive rather than deleting them.
+    await app.inject({
+      method: "PATCH",
+      url: `/piecework/workers/${picker!.id}`,
+      headers: { authorization: `Bearer ${staff}` },
+      payload: { active: false },
+    });
 
     const ticket = await ticketFor(deps, farm, device, ["boord"], { seasonId: season.id });
 
@@ -184,7 +308,7 @@ test("a revoked card stops attributing crates", async () => {
             entity_id: crypto.randomUUID(),
             client_time: "2026-09-10T07:30:00.000Z",
             season_id: season.id,
-            payload: { block_id: block.id, weight_kg: 9, picker_card_code: card.code },
+            payload: { block_id: block.id, weight_kg: 9, picker_card_code: "14" },
           },
         ],
       },
@@ -192,8 +316,9 @@ test("a revoked card stops attributing crates", async () => {
 
     const [row] = await db.select().from(harvestEvents).where(eq(harvestEvents.farmId, farm.id));
     assert.equal(row.pickerId, null);
-    assert.equal(row.pickerCardCode, card.code);
-    assert.equal((await db.select().from(people).where(and(eq(people.id, picker.id), eq(people.kind, "seasonal")))).length, 1);
+    // The number that was scanned is still on the crate for the office to place.
+    assert.equal(row.pickerCardCode, "14");
+    assert.equal((await db.select().from(people).where(and(eq(people.id, picker!.id), eq(people.kind, "seasonal")))).length, 1);
   });
 });
 
@@ -203,13 +328,7 @@ test("the payout prices each picker's day against the tier in force", async () =
     const { farm, person, membership, block, season, device } = await pickingFarm(db);
     const staff = await staffToken(farm, membership, deps.env.staffSessionSecret);
 
-    const registered = await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
-      headers: { authorization: `Bearer ${staff}` },
-      payload: { name: "Sara Sithole" },
-    });
-    const { person: picker } = registered.json() as { person: { id: string } };
+    const { person: picker } = await registerWorker(app, staff, "14", "Sara Sithole");
 
     const rate = await app.inject({
       method: "POST",
@@ -228,7 +347,7 @@ test("the payout prices each picker's day against the tier in force", async () =
         createdBy: person.id,
         deviceId: device.id,
         blockId: block.id,
-        pickerId: picker.id,
+        pickerId: picker!.id,
         weightKg: 70,
         createdAt: new Date("2026-09-10T06:00:00Z"),
       },
@@ -239,7 +358,7 @@ test("the payout prices each picker's day against the tier in force", async () =
         createdBy: person.id,
         deviceId: device.id,
         blockId: block.id,
-        pickerId: picker.id,
+        pickerId: picker!.id,
         weightKg: 52,
         deductionKg: 2,
         createdAt: new Date("2026-09-10T11:00:00Z"),
@@ -266,7 +385,7 @@ test("the payout prices each picker's day against the tier in force", async () =
       unattributedCrates: number;
       unattributedKg: number;
     };
-    assert.deepEqual(body.people, [{ personId: picker.id, personName: "Sara Sithole", kg: 120, days: 1, cents: 100 * 250 + 20 * 400, unratedKg: 0 }]);
+    assert.deepEqual(body.people, [{ personId: picker!.id, personName: "Sara Sithole", kg: 120, days: 1, cents: 100 * 250 + 20 * 400, unratedKg: 0 }]);
     assert.equal(body.unattributedCrates, 1);
     assert.equal(body.unattributedKg, 8);
   });
@@ -278,13 +397,7 @@ test("the payout window can be narrowed to a pay week", async () => {
     const { farm, person, membership, block, season, device } = await pickingFarm(db);
     const staff = await staffToken(farm, membership, deps.env.staffSessionSecret);
 
-    const registered = await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
-      headers: { authorization: `Bearer ${staff}` },
-      payload: { name: "Sara Sithole" },
-    });
-    const { person: picker } = registered.json() as { person: { id: string } };
+    const { person: picker } = await registerWorker(app, staff, "14", "Sara Sithole");
 
     await app.inject({
       method: "POST",
@@ -300,7 +413,7 @@ test("the payout window can be narrowed to a pay week", async () => {
       createdBy: person.id,
       deviceId: device.id,
       blockId: block.id,
-      pickerId: picker.id,
+      pickerId: picker!.id,
       weightKg,
       createdAt: new Date(at),
     });
@@ -338,37 +451,33 @@ test("a rate with a target but no bonus is refused — half a tier cannot be app
   });
 });
 
-test("the phone's card list carries only live cards for its own farm", async () => {
+test("the phone's register carries only this farm's active pickers", async () => {
   await withTestDb(async (db) => {
     const { app, deps } = await buildTestApp(db);
     const { farm, membership, device, season } = await pickingFarm(db);
     const staff = await staffToken(farm, membership, deps.env.staffSessionSecret);
     const other = await pickingFarm(db);
 
-    const registered = await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
+    await registerWorker(app, staff, "14", "Sara Sithole");
+    const { person: gone } = await registerWorker(app, staff, "15", "Piet Plaas");
+    await app.inject({
+      method: "PATCH",
+      url: `/piecework/workers/${gone!.id}`,
       headers: { authorization: `Bearer ${staff}` },
-      payload: { name: "Sara Sithole" },
+      payload: { active: false },
     });
-    const { card } = registered.json() as { card: { id: string; code: string } };
 
     const otherStaff = await staffToken(other.farm, other.membership, deps.env.staffSessionSecret);
-    await app.inject({
-      method: "POST",
-      url: "/piecework/workers",
-      headers: { authorization: `Bearer ${otherStaff}` },
-      payload: { name: "Other Farm Picker" },
-    });
+    await registerWorker(app, otherStaff, "14", "Other Farm Picker");
 
     const ticket = await ticketFor(deps, farm, device, ["boord"], { seasonId: season.id });
 
-    const response = await app.inject({ method: "GET", url: "/worker-cards", headers: { authorization: `Bearer ${ticket}` } });
+    const response = await app.inject({ method: "GET", url: "/pickers", headers: { authorization: `Bearer ${ticket}` } });
 
     assert.equal(response.statusCode, 200);
     assert.deepEqual(
-      (response.json() as { cards: { code: string; personName: string }[] }).cards.map((row) => [row.code, row.personName]),
-      [[card.code, "Sara Sithole"]],
+      (response.json() as { pickers: { workerNumber: string; personName: string }[] }).pickers.map((row) => [row.workerNumber, row.personName]),
+      [["14", "Sara Sithole"]],
     );
   });
 });

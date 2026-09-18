@@ -59,19 +59,34 @@ const af = {
 
   workersHeading: "Werkers",
   worker: "Werker",
+  workerNumber: "Nommer",
+  workerNumberPlaceholder: "bv. 014",
+  workerActive: "Aktief",
   workerNamePlaceholder: "Naam van die werker",
   registerWorker: "Registreer en druk kaart",
-  cardCode: "Kaartkode",
-  noCard: "geen kaart",
+  saveWorker: "Stoor",
   noWorkers: "Nog geen seisoenwerkers nie.",
   printCard: "Druk kaart",
-  reissueCard: "Nuwe kaart",
-  revokeCard: "Herroep kaart",
+  yes: "Ja",
+  no: "Nee",
+
+  importWorkers: "Voer werkerslys in (CSV)",
+  exportWorkers: "Voer werkerslys uit (CSV)",
+  importNote:
+    "Die lêer se kolomme: worker_number, name, active. Die nommer sê wie elke ry is — 'n nommer wat die plaas al ken word bygewerk, 'n nuwe een word bygevoeg. Niemand word uitgevee nie.",
+  imported: (created: number, updated: number) => `${created} bygevoeg, ${updated} bygewerk.`,
+  importSkipped: (rows: string) => `Oorgeslaan: ${rows}.`,
+  importSkippedRow: (row: number, reason: string) => `ry ${row} (${reason})`,
+  importReason: {
+    no_number: "geen werkernommer nie",
+    no_name: "geen naam nie",
+    duplicate_number: "nommer kom twee keer voor in hierdie lêer",
+  } as Record<string, string>,
 
 
   cardTitle: "Werkerskaart",
   cardWorker: "Werker",
-  cardNote: "Skandeer hierdie kaart by die skaal voor die krat geweeg word. Verlore kaart? Die kantoor druk 'n nuwe een.",
+  cardNote: "Skandeer hierdie kaart by die skaal voor die krat geweeg word. Verlore kaart? Die kantoor druk dieselfde nommer weer.",
 
 
   slipTitle: "Paringstrokie",
@@ -88,6 +103,7 @@ const af = {
   /** Server messages are English; these are the Afrikaans equivalents by error code. */
   errors: {
     invalid_credentials: "Verkeerde e-pos of wagwoord.",
+    worker_number_taken: "Daardie nommer is al aan 'n ander werker gegee.",
     unauthenticated: "Jou sessie het verval. Meld weer aan.",
     forbidden: "Jy het nie regte vir hierdie aksie nie.",
     not_licensed: "Die plaas het nie 'n lisensie vir hierdie program nie.",
@@ -151,19 +167,34 @@ const en: typeof af = {
 
   workersHeading: "Workers",
   worker: "Worker",
+  workerNumber: "Number",
+  workerNumberPlaceholder: "e.g. 014",
+  workerActive: "Active",
   workerNamePlaceholder: "Worker's name",
   registerWorker: "Register and print card",
-  cardCode: "Card code",
-  noCard: "no card",
+  saveWorker: "Save",
   noWorkers: "No seasonal workers yet.",
   printCard: "Print card",
-  reissueCard: "New card",
-  revokeCard: "Revoke card",
+  yes: "Yes",
+  no: "No",
+
+  importWorkers: "Import worker list (CSV)",
+  exportWorkers: "Export worker list (CSV)",
+  importNote:
+    "The file's columns: worker_number, name, active. The number says who each row is — a number the farm already knows is updated, a new one is added. Nobody is deleted.",
+  imported: (created: number, updated: number) => `${created} added, ${updated} updated.`,
+  importSkipped: (rows: string) => `Skipped: ${rows}.`,
+  importSkippedRow: (row: number, reason: string) => `row ${row} (${reason})`,
+  importReason: {
+    no_number: "no worker number",
+    no_name: "no name",
+    duplicate_number: "number appears twice in this file",
+  },
 
 
   cardTitle: "Worker card",
   cardWorker: "Worker",
-  cardNote: "Scan this card at the scale before the crate is weighed. Lost card? The office prints a new one.",
+  cardNote: "Scan this card at the scale before the crate is weighed. Lost card? The office prints the same number again.",
 
 
   slipTitle: "Pairing slip",
@@ -179,6 +210,7 @@ const en: typeof af = {
 
   errors: {
     invalid_credentials: "Incorrect email or password.",
+    worker_number_taken: "Another worker already has that number.",
     unauthenticated: "Your session expired. Sign in again.",
     forbidden: "You do not have rights for this action.",
     not_licensed: "This farm is not licensed for that app.",

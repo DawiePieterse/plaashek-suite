@@ -94,9 +94,11 @@ hours in Eienaar) — see `docs/span-build-scope.md`.
 
 Seasonal piece-work is done too, outside that order: the farm pays its litchi
 pickers per kilogram, which Span does not cover. A picker carries a printed
-worker card, the scale phone scans it before the weight, and the office sets a
-tiered rate and reads the payout — see `docs/piecework-build-scope.md`. It
-calculates pay and exports it; it does not issue payslips, move money, or
-check the minimum wage (ADR 0010).
+worker card holding the farm's own worker number (ADR 0011), the scale phone
+scans it before the weight, and the office sets a tiered rate and reads the
+payout — see `docs/piecework-build-scope.md`. The worker register is editable
+and moves in and out as CSV keyed on that number, so it joins to whatever
+pays the workers. It calculates pay and exports it; it does not issue
+payslips, move money, or check the minimum wage (ADR 0010).
 
 `stoor` is next; write its build scope before any code.

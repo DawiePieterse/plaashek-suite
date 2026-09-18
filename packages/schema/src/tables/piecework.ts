@@ -1,41 +1,6 @@
-import { date, doublePrecision, integer, pgTable, timestamp, text, unique, uuid } from "drizzle-orm/pg-core";
+import { date, doublePrecision, integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { farms } from "./core.js";
-import { farmMemberships, people } from "./people.js";
 import { seasons } from "./master-data.js";
-
-/**
- * The printed card a seasonal picker carries, scanned at the scale to say who
- * filled this crate (ADR 0009, docs/piecework-build-scope.md). A bearer
- * identifier, not a credential: it grants no access and reads no data, so the
- * worst a lost card does is misattribute pay until it is revoked.
- *
- * Reissue mints a new row with a new code rather than editing this one — the
- * old code stays in `harvest_events.picker_card_code` on every crate it ever
- * stamped, so history still reads correctly after a card is replaced.
- */
-export const workerCards = pgTable(
-  "worker_cards",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    farmId: uuid("farm_id")
-      .notNull()
-      .references(() => farms.id),
-    personId: uuid("person_id")
-      .notNull()
-      .references(() => people.id),
-    /** Printed as a QR and in readable characters, for the phone that cannot scan. */
-    code: text("code").notNull(),
-    issuedAt: timestamp("issued_at", { withTimezone: true }).notNull().defaultNow(),
-    /** The office login that printed it — same convention as a pairing slip's `printedBy`. */
-    issuedBy: uuid("issued_by")
-      .notNull()
-      .references(() => farmMemberships.id),
-    revokedAt: timestamp("revoked_at", { withTimezone: true }),
-  },
-  // Codes are farm-scoped: two farms may not share one, and no farm may
-  // issue the same code twice (plan §6: no cross-farm anything).
-  (table) => [unique().on(table.farmId, table.code)],
-);
 
 /**
  * What a kilogram is worth, tiered (ADR 0010): `base` up to `targetKg` picked
