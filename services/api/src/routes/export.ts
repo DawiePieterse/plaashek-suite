@@ -1,5 +1,6 @@
-import { assets, attendancePunches, blocks, fuelLogs, harvestEvents, meterReadings, notes, people, pieceRates, seasons, stockItems, stockMoves, waterPoints, workOrders } from "@plaashek/schema";
+import { animals, assets, attendancePunches, blocks, camps, fuelLogs, harvestEvents, meterReadings, movements, notes, people, pieceRates, seasons, stockItems, stockMoves, treatments, waterPoints, weights, workOrders } from "@plaashek/schema";
 import { and, asc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import { sendCsv, toCsv } from "../lib/csv.js";
@@ -354,5 +355,121 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
     );
 
     return sendCsv(reply, "stukwerk.csv", csv);
+  });
+
+  /** The animal register, raw (docs/kudde-build-scope.md) — one row per animal, not the headcount-per-camp `/eienaar/kudde` shows. */
+  app.get("/export/animals.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: animals.id,
+        tagNumber: animals.tagNumber,
+        sex: animals.sex,
+        breed: animals.breed,
+        birthDate: animals.birthDate,
+        active: animals.active,
+      })
+      .from(animals)
+      .where(eq(animals.farmId, farmId))
+      .orderBy(asc(animals.tagNumber));
+
+    const csv = toCsv(
+      ["id", "tag_number", "sex", "breed", "birth_date", "active"],
+      rows.map((row) => [row.id, row.tagNumber, row.sex, row.breed, row.birthDate, row.active ? "yes" : "no"]),
+    );
+
+    return sendCsv(reply, "diere.csv", csv);
+  });
+
+  /** Kudde's camp changes, raw (docs/kudde-build-scope.md) — one row per animal per move, never a herd-level row. */
+  app.get("/export/movements.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+    const fromCamp = alias(camps, "from_camp");
+    const toCamp = alias(camps, "to_camp");
+
+    const rows = await deps.db
+      .select({
+        id: movements.id,
+        createdAt: movements.createdAt,
+        person: people.name,
+        animalTag: animals.tagNumber,
+        fromCamp: fromCamp.name,
+        toCamp: toCamp.name,
+        season: seasons.name,
+      })
+      .from(movements)
+      .leftJoin(people, eq(people.id, movements.createdBy))
+      .leftJoin(animals, eq(animals.id, movements.animalId))
+      .leftJoin(fromCamp, eq(fromCamp.id, movements.fromCampId))
+      .leftJoin(toCamp, eq(toCamp.id, movements.toCampId))
+      .leftJoin(seasons, eq(seasons.id, movements.seasonId))
+      .where(eq(movements.farmId, farmId))
+      .orderBy(asc(movements.createdAt));
+
+    const csv = toCsv(
+      ["id", "created_at", "person", "animal_tag", "from_camp", "to_camp", "season"],
+      rows.map((row) => [row.id, row.createdAt.toISOString(), row.person, row.animalTag, row.fromCamp, row.toCamp, row.season]),
+    );
+
+    return sendCsv(reply, "bewegings.csv", csv);
+  });
+
+  /** Kudde's treatments, raw (docs/kudde-build-scope.md) — whatever the office typed as the type and dose, never a compliance record. */
+  app.get("/export/treatments.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: treatments.id,
+        createdAt: treatments.createdAt,
+        person: people.name,
+        animalTag: animals.tagNumber,
+        treatmentType: treatments.treatmentType,
+        dose: treatments.dose,
+        note: treatments.note,
+        season: seasons.name,
+      })
+      .from(treatments)
+      .leftJoin(people, eq(people.id, treatments.createdBy))
+      .leftJoin(animals, eq(animals.id, treatments.animalId))
+      .leftJoin(seasons, eq(seasons.id, treatments.seasonId))
+      .where(eq(treatments.farmId, farmId))
+      .orderBy(asc(treatments.createdAt));
+
+    const csv = toCsv(
+      ["id", "created_at", "person", "animal_tag", "treatment_type", "dose", "note", "season"],
+      rows.map((row) => [row.id, row.createdAt.toISOString(), row.person, row.animalTag, row.treatmentType, row.dose, row.note, row.season]),
+    );
+
+    return sendCsv(reply, "behandelings.csv", csv);
+  });
+
+  /** Kudde's weighings, raw (docs/kudde-build-scope.md) — one row per weighing, no cadence assumed. */
+  app.get("/export/weights.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: weights.id,
+        createdAt: weights.createdAt,
+        person: people.name,
+        animalTag: animals.tagNumber,
+        weightKg: weights.weightKg,
+        season: seasons.name,
+      })
+      .from(weights)
+      .leftJoin(people, eq(people.id, weights.createdBy))
+      .leftJoin(animals, eq(animals.id, weights.animalId))
+      .leftJoin(seasons, eq(seasons.id, weights.seasonId))
+      .where(eq(weights.farmId, farmId))
+      .orderBy(asc(weights.createdAt));
+
+    const csv = toCsv(
+      ["id", "created_at", "person", "animal_tag", "weight_kg", "season"],
+      rows.map((row) => [row.id, row.createdAt.toISOString(), row.person, row.animalTag, row.weightKg, row.season]),
+    );
+
+    return sendCsv(reply, "gewigte.csv", csv);
   });
 }

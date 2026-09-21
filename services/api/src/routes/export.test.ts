@@ -1,20 +1,25 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  animals,
   assets,
   attendancePunches,
   blocks,
+  camps,
   devices,
   fuelLogs,
   harvestEvents,
   meterReadings,
+  movements,
   notes,
   people,
   pieceRates,
   seasons,
   stockItems,
   stockMoves,
+  treatments,
   waterPoints,
+  weights,
   workOrders,
 } from "@plaashek/schema";
 import { signStaffSession } from "../auth/staff-jwt.js";
@@ -279,5 +284,109 @@ test("GET /export/piecework.csv prices each picker's day and keeps the unplaced 
     assert.equal(lines[1], "2026-09-10,Sara Sithole,,Lietsjie 2026,120,250,100,400,33000,330.00");
     // The unplaced crate is still in the file, with its code and no pay line.
     assert.equal(lines[2], "2026-09-10,,ZZZZ9999,Lietsjie 2026,8,250,100,400,,");
+  });
+});
+
+test("GET /export/animals.csv scopes to the farm", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await seedFarm(db);
+    const { farm: otherFarm } = await seedFarm(db);
+
+    await db.insert(animals).values([
+      { farmId: farm.id, tagNumber: "014", sex: "cow", breed: "Bonsmara" },
+      { farmId: otherFarm.id, tagNumber: "999", sex: "cow" },
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "owner" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/animals.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.headers["content-disposition"], 'attachment; filename="diere.csv"');
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "﻿id,tag_number,sex,breed,birth_date,active");
+    assert.equal(lines.length, 2);
+    assert.match(lines[1], /^[^,]+,014,cow,Bonsmara,,yes$/);
+  });
+});
+
+test("GET /export/movements.csv names the person, the animal and both camps", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [campA, campB] = await db.insert(camps).values([{ farmId: farm.id, name: "Kamp A" }, { farmId: farm.id, name: "Kamp B" }]).returning();
+    const [animal] = await db.insert(animals).values({ farmId: farm.id, tagNumber: "014", sex: "cow" }).returning();
+
+    await db.insert(movements).values({
+      farmId: farm.id,
+      moduleCode: "kudde",
+      createdBy: person.id,
+      deviceId: device.id,
+      animalId: animal.id,
+      fromCampId: campA.id,
+      toCampId: campB.id,
+    });
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/movements.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "﻿id,created_at,person,animal_tag,from_camp,to_camp,season");
+    assert.match(lines[1], new RegExp(`,${person.name},014,Kamp A,Kamp B,$`));
+  });
+});
+
+test("GET /export/treatments.csv names the person and the animal, blank fields included", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [animal] = await db.insert(animals).values({ farmId: farm.id, tagNumber: "014", sex: "cow" }).returning();
+
+    await db.insert(treatments).values({
+      farmId: farm.id,
+      moduleCode: "kudde",
+      createdBy: person.id,
+      deviceId: device.id,
+      animalId: animal.id,
+      treatmentType: "Inenting",
+      dose: "5ml",
+    });
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "owner" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/treatments.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "﻿id,created_at,person,animal_tag,treatment_type,dose,note,season");
+    assert.match(lines[1], new RegExp(`,${person.name},014,Inenting,5ml,,$`));
+  });
+});
+
+test("GET /export/weights.csv names the person and the animal", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+    const [animal] = await db.insert(animals).values({ farmId: farm.id, tagNumber: "014", sex: "cow" }).returning();
+
+    await db.insert(weights).values({
+      farmId: farm.id,
+      moduleCode: "kudde",
+      createdBy: person.id,
+      deviceId: device.id,
+      animalId: animal.id,
+      weightKg: 412.5,
+    });
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/export/weights.csv", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const lines = response.body.split("\r\n").filter((line) => line !== "");
+    assert.equal(lines[0], "﻿id,created_at,person,animal_tag,weight_kg,season");
+    assert.match(lines[1], new RegExp(`,${person.name},014,412\\.5,$`));
   });
 });
