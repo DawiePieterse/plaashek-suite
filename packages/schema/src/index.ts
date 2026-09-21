@@ -8,6 +8,7 @@ import { attendancePunches } from "./tables/attendance-punches.js";
 import { pieceRates } from "./tables/piecework.js";
 import { notes } from "./tables/notes.js";
 import { harvestEvents } from "./tables/harvest-events.js";
+import { animals, movements, treatments, weights } from "./tables/kudde.js";
 import { farmMemberships, people } from "./tables/people.js";
 import { plaashekStaff } from "./tables/staff.js";
 import { stockItems, stockMoves } from "./tables/stock.js";
@@ -27,6 +28,7 @@ export * from "./tables/piecework.js";
 export * from "./tables/stock.js";
 export * from "./tables/water.js";
 export * from "./tables/werkswinkel.js";
+export * from "./tables/kudde.js";
 export * from "./tables/staff.js";
 export * from "./workspace-row.js";
 export * from "./capture-tables.js";
@@ -105,3 +107,15 @@ export const selectWorkOrder = createSelectSchema(workOrders);
 
 export const insertFuelLog = createInsertSchema(fuelLogs);
 export const selectFuelLog = createSelectSchema(fuelLogs);
+
+export const insertAnimal = createInsertSchema(animals);
+export const selectAnimal = createSelectSchema(animals);
+
+export const insertMovement = createInsertSchema(movements);
+export const selectMovement = createSelectSchema(movements);
+
+export const insertTreatment = createInsertSchema(treatments);
+export const selectTreatment = createSelectSchema(treatments);
+
+export const insertWeight = createInsertSchema(weights);
+export const selectWeight = createSelectSchema(weights);

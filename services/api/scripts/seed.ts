@@ -7,6 +7,7 @@
  */
 import { fileURLToPath } from "node:url";
 import {
+  animals,
   assets,
   auditLog,
   captureTables,
@@ -90,11 +91,13 @@ async function wipeDemoData() {
     await db.delete(camps).where(inArray(camps.farmId, farmIds));
     await db.delete(blocks).where(inArray(blocks.farmId, farmIds));
     await db.delete(assets).where(inArray(assets.farmId, farmIds));
-    // Catalogs (docs/stoor-build-scope.md, docs/water-build-scope.md) — their
-    // moves/readings are already gone via `captureTables` above, so this is
-    // safe to run now, before the farm itself goes.
+    // Catalogs (docs/stoor-build-scope.md, docs/water-build-scope.md,
+    // docs/kudde-build-scope.md) — their moves/readings/events are already
+    // gone via `captureTables` above, so this is safe to run now, before the
+    // farm itself goes.
     await db.delete(stockItems).where(inArray(stockItems.farmId, farmIds));
     await db.delete(waterPoints).where(inArray(waterPoints.farmId, farmIds));
+    await db.delete(animals).where(inArray(animals.farmId, farmIds));
     await db.delete(seasons).where(inArray(seasons.farmId, farmIds));
     await db.delete(farms).where(inArray(farms.id, farmIds));
   }

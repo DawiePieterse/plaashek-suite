@@ -1,5 +1,6 @@
 import { attendancePunches } from "./tables/attendance-punches.js";
 import { harvestEvents } from "./tables/harvest-events.js";
+import { movements, treatments, weights } from "./tables/kudde.js";
 import { notes } from "./tables/notes.js";
 import { stockMoves } from "./tables/stock.js";
 import { meterReadings } from "./tables/water.js";
@@ -15,7 +16,18 @@ import { fuelLogs, workOrders } from "./tables/werkswinkel.js";
  * FKs), so nothing cascades — without this list a new module's rows are
  * quietly missed by every such sweep.
  */
-export const captureTables = [notes, harvestEvents, attendancePunches, stockMoves, meterReadings, workOrders, fuelLogs];
+export const captureTables = [
+  notes,
+  harvestEvents,
+  attendancePunches,
+  stockMoves,
+  meterReadings,
+  workOrders,
+  fuelLogs,
+  movements,
+  treatments,
+  weights,
+];
 
 /**
  * The subset that must carry a season. `season_id` is deliberately null for
@@ -24,4 +36,4 @@ export const captureTables = [notes, harvestEvents, attendancePunches, stockMove
  * without a season" is a question only these tables can be asked — counting
  * the others would report a permanent, meaningless backlog to the office.
  */
-export const seasonStampedTables = [notes, harvestEvents, attendancePunches, stockMoves];
+export const seasonStampedTables = [notes, harvestEvents, attendancePunches, stockMoves, movements, treatments, weights];
