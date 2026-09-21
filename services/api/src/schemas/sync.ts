@@ -116,6 +116,36 @@ const workOrderOp = z.object({
   }),
 });
 
+/**
+ * A chemical or fertigation application (docs/bespuiting-build-scope.md):
+ * block, product and how much, plus the compliance fields Stoor never
+ * carries. `water_point_id`/`meter_reading` are only present on a fertigation
+ * run through a Kraan — a foliar spray sends neither. No operator field:
+ * "who" is the device's assigned person, same as every other module.
+ */
+const sprayApplicationOp = z.object({
+  entity: z.literal("spray_applications"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    block_id: z.string().uuid(),
+    item_id: z.string().uuid(),
+    quantity: z.number().positive(),
+    concentration: z.string().max(200).nullable().optional(),
+    reason: z.string().max(200).nullable().optional(),
+    method: z.string().max(200).nullable().optional(),
+    water_point_id: z.string().uuid().nullable().optional(),
+    meter_reading: z.number().nullable().optional(),
+    weather_temp: z.number().nullable().optional(),
+    weather_humidity: z.number().nullable().optional(),
+    weather_condition: z.string().nullable().optional(),
+    latitude: z.number().nullable().optional(),
+    longitude: z.number().nullable().optional(),
+    location_accuracy_m: z.number().nullable().optional(),
+  }),
+});
+
 /** One fill-up (docs/werkswinkel-build-scope.md): no lifecycle, no pairing. `season_id` is always null. */
 const fuelLogOp = z.object({
   entity: z.literal("fuel_logs"),
@@ -136,7 +166,18 @@ const fuelLogOp = z.object({
  */
 export const uploadRequestSchema = z.object({
   ops: z
-    .array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp, stockMoveOp, meterReadingOp, workOrderOp, fuelLogOp]))
+    .array(
+      z.discriminatedUnion("entity", [
+        noteOp,
+        harvestEventOp,
+        attendancePunchOp,
+        stockMoveOp,
+        meterReadingOp,
+        workOrderOp,
+        fuelLogOp,
+        sprayApplicationOp,
+      ]),
+    )
     .min(1)
     .max(500),
 });
@@ -149,3 +190,4 @@ export type StockMoveOp = z.infer<typeof stockMoveOp>;
 export type MeterReadingOp = z.infer<typeof meterReadingOp>;
 export type WorkOrderOp = z.infer<typeof workOrderOp>;
 export type FuelLogOp = z.infer<typeof fuelLogOp>;
+export type SprayApplicationOp = z.infer<typeof sprayApplicationOp>;

@@ -1,10 +1,11 @@
-import { assets, attendancePunches, blocks, fuelLogs, harvestEvents, meterReadings, notes, people, pieceRates, seasons, stockItems, stockMoves, waterPoints, workOrders } from "@plaashek/schema";
+import { assets, attendancePunches, blocks, fuelLogs, harvestEvents, meterReadings, notes, people, pieceRates, productRegistrations, seasons, sprayApplications, stockItems, stockMoves, waterPoints, workOrders } from "@plaashek/schema";
 import { and, asc, eq } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import { sendCsv, toCsv } from "../lib/csv.js";
 import { farmDayKey } from "../lib/farm-day.js";
 import { dayCents, netKg, rateOn, type Rate } from "../lib/piecework.js";
+import { safeHarvestDate } from "./bespuiting.js";
 
 /**
  * Excel export for the office tools (plan §10 offboarding, §12 Phase 4) — one
@@ -194,6 +195,90 @@ export function registerExportRoutes(app: App, deps: AppDeps) {
     );
 
     return sendCsv(reply, "water.csv", csv);
+  });
+
+  /**
+   * Bespuiting's applications, raw (docs/bespuiting-build-scope.md) — one row
+   * per capture, with the compliance fields Stoor's own export never carries
+   * and a safe-harvest date computed the same way `/eienaar/bespuiting` does.
+   * What was used and (if a Kraan was involved) how much water moved are
+   * still in `/export/stock.csv` and `/export/water.csv` — this file is the
+   * paper trail, not a third copy of either ledger.
+   */
+  app.get("/export/bespuiting.csv", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request, reply) => {
+    const farmId = request.staff!.farmId;
+
+    const rows = await deps.db
+      .select({
+        id: sprayApplications.id,
+        createdAt: sprayApplications.createdAt,
+        person: people.name,
+        block: blocks.name,
+        item: stockItems.name,
+        unit: stockItems.unit,
+        quantity: sprayApplications.quantity,
+        concentration: sprayApplications.concentration,
+        reason: sprayApplications.reason,
+        method: sprayApplications.method,
+        waterPoint: waterPoints.name,
+        meterReading: sprayApplications.meterReading,
+        season: seasons.name,
+        activeIngredient: productRegistrations.activeIngredient,
+        lNumber: productRegistrations.lNumber,
+        withholdingPeriod: productRegistrations.withholdingPeriod,
+      })
+      .from(sprayApplications)
+      .leftJoin(people, eq(people.id, sprayApplications.createdBy))
+      .leftJoin(blocks, eq(blocks.id, sprayApplications.blockId))
+      .leftJoin(stockItems, eq(stockItems.id, sprayApplications.itemId))
+      .leftJoin(waterPoints, eq(waterPoints.id, sprayApplications.waterPointId))
+      .leftJoin(seasons, eq(seasons.id, sprayApplications.seasonId))
+      .leftJoin(productRegistrations, eq(productRegistrations.itemId, sprayApplications.itemId))
+      .where(eq(sprayApplications.farmId, farmId))
+      .orderBy(asc(sprayApplications.createdAt));
+
+    const csv = toCsv(
+      [
+        "id",
+        "created_at",
+        "person",
+        "block",
+        "item",
+        "unit",
+        "quantity",
+        "concentration",
+        "reason",
+        "method",
+        "water_point",
+        "meter_reading",
+        "season",
+        "active_ingredient",
+        "l_number",
+        "withholding_period",
+        "safe_harvest_date",
+      ],
+      rows.map((row) => [
+        row.id,
+        row.createdAt.toISOString(),
+        row.person,
+        row.block,
+        row.item,
+        row.unit,
+        row.quantity,
+        row.concentration,
+        row.reason,
+        row.method,
+        row.waterPoint,
+        row.meterReading,
+        row.season,
+        row.activeIngredient,
+        row.lNumber,
+        row.withholdingPeriod,
+        safeHarvestDate(row.createdAt, row.withholdingPeriod),
+      ]),
+    );
+
+    return sendCsv(reply, "bespuiting.csv", csv);
   });
 
   /** Werkswinkel's job log, raw (docs/werkswinkel-build-scope.md) — one row per opened or closed event, not paired. */

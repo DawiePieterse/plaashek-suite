@@ -65,6 +65,13 @@ const af = {
   noDescription: "geen beskrywing nie",
   openedAt: "Oopgemaak",
 
+  bespuitingHeading: "Bespuitings",
+  noBespuiting: "Nog geen bespuiting gevang nie.",
+  dateLabel: "Datum",
+  quantity: "Hoeveelheid",
+  withholdingPeriod: "Onttrekkingstydperk",
+  safeHarvestDate: "Veilige oesdatum",
+
   payoutHeading: "Uitbetaling",
   payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} tot ${to}`,
   noPiecework: "Nog geen kratte aan 'n werker gekoppel nie.",
@@ -85,6 +92,7 @@ const af = {
   exportWorkOrders: "Voer werkkaarte uit (CSV)",
   exportFuel: "Voer brandstof uit (CSV)",
   exportPiecework: "Voer stukwerk uit (CSV)",
+  exportBespuiting: "Voer bespuitings uit (CSV)",
 };
 
 const en: typeof af = {
@@ -144,6 +152,13 @@ const en: typeof af = {
   noDescription: "no description",
   openedAt: "Opened",
 
+  bespuitingHeading: "Sprays",
+  noBespuiting: "No sprays captured yet.",
+  dateLabel: "Date",
+  quantity: "Quantity",
+  withholdingPeriod: "Withholding period",
+  safeHarvestDate: "Safe harvest date",
+
   payoutHeading: "Payout",
   payoutPeriod: (season: string, from: string, to: string) => `${season} · ${from} to ${to}`,
   noPiecework: "No crates tied to a worker yet.",
@@ -164,6 +179,7 @@ const en: typeof af = {
   exportWorkOrders: "Export work orders (CSV)",
   exportFuel: "Export fuel (CSV)",
   exportPiecework: "Export piece-work (CSV)",
+  exportBespuiting: "Export sprays (CSV)",
 };
 
 export type OfficeCopy = typeof af;

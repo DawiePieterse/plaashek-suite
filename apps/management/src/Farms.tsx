@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError, OFFLINE_MESSAGE, type Farm, type Session } from "./api.js";
 
 /** The modules actually built so far (plan §4.5, §11, §12) — anything else is typed in by hand. */
-const BUILT_MODULES = ["veldnotas", "boord", "eienaar", "span", "stoor", "water", "werkswinkel"];
+const BUILT_MODULES = ["veldnotas", "boord", "eienaar", "span", "stoor", "water", "werkswinkel", "bespuiting"];
 
 const LANGUAGE_NAME: Record<string, string> = { af: "Afrikaans", en: "English" };
 

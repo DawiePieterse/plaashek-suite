@@ -106,6 +106,17 @@ export const fetchStockItems = (ticket: string) => get<{ items: { id: string; na
 /** Water's catalog, active points only (docs/water-build-scope.md). */
 export const fetchWaterPoints = (ticket: string) => get<{ points: { id: string; name: string; unit: string }[] }>("/water-catalog", ticket);
 
+/**
+ * Compliance metadata per stock item, keyed by item (docs/bespuiting-build-scope.md)
+ * — not every item has one. Lets the field screen prefill a reason and show a
+ * withholding-period hint the moment a product is picked, offline.
+ */
+export const fetchSprayCatalog = (ticket: string) =>
+  get<{ registrations: { itemId: string; activeIngredient: string; defaultReason: string | null; withholdingPeriod: string | null }[] }>(
+    "/spray-catalog",
+    ticket,
+  );
+
 /** The farm's assets — Werkswinkel's own picker (docs/werkswinkel-build-scope.md). */
 export const fetchAssets = (ticket: string) => get<{ assets: { id: string; name: string }[] }>("/assets", ticket);
 

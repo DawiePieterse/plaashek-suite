@@ -8,12 +8,14 @@ import {
   meterReadings,
   notes,
   people,
+  sprayApplications,
   stockMoves,
   workOrders,
 } from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import type { Db } from "../db.js";
+import { derivedId } from "../lib/derived-id.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { moduleStatus } from "../lib/entitlements.js";
 import { forbidden } from "../lib/errors.js";
@@ -25,12 +27,13 @@ import {
   type HarvestEventOp,
   type MeterReadingOp,
   type NoteOp,
+  type SprayApplicationOp,
   type StockMoveOp,
   type UploadOp,
   type WorkOrderOp,
 } from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, stoor, water, werkswinkel). */
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, stoor, water, werkswinkel, bespuiting). */
 const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
@@ -39,6 +42,7 @@ const MODULE_CODE: Record<UploadOp["entity"], string> = {
   meter_readings: "water",
   work_orders: "werkswinkel",
   fuel_logs: "werkswinkel",
+  spray_applications: "bespuiting",
 };
 
 /**
@@ -146,6 +150,9 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
             break;
           case "fuel_logs":
             await applyFuelLog(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "spray_applications":
+            await applySprayApplication(tx, claims.farmId, claims.deviceId, op, clientTime);
             break;
           default: {
             // Exhaustiveness check: a new entity added to UploadOp without a case here is now a compile error, not a silent fall-through.
@@ -380,4 +387,91 @@ async function applyFuelLog(tx: Pick<Db, "select" | "insert">, farmId: string, d
       updatedAt: clientTime,
     })
     .onConflictDoNothing();
+}
+
+/**
+ * A chemical or fertigation application (docs/bespuiting-build-scope.md).
+ * This is the one place a module's sync handler writes into two other
+ * modules' tables on purpose: saving an application also books a Stoor
+ * stock-out (so `/eienaar/stock` and `/export/stock.csv` need no separate
+ * entry for what was used) and, if a Kraan was involved, a Water reading —
+ * both under ids derived from this op's own entity_id, so a retried sync
+ * cannot double-book either ledger. Stoor's and Water's own code stays
+ * unaware Bespuiting exists.
+ */
+async function applySprayApplication(
+  tx: Pick<Db, "select" | "insert">,
+  farmId: string,
+  deviceId: string,
+  op: SprayApplicationOp,
+  clientTime: Date,
+) {
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
+
+  await tx
+    .insert(sprayApplications)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.spray_applications,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      blockId: op.payload.block_id,
+      itemId: op.payload.item_id,
+      quantity: op.payload.quantity,
+      concentration: op.payload.concentration ?? null,
+      reason: op.payload.reason ?? null,
+      method: op.payload.method ?? null,
+      waterPointId: op.payload.water_point_id ?? null,
+      meterReading: op.payload.meter_reading ?? null,
+      latitude: op.payload.latitude ?? null,
+      longitude: op.payload.longitude ?? null,
+      locationAccuracyM: op.payload.location_accuracy_m ?? null,
+      weatherTemp: op.payload.weather_temp ?? null,
+      weatherHumidity: op.payload.weather_humidity ?? null,
+      weatherCondition: op.payload.weather_condition ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+
+  await tx
+    .insert(stockMoves)
+    .values({
+      id: derivedId(`spray_applications:${op.entity_id}:stock_moves`),
+      farmId,
+      moduleCode: "stoor",
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      itemId: op.payload.item_id,
+      direction: "out",
+      quantity: op.payload.quantity,
+      blockId: op.payload.block_id,
+      note: "via bespuiting application",
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+
+  if (op.payload.water_point_id && op.payload.meter_reading != null) {
+    await tx
+      .insert(meterReadings)
+      .values({
+        id: derivedId(`spray_applications:${op.entity_id}:meter_readings`),
+        farmId,
+        moduleCode: "water",
+        // Water is season-less (plan §6, §8) even when the application that triggered it is not.
+        seasonId: null,
+        createdBy,
+        deviceId,
+        waterPointId: op.payload.water_point_id,
+        reading: op.payload.meter_reading,
+        note: "via bespuiting application",
+        createdAt: clientTime,
+        updatedAt: clientTime,
+      })
+      .onConflictDoNothing();
+  }
 }
