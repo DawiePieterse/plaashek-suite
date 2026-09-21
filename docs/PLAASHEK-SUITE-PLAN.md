@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.23
+**Status:** v1.24
 **Date:** 21 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -47,6 +47,8 @@
 **Changes from v1.21:** `water` and `werkswinkel` built (§11 order 7) — [docs/water-build-scope.md](water-build-scope.md), [docs/werkswinkel-build-scope.md](werkswinkel-build-scope.md), both season-less per §6/§8. Water: a catalog of points (`water_points`) and a reading capture (`meter_readings`); `GET /eienaar/water` reports the **latest reading and the delta since the one before it**, not a running total — the opposite call from Stoor's on-hand sum, because a reading replaces the current state rather than accumulating. Werkswinkel: a job's open/closed lifecycle is **two paired append-only events** (`work_orders`, Span's shape, not a status column), plus a plain `fuel_logs` capture; any paired phone can close a job a different one opened, so the phone reads open jobs back from the server (`GET /work-orders/open`) rather than trusting local state. Found and closed a real gap first: `assets` had a schema table since Phase 1 but no route at all — `POST /assets` and a "Bates" card in `MasterData.tsx` now exist, the same add-only treatment people/blocks/camps got in Phase 4. Also fixed a latent bug the Stoor work left behind: the demo seed's wipe never deleted `stock_items`, so a second re-seed after any manual testing failed on a foreign-key violation — `wipeDemoData` now clears `stock_items` and `water_points` too. Proven end to end against the demo farm on 18 September 2026: a water point read twice (500 then unchanged), a work order opened on one paired phone and closed on a second, a fuel log recorded — the office and owner rollups matched after each step.
 
 **Changes from v1.22:** Kudde re-evaluated and unblocked — [ADR 0014](decisions/0014-kudde-bekfontein.md) closes [ADR 0005](decisions/0005-kudde.md)'s deferral, because Bekfontein now runs cattle (~100 head, camps used for feeding, four bulls mixed with the cows), exactly the trigger ADR 0005 named. [docs/kudde-build-scope.md](kudde-build-scope.md) scopes it the way Span's and Stoor's build-scope docs did before either had code: `animals` identified by a farm-typed tag number (ADR 0011's pattern, not a Plaashek-minted code), `movements` written per animal in a batch per group move, plain append-only `treatments` and `weights`, and camp location reusing the existing `camps` master data rather than a new table. Deliberately excluded: any breeding or mating-group model — a bull mixed with the cows is an ordinary movement, nothing more, and calving prediction is a real, separate feature to scope only if the farm asks. Nothing is built yet — schema, routes and the field screen are all still to do.
+
+**Changes from v1.23:** Kudde's schema and sync routing built, the first two steps of its build scope. `animals`/`movements`/`treatments`/`weights` land in migration 0012, verified against a real Postgres instance; `/sync/upload` routes all three capture entities to `kudde`, idempotent and held-on-suspension like every other module (`sync.kudde.test.ts`), with a group camp move sending one op per animal rather than a herd-level op. Still open: the field screen, office routes and rollup, CSV exports, and the Farm Admin Tool panel.
 
 ---
 
@@ -472,7 +474,7 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | 3 | `eienaar` | Boord Owner | Built with Boord. Read-only |
 | 4 | `span` | — | Assigned-person stamp makes clocking work. Build scope: [docs/span-scope.md](span-scope.md) |
 | 5 | `stoor` | — | New |
-| 6 | `kudde` | — | Scoped against Bekfontein's cattle, not yet built — ADR 0014, [docs/kudde-build-scope.md](kudde-build-scope.md) |
+| 6 | `kudde` | — | In progress against Bekfontein's cattle — ADR 0014, [docs/kudde-build-scope.md](kudde-build-scope.md); schema and sync routing done, field screen and office still open |
 | 7 | `water`, `werkswinkel` | — | New |
 | 8 | `oudit` | — | Packs records. Last |
 
@@ -632,9 +634,16 @@ permanent employees only. It extends Boord rather than adding a module code
 - [x] Proven end to end against the demo farm on 18 September 2026: a water point read (500 m³, no delta on the first reading), a work order opened on one paired phone and closed on a second (any device can close what another opened), a fuel log recorded with an odometer reading — the Farm Admin Tool's and the Owner Module's rollups matched after each step.
 - Not in this scope (closed by each build scope, not deferred): stock-takes/alerts/IoT for Water; service schedules, cost tracking and a derived fuel-consumption figure for Werkswinkel.
 
-**`oudit` — last, not started.** Packs the other modules' records; it cannot be built before they exist.
+**`kudde` — in progress.** [ADR 0005](decisions/0005-kudde.md)'s deferral is closed by [ADR 0014](decisions/0014-kudde-bekfontein.md): Bekfontein now runs cattle (~100 head, camps used for feeding, four bulls mixed with the cows) — the exact "real farm under contract" trigger ADR 0005 named. Scope: [docs/kudde-build-scope.md](kudde-build-scope.md).
 
-**`kudde` — build scope written, not yet built.** [ADR 0005](decisions/0005-kudde.md)'s deferral is closed by [ADR 0014](decisions/0014-kudde-bekfontein.md): Bekfontein now runs cattle (~100 head, camps used for feeding, four bulls mixed with the cows) — the exact "real farm under contract" trigger ADR 0005 named. Scope: [docs/kudde-build-scope.md](kudde-build-scope.md) — `animals` (farm-typed tag number, ADR 0011's pattern), `movements` (per-animal rows, written in a batch per group move), `treatments`, `weights`, all reusing the existing `camps` master data for location. No breeding/mating-group model — a bull mixed with cows is an ordinary movement, nothing more. Nothing built yet: no schema, routes, or field screen exist — this is the same stage Span's and Stoor's build-scope docs were at before their tables landed.
+- [x] `animals`, `movements`, `treatments`, `weights` (`services/migrations/0012_nappy_thunderbolt_ross.sql`): `animals` is master data, farm-typed `tag_number` (ADR 0011's pattern), partial unique per farm. The other three carry `workspaceRowColumns`, reference `animal_id`, and are registered in `captureTables`/`seasonStampedTables` alongside every other module's tables. `movements` reuses the existing `camps` master data for `to_camp_id`/`from_camp_id` rather than a new location table. Verified against a real Postgres instance: applies cleanly on migrations 0000–0011, and two seed/re-seed cycles against Mooiplaas pass with `animals` wired into the demo wipe.
+- [x] `/sync/upload` routes `movements`, `treatments`, `weights` → `kudde`: idempotent by client uuid, not-paired refused, a suspended licence holds all three instead of dropping them (`sync.kudde.test.ts`). A group camp move is one field action that sends one op per animal — the route has no herd-level insert path, matching ADR 0014's per-animal-identity call.
+- [ ] Field capture screen (`apps/field/src/Kudde.tsx`): an animal picker cached offline like the block/item pickers, and three capture modes (move a group to a camp, record a treatment, record a weight).
+- [ ] Office (`services/api/src/routes/kudde.ts`): the animal register (`GET`/`POST`/`PATCH /animals`), the device-ticket-gated `GET /animal-catalog`, `GET /eienaar/kudde` (headcount per camp derived from each animal's latest movement, plus treatment/weight history), and the four CSV exports.
+- [ ] Farm Admin Tool: a `Kudde.tsx` panel (register add/edit, admin-only) and the shared `KuddeRollup` panel.
+- [ ] `kudde` added to `MODULE_TABS`.
+
+**`oudit` — last, not started.** Packs the other modules' records; it cannot be built before they exist.
 
 ---
 
@@ -691,7 +700,7 @@ permanent employees only. It extends Boord rather than adding a module code
 9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV.
 10. `stoor` **done**: [build scope](stoor-build-scope.md), `stock_items`/`stock_moves`, the field capture screen, sync routing, the on-hand rollup (a running total, not season-scoped — the one deliberate break from Harvest's and Span's pattern), the Farm Admin Tool catalog section and the CSV export.
 11. `water` and `werkswinkel` **done**: [water build scope](water-build-scope.md), [werkswinkel build scope](werkswinkel-build-scope.md), both season-less (§6) — the first modules to leave `season_id` null. Closed the `assets` gap (a table with no routes) on the way.
-12. `kudde` **scoped, not built**: [ADR 0014](decisions/0014-kudde-bekfontein.md) closes [ADR 0005](decisions/0005-kudde.md)'s deferral against Bekfontein's real cattle, and [kudde build scope](kudde-build-scope.md) sets the shape — `animals`/`movements`/`treatments`/`weights`, farm-typed tags, per-animal movements batched in one field action, no breeding model. Build next: schema, `/sync/upload` routing, the field screen, the office register and rollup, CSV exports — the same sequence Stoor followed from its own build scope. `oudit` stays last, once the modules it packs have enough real-farm history to be worth packing.
+12. `kudde` **in progress**: [ADR 0014](decisions/0014-kudde-bekfontein.md) closes [ADR 0005](decisions/0005-kudde.md)'s deferral against Bekfontein's real cattle, and [kudde build scope](kudde-build-scope.md) sets the shape — `animals`/`movements`/`treatments`/`weights`, farm-typed tags, per-animal movements batched in one field action, no breeding model. Schema (migration 0012) and `/sync/upload` routing **done**. Build next: the field screen, the office register and rollup, CSV exports, the Farm Admin Tool panel — the same sequence Stoor followed from its own build scope. `oudit` stays last, once the modules it packs have enough real-farm history to be worth packing.
 
 ---
 
@@ -710,4 +719,4 @@ permanent employees only. It extends Boord rather than adding a module code
 
 ---
 
-*End of complete build plan v1.23.*
+*End of complete build plan v1.24.*

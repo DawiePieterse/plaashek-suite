@@ -6,9 +6,12 @@ import {
   harvestEvents,
   heldWrites,
   meterReadings,
+  movements,
   notes,
   people,
   stockMoves,
+  treatments,
+  weights,
   workOrders,
 } from "@plaashek/schema";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
@@ -24,13 +27,16 @@ import {
   type FuelLogOp,
   type HarvestEventOp,
   type MeterReadingOp,
+  type MovementOp,
   type NoteOp,
   type StockMoveOp,
+  type TreatmentOp,
   type UploadOp,
+  type WeightOp,
   type WorkOrderOp,
 } from "../schemas/sync.js";
 
-/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, stoor, water, werkswinkel). */
+/** Which module owns each entity a phone can upload (plan §11: veldnotas, boord, span, stoor, water, werkswinkel, kudde). */
 const MODULE_CODE: Record<UploadOp["entity"], string> = {
   notes: "veldnotas",
   harvest_events: "boord",
@@ -39,6 +45,9 @@ const MODULE_CODE: Record<UploadOp["entity"], string> = {
   meter_readings: "water",
   work_orders: "werkswinkel",
   fuel_logs: "werkswinkel",
+  movements: "kudde",
+  treatments: "kudde",
+  weights: "kudde",
 };
 
 /**
@@ -146,6 +155,15 @@ export function registerSyncRoutes(app: App, deps: AppDeps) {
             break;
           case "fuel_logs":
             await applyFuelLog(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "movements":
+            await applyMovement(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "treatments":
+            await applyTreatment(tx, claims.farmId, claims.deviceId, op, clientTime);
+            break;
+          case "weights":
+            await applyWeight(tx, claims.farmId, claims.deviceId, op, clientTime);
             break;
           default: {
             // Exhaustiveness check: a new entity added to UploadOp without a case here is now a compile error, not a silent fall-through.
@@ -376,6 +394,76 @@ async function applyFuelLog(tx: Pick<Db, "select" | "insert">, farmId: string, d
       litres: op.payload.litres,
       meterReading: op.payload.meter_reading ?? null,
       note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * One animal's camp change (docs/kudde-build-scope.md, ADR 0014). A group
+ * move on the field screen sends one op per animal — this is always a
+ * single-animal insert, never a herd-level one. Append-only.
+ */
+async function applyMovement(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: MovementOp, clientTime: Date) {
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
+
+  await tx
+    .insert(movements)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.movements,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      animalId: op.payload.animal_id,
+      toCampId: op.payload.to_camp_id,
+      fromCampId: op.payload.from_camp_id ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/** A vaccination, a dip, a dose — whatever the farm calls it (docs/kudde-build-scope.md). Append-only. */
+async function applyTreatment(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: TreatmentOp, clientTime: Date) {
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
+
+  await tx
+    .insert(treatments)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.treatments,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      animalId: op.payload.animal_id,
+      treatmentType: op.payload.treatment_type,
+      dose: op.payload.dose ?? null,
+      note: op.payload.note ?? null,
+      createdAt: clientTime,
+      updatedAt: clientTime,
+    })
+    .onConflictDoNothing();
+}
+
+/** One weighing (docs/kudde-build-scope.md) — no cadence enforced. Append-only. */
+async function applyWeight(tx: Pick<Db, "select" | "insert">, farmId: string, deviceId: string, op: WeightOp, clientTime: Date) {
+  const createdBy = await requireCreatedBy(tx, deviceId, clientTime);
+
+  await tx
+    .insert(weights)
+    .values({
+      id: op.entity_id,
+      farmId,
+      moduleCode: MODULE_CODE.weights,
+      seasonId: op.season_id,
+      createdBy,
+      deviceId,
+      animalId: op.payload.animal_id,
+      weightKg: op.payload.weight_kg,
       createdAt: clientTime,
       updatedAt: clientTime,
     })

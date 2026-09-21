@@ -131,12 +131,74 @@ const fuelLogOp = z.object({
 });
 
 /**
+ * One animal's camp change (docs/kudde-build-scope.md, ADR 0014) — one row
+ * per animal even when a whole group moves in a single field action, so the
+ * phone sends one op per animal in the group rather than a herd-level op.
+ * `from_camp_id` is optional: an animal's first recorded movement, or one
+ * bought in, has no "from". Season-stamped, unlike Water and Werkswinkel.
+ */
+const movementOp = z.object({
+  entity: z.literal("movements"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    animal_id: z.string().uuid(),
+    to_camp_id: z.string().uuid(),
+    from_camp_id: z.string().uuid().nullable().optional(),
+  }),
+});
+
+/**
+ * A vaccination, a dip, a dose — whatever the farm calls it
+ * (docs/kudde-build-scope.md). `treatment_type` and `dose` are free text,
+ * never a picklist Plaashek maintains.
+ */
+const treatmentOp = z.object({
+  entity: z.literal("treatments"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    animal_id: z.string().uuid(),
+    treatment_type: z.string().min(1).max(100),
+    dose: z.string().max(100).nullable().optional(),
+    note: z.string().max(200).nullable().optional(),
+  }),
+});
+
+/** One weighing, one row — no cadence enforced (docs/kudde-build-scope.md). */
+const weightOp = z.object({
+  entity: z.literal("weights"),
+  entity_id: z.string().uuid(),
+  client_time: clientTime,
+  season_id: seasonId,
+  payload: z.object({
+    animal_id: z.string().uuid(),
+    weight_kg: z.number().positive(),
+  }),
+});
+
+/**
  * What a phone may say about a write. Everything identifying — farm, device,
  * person — is stamped by the server from the ticket, never read from here.
  */
 export const uploadRequestSchema = z.object({
   ops: z
-    .array(z.discriminatedUnion("entity", [noteOp, harvestEventOp, attendancePunchOp, stockMoveOp, meterReadingOp, workOrderOp, fuelLogOp]))
+    .array(
+      z.discriminatedUnion("entity", [
+        noteOp,
+        harvestEventOp,
+        attendancePunchOp,
+        stockMoveOp,
+        meterReadingOp,
+        workOrderOp,
+        fuelLogOp,
+        movementOp,
+        treatmentOp,
+        weightOp,
+      ]),
+    )
     .min(1)
     .max(500),
 });
@@ -149,3 +211,6 @@ export type StockMoveOp = z.infer<typeof stockMoveOp>;
 export type MeterReadingOp = z.infer<typeof meterReadingOp>;
 export type WorkOrderOp = z.infer<typeof workOrderOp>;
 export type FuelLogOp = z.infer<typeof fuelLogOp>;
+export type MovementOp = z.infer<typeof movementOp>;
+export type TreatmentOp = z.infer<typeof treatmentOp>;
+export type WeightOp = z.infer<typeof weightOp>;
