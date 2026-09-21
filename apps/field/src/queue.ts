@@ -111,7 +111,61 @@ export interface FuelLogOp {
   };
 }
 
-export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp | StockMoveOp | MeterReadingOp | WorkOrderOp | FuelLogOp;
+/**
+ * One animal's camp change (docs/kudde-build-scope.md, ADR 0014). A group
+ * move on the field screen sends one of these per animal in the group — no
+ * herd-level op exists. `from_camp_id` is never sent by the phone: the
+ * worker names a destination, not where the animal already was.
+ */
+export interface MovementOp {
+  entity: "movements";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    animal_id: string;
+    to_camp_id: string;
+    from_camp_id?: string | null;
+  };
+}
+
+/** A vaccination, a dip, a dose — whatever the farm calls it (docs/kudde-build-scope.md). */
+export interface TreatmentOp {
+  entity: "treatments";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    animal_id: string;
+    treatment_type: string;
+    dose?: string | null;
+    note?: string | null;
+  };
+}
+
+/** One weighing, one row — no cadence enforced (docs/kudde-build-scope.md). */
+export interface WeightOp {
+  entity: "weights";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    animal_id: string;
+    weight_kg: number;
+  };
+}
+
+export type QueuedOp =
+  | NoteOp
+  | HarvestEventOp
+  | AttendancePunchOp
+  | StockMoveOp
+  | MeterReadingOp
+  | WorkOrderOp
+  | FuelLogOp
+  | MovementOp
+  | TreatmentOp
+  | WeightOp;
 
 const QUEUE_KEY = "plaashek.field.outbox";
 

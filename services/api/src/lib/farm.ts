@@ -1,4 +1,4 @@
-import { blocks, farms, seasons } from "@plaashek/schema";
+import { blocks, camps, farms, seasons } from "@plaashek/schema";
 import type { Language } from "@plaashek/tickets";
 import { and, asc, eq } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
@@ -44,6 +44,11 @@ export async function activeSeasonId(db: Pick<Db, "select">, farmId: string): Pr
 /** Picker data: block id + name for a farm. Shared by the field app's `GET /blocks` and the office's `GET /farm`. */
 export async function listFarmBlocks(db: Pick<Db, "select">, farmId: string) {
   return db.select({ id: blocks.id, name: blocks.name }).from(blocks).where(eq(blocks.farmId, farmId)).orderBy(asc(blocks.name));
+}
+
+/** Picker data: camp id + name for a farm — Kudde's move destination (docs/kudde-build-scope.md), same role `listFarmBlocks` plays for Boord and Stoor. */
+export async function listFarmCamps(db: Pick<Db, "select">, farmId: string) {
+  return db.select({ id: camps.id, name: camps.name }).from(camps).where(eq(camps.farmId, farmId)).orderBy(asc(camps.name));
 }
 
 /**

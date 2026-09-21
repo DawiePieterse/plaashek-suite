@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { locale, setLang, t } from "./copy.js";
 import { Harvest } from "./Harvest.js";
+import { Kudde } from "./Kudde.js";
 import { Notes } from "./Notes.js";
 import { Span } from "./Span.js";
 import { Stoor } from "./Stoor.js";
@@ -85,6 +86,8 @@ export function App() {
           <Water ticket={ticket} claims={ticketClaims} />
         ) : current === "werkswinkel" ? (
           <Werkswinkel ticket={ticket} claims={ticketClaims} />
+        ) : current === "kudde" ? (
+          <Kudde ticket={ticket} claims={ticketClaims} />
         ) : (
           <Screen title={moduleName(current)} body={c.shellNote} />
         )}

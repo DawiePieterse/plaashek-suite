@@ -96,6 +96,9 @@ export const fetchWeather = (ticket: string, latitude: number, longitude: number
 /** Picker data for Boord's block field — fetched once with signal, cached by the caller. */
 export const fetchBlocks = (ticket: string) => get<{ blocks: { id: string; name: string }[] }>("/blocks", ticket);
 
+/** Kudde's move destination (docs/kudde-build-scope.md) — same role `fetchBlocks` plays. */
+export const fetchCamps = (ticket: string) => get<{ camps: { id: string; name: string }[] }>("/camps", ticket);
+
 /** The farm's numbered pickers, so a scan at the scale resolves to a name with no signal (ADR 0009, ADR 0011). */
 export const fetchPickers = (ticket: string) =>
   get<{ pickers: { workerNumber: string; personId: string; personName: string }[] }>("/pickers", ticket);
@@ -112,3 +115,6 @@ export const fetchAssets = (ticket: string) => get<{ assets: { id: string; name:
 /** What is still open, across every asset (docs/werkswinkel-build-scope.md) — any paired phone can close a job someone else opened. */
 export const fetchOpenJobs = (ticket: string) =>
   get<{ jobs: { assetId: string; assetName: string; description: string | null; openedAt: string }[] }>("/work-orders/open", ticket);
+
+/** Kudde's register, active animals only (docs/kudde-build-scope.md). */
+export const fetchAnimals = (ticket: string) => get<{ animals: { id: string; tagNumber: string | null; sex: string }[] }>("/animal-catalog", ticket);
