@@ -3,6 +3,7 @@ import { Login, OfficeShell } from "@plaashek/ui-office";
 import { api, ApiError, clearSession, downloadCsv, loadSession, saveSession, type Session } from "./api.js";
 import { setLang, t } from "./copy.js";
 import { Devices } from "./Devices.js";
+import { Kudde } from "./Kudde.js";
 import { MasterData } from "./MasterData.js";
 import { Piecework } from "./Piecework.js";
 import { Stoor } from "./Stoor.js";
@@ -53,6 +54,7 @@ export function App() {
         boord: <Piecework onRateChanged={() => setPayoutKey((key) => key + 1)} />,
         stoor: <Stoor />,
         water: <Water />,
+        kudde: <Kudde />,
         farm: (
           <>
             <MasterData />

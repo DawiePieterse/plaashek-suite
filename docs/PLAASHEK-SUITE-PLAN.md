@@ -2,7 +2,7 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.27
+**Status:** v1.28
 **Date:** 21 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
@@ -55,6 +55,8 @@
 **Changes from v1.25:** Kudde's office routes and register built — `GET`/`POST`/`PATCH /animals` (`services/api/src/routes/kudde.ts`), tag uniqueness enforced the same way ADR 0011 enforces a worker number (a normalised tag, `lib/tag-number.ts`, refused if another animal on the farm already has it), and editing an animal never touches its movement/treatment/weight history. `GET /eienaar/kudde` reports headcount per camp derived from each active animal's most recent movement — all-time, the same "a camp does not empty at a season boundary" reasoning as Stoor's on-hand total, not season-scoped like Harvest and Attendance — plus treatment and weight history for the active season only, and an `unplaced` count for an animal never yet moved. Four CSV exports (`animals`, `movements`, `treatments`, `weights`) joined against person/animal/camp names, alongside the others in `export.ts`. Verified: full 9-project workspace typecheck and the full `services/api` suite (148 tests, 11 new) against a real Postgres instance. Still open: the Farm Admin Tool panel and `kudde` in `MODULE_TABS`.
 
 **Changes from v1.26:** `kudde` added to `MODULE_TABS` (`packages/ui-office/src/tabs.tsx`) — both office tools now draw a Kudde tab for any farm licensed for it. It compiles only because `shell.tsx`'s `MODULE_PANELS` is typed against `MODULE_TABS` (plan's own "a tab without a panel will not compile" rule), so the shared `KuddeRollup` panel had to land in the same change: headcount per camp, all-time like Stoor's on-hand, with an "N animal(s) not yet moved" note, plus treatment and weight history tables scoped to the active season, each with its own independent "no active season" state. Four export buttons join the tab (`animals`, `movements`, `treatments`, `weights`). `tabs.test.ts`'s old example ("kudde has no panel") no longer held, so it was replaced with one showing the tab now appearing. The tab renders in both tools today, but nothing in the UI can register an animal yet — that is the one item left on Kudde's build scope.
+
+**Changes from v1.27:** `kudde` closed — `apps/admin/src/Kudde.tsx` gives the office a register (add/edit tag, sex, breed, birth date, active; a tag clash refused rather than overwritten), the last item on the build scope. Proven end to end in a real browser against the demo farm on 21 September 2026, in two passes: the office register alone (add, duplicate-tag refusal, mark-inactive, and confirming the Owner Module renders the rollup with no register — admin-only visibility actually holds), then the whole chain — a device paired live for `kudde`, the field screen's checklist moved two animals to one camp in one save (two `movements` rows, no herd-level one), a treatment and a weight logged, synced, and `GET /eienaar/kudde` came back with the right headcount and both captures attributed to the correct animal. All six build-scope steps are done: schema, sync routing, the field screen, office routes and register, the office tab, and the admin panel. `oudit` is the only module left in §11's order.
 
 ---
 
@@ -366,8 +368,8 @@ attendance_punches        span
 stock_items, stock_moves  stoor
 meter_readings            water
 work_orders, fuel_logs    werkswinkel
-animals, movements,       kudde — scoped, not yet built (ADR 0014,
-  treatments, weights       docs/kudde-build-scope.md)
+animals, movements,       kudde (ADR 0014, docs/kudde-build-scope.md)
+  treatments, weights
 audit_packs               oudit
 ```
 
@@ -480,7 +482,7 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | 3 | `eienaar` | Boord Owner | Built with Boord. Read-only |
 | 4 | `span` | — | Assigned-person stamp makes clocking work. Build scope: [docs/span-scope.md](span-scope.md) |
 | 5 | `stoor` | — | New |
-| 6 | `kudde` | — | In progress against Bekfontein's cattle — ADR 0014, [docs/kudde-build-scope.md](kudde-build-scope.md); schema, sync routing, the field screen, office routes and the office tab all done — only the Farm Admin Tool's register form is left |
+| 6 | `kudde` | — | **Closed** against Bekfontein's cattle — ADR 0014, [docs/kudde-build-scope.md](kudde-build-scope.md) |
 | 7 | `water`, `werkswinkel` | — | New |
 | 8 | `oudit` | — | Packs records. Last |
 
@@ -640,14 +642,15 @@ permanent employees only. It extends Boord rather than adding a module code
 - [x] Proven end to end against the demo farm on 18 September 2026: a water point read (500 m³, no delta on the first reading), a work order opened on one paired phone and closed on a second (any device can close what another opened), a fuel log recorded with an odometer reading — the Farm Admin Tool's and the Owner Module's rollups matched after each step.
 - Not in this scope (closed by each build scope, not deferred): stock-takes/alerts/IoT for Water; service schedules, cost tracking and a derived fuel-consumption figure for Werkswinkel.
 
-**`kudde` — in progress.** [ADR 0005](decisions/0005-kudde.md)'s deferral is closed by [ADR 0014](decisions/0014-kudde-bekfontein.md): Bekfontein now runs cattle (~100 head, camps used for feeding, four bulls mixed with the cows) — the exact "real farm under contract" trigger ADR 0005 named. Scope: [docs/kudde-build-scope.md](kudde-build-scope.md).
+**`kudde` — closed 21 September 2026.** [ADR 0005](decisions/0005-kudde.md)'s deferral is closed by [ADR 0014](decisions/0014-kudde-bekfontein.md): Bekfontein now runs cattle (~100 head, camps used for feeding, four bulls mixed with the cows) — the exact "real farm under contract" trigger ADR 0005 named. Scope: [docs/kudde-build-scope.md](kudde-build-scope.md).
 
 - [x] `animals`, `movements`, `treatments`, `weights` (`services/migrations/0012_nappy_thunderbolt_ross.sql`): `animals` is master data, farm-typed `tag_number` (ADR 0011's pattern), partial unique per farm. The other three carry `workspaceRowColumns`, reference `animal_id`, and are registered in `captureTables`/`seasonStampedTables` alongside every other module's tables. `movements` reuses the existing `camps` master data for `to_camp_id`/`from_camp_id` rather than a new location table. Verified against a real Postgres instance: applies cleanly on migrations 0000–0011, and two seed/re-seed cycles against Mooiplaas pass with `animals` wired into the demo wipe.
 - [x] `/sync/upload` routes `movements`, `treatments`, `weights` → `kudde`: idempotent by client uuid, not-paired refused, a suspended licence holds all three instead of dropping them (`sync.kudde.test.ts`). A group camp move is one field action that sends one op per animal — the route has no herd-level insert path, matching ADR 0014's per-animal-identity call.
 - [x] Field capture screen (`apps/field/src/Kudde.tsx`): an animal picker cached offline like the block/item pickers, and three capture modes — move a group to a camp (a checklist of animals, one `movements` op enqueued per animal checked), record a treatment, record a weight. No weather, no GPS. Needed two small picker routes to have real data to render against: `GET /animal-catalog` (`services/api/src/routes/kudde.ts`) and `GET /camps` (`services/api/src/routes/blocks.ts`, alongside `/blocks`) — both device-ticket-gated, the same role `/blocks` and `/stock-catalog` play for their screens. The phone never asks an animal's current camp; `from_camp_id` stays unset from the field screen.
 - [x] Office (`services/api/src/routes/kudde.ts`): the animal register (`GET`/`POST`/`PATCH /animals`, tag uniqueness enforced the same way ADR 0011 enforces a worker number), `GET /eienaar/kudde` (headcount per camp derived from each active animal's latest movement — all-time, like Stoor's on-hand, not season-scoped — plus treatment/weight history for the active season only), and `GET /export/animals.csv`, `/export/movements.csv`, `/export/treatments.csv`, `/export/weights.csv` in `export.ts`.
 - [x] Shared `KuddeRollup` panel (`packages/ui-office/src/panels/rollups.tsx`) and `kudde` in `MODULE_TABS` (`packages/ui-office/src/tabs.tsx`, `shell.tsx`): headcount per camp (all-time, with an "N animal(s) not yet moved" note), plus treatment and weight history tables scoped to the active season — each carrying its own "no active season" state independent of the headcount table above it. Four export buttons (`animals`, `movements`, `treatments`, `weights`) alongside the rollup, same as every other module's tab.
-- [ ] Farm Admin Tool: a `Kudde.tsx` panel (register add/edit, admin-only) — the tab now renders in both office tools, but nothing in the UI can register an animal yet; that still needs `POST`/`PATCH /animals` wired to a form.
+- [x] Farm Admin Tool: `apps/admin/src/Kudde.tsx` (register add/edit, admin-only — same visibility as `Piecework.tsx`, `Stoor.tsx` and `Water.tsx`, not rendered in the Owner Module). Tag, sex, breed, birth date, active; a tag clash is refused with the office's own wording rather than silently overwritten. Proven end to end in a real browser against the demo farm on 21 September 2026, in two passes: (1) the office side alone — registered an animal (014, koei, Bonsmara), the add form cleared, a duplicate tag was refused with no second row created, marking it inactive persisted, and the Owner Module showed the same tab with the rollup only, no register, confirming the admin-only visibility actually holds; (2) the whole chain — a device paired live for `kudde` via a printed-QR-shaped `/pair/:token` link, the field screen's checklist moved two animals to one camp in a single save (writing two `movements` rows, never a herd-level one), logged a treatment and a weight, synced, and `GET /eienaar/kudde` came back with headcount 2 for that camp and the treatment and weight both attributed to the right animal tag.
+- Not in this scope (closed by [ADR 0014](decisions/0014-kudde-bekfontein.md), not deferred): any breeding or mating-group model — a bull mixed with cows is an ordinary movement, nothing more — plus treatment schedules, weighing cadences, a tag scanner, and any sale price or cause-of-death field. See [docs/kudde-build-scope.md](kudde-build-scope.md)'s "Deliberately not in this scope."
 
 **`oudit` — last, not started.** Packs the other modules' records; it cannot be built before they exist.
 
@@ -706,7 +709,7 @@ permanent employees only. It extends Boord rather than adding a module code
 9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV.
 10. `stoor` **done**: [build scope](stoor-build-scope.md), `stock_items`/`stock_moves`, the field capture screen, sync routing, the on-hand rollup (a running total, not season-scoped — the one deliberate break from Harvest's and Span's pattern), the Farm Admin Tool catalog section and the CSV export.
 11. `water` and `werkswinkel` **done**: [water build scope](water-build-scope.md), [werkswinkel build scope](werkswinkel-build-scope.md), both season-less (§6) — the first modules to leave `season_id` null. Closed the `assets` gap (a table with no routes) on the way.
-12. `kudde` **in progress, one item left**: [ADR 0014](decisions/0014-kudde-bekfontein.md) closes [ADR 0005](decisions/0005-kudde.md)'s deferral against Bekfontein's real cattle, and [kudde build scope](kudde-build-scope.md) sets the shape — `animals`/`movements`/`treatments`/`weights`, farm-typed tags, per-animal movements batched in one field action, no breeding model. Schema (migration 0012), `/sync/upload` routing, the field capture screen (`apps/field/src/Kudde.tsx`, plus `GET /animal-catalog` and `GET /camps`), the office routes and register (`services/api/src/routes/kudde.ts`, `GET /eienaar/kudde`, four CSV exports), and the office tab itself (`kudde` in `MODULE_TABS`, the shared `KuddeRollup` panel) **done** — both office tools now show a Kudde tab. Build next: the Farm Admin Tool's own `Kudde.tsx` panel so the office can actually register an animal, not just read the (currently empty) rollup. `oudit` stays last, once the modules it packs have enough real-farm history to be worth packing.
+12. `kudde` **done**: [ADR 0014](decisions/0014-kudde-bekfontein.md) closes [ADR 0005](decisions/0005-kudde.md)'s deferral against Bekfontein's real cattle, and [kudde build scope](kudde-build-scope.md) sets the shape — `animals`/`movements`/`treatments`/`weights`, farm-typed tags, per-animal movements batched in one field action, no breeding model. Schema (migration 0012), `/sync/upload` routing, the field capture screen, office routes and register, the office tab (`KuddeRollup`), and the Farm Admin Tool's own register panel are all built and proven end to end against the demo farm on 21 September 2026 — a device paired live, a batched camp move, a treatment and a weight synced, and the office rollup and register both showed the right numbers. §11's module order is now fully built. `oudit` is last, once the modules it packs have enough real-farm history to be worth packing.
 
 ---
 
@@ -725,4 +728,4 @@ permanent employees only. It extends Boord rather than adding a module code
 
 ---
 
-*End of complete build plan v1.27.*
+*End of complete build plan v1.28.*
