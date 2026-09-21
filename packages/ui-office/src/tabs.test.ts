@@ -13,10 +13,13 @@ test("tabs keep the build order, whatever order the licences come back in", () =
   assert.deepEqual(ids(["span", "veldnotas", "boord"]), ["veldnotas", "boord", "span", "farm"]);
 });
 
-test("a licensed module with no office panel yet is not a tab", () => {
-  // `eienaar` is the owner tool itself, not a field module; `kudde` has no
-  // panel. Neither should draw an empty tab.
-  assert.deepEqual(ids(["veldnotas", "eienaar", "kudde"]), ["veldnotas", "farm"]);
+test("a licensed code with no office panel at all is not a tab", () => {
+  // `eienaar` is the owner tool itself, not a field module with a panel here.
+  assert.deepEqual(ids(["veldnotas", "eienaar"]), ["veldnotas", "farm"]);
+});
+
+test("kudde draws a tab now that it has a panel (docs/kudde-build-scope.md)", () => {
+  assert.deepEqual(ids(["werkswinkel", "kudde"]), ["werkswinkel", "kudde", "farm"]);
 });
 
 test("a farm with nothing licensed still has its settings", () => {

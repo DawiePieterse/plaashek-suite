@@ -34,6 +34,14 @@ export interface WerkswinkelSummary {
   assets: { assetId: string; assetName: string; jobs: { description: string | null; openedAt: string }[] }[];
 }
 
+export interface KuddeSummary {
+  season: { id: string; name: string } | null;
+  camps: { campId: string; campName: string; headcount: number }[];
+  unplaced: number;
+  treatments: { id: string; at: string; animalTag: string | null; treatmentType: string; dose: string | null; note: string | null }[];
+  weights: { id: string; at: string; animalTag: string | null; weightKg: number }[];
+}
+
 export interface PayoutSummary {
   season: { id: string; name: string } | null;
   from: string | null;
@@ -298,6 +306,120 @@ export function WorkOrderRollup() {
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+/**
+ * Kudde (docs/kudde-build-scope.md): headcount per camp, derived from each
+ * active animal's most recent movement across all time — like Stoor's
+ * on-hand total, this is not scoped to the active season, because a camp
+ * does not empty at a season boundary. Treatment and weight history, by
+ * contrast, are the active season's own — the same rule Harvest and
+ * Attendance follow — so they carry their own "no active season" state
+ * independent of the headcount table above them.
+ */
+export function KuddeRollup() {
+  const { c } = useOffice();
+  const { data, error } = useRollup<KuddeSummary>("/eienaar/kudde");
+
+  if (error) return <Empty heading={c.kuddeHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.kuddeHeading} message={c.loading} />;
+
+  const headcount = data.camps.reduce((sum, camp) => sum + camp.headcount, 0);
+
+  return (
+    <section>
+      <h2>{c.kuddeHeading}</h2>
+      {data.camps.length === 0 && data.unplaced === 0 ? (
+        <p className="empty">{c.noAnimalsRegistered}</p>
+      ) : (
+        <>
+          <div className="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>{c.camp}</th>
+                  <th className="num">{c.headcount}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.camps.map((camp) => (
+                  <tr key={camp.campId}>
+                    <td>{camp.campName}</td>
+                    <td className="num">{camp.headcount}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>{c.total}</td>
+                  <td className="num">{headcount}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {data.unplaced > 0 && <p className="muted">{c.unplacedAnimals(data.unplaced)}</p>}
+        </>
+      )}
+
+      <h3>
+        {c.treatmentsHeading} {data.season && <span className="pill on">{data.season.name}</span>}
+      </h3>
+      {!data.season ? (
+        <p className="empty">{c.noActiveSeason}</p>
+      ) : data.treatments.length === 0 ? (
+        <p className="empty">{c.noTreatments}</p>
+      ) : (
+        <div className="card">
+          <table>
+            <thead>
+              <tr>
+                <th>{c.animalTag}</th>
+                <th>{c.treatmentType}</th>
+                <th>{c.dose}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.treatments.map((treatment) => (
+                <tr key={treatment.id}>
+                  <td>{treatment.animalTag ?? ""}</td>
+                  <td>{treatment.treatmentType}</td>
+                  <td>{treatment.dose ?? ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h3>
+        {c.weightsHeading} {data.season && <span className="pill on">{data.season.name}</span>}
+      </h3>
+      {!data.season ? (
+        <p className="empty">{c.noActiveSeason}</p>
+      ) : data.weights.length === 0 ? (
+        <p className="empty">{c.noWeights}</p>
+      ) : (
+        <div className="card">
+          <table>
+            <thead>
+              <tr>
+                <th>{c.animalTag}</th>
+                <th className="num">{c.weightKg}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.weights.map((weight) => (
+                <tr key={weight.id}>
+                  <td>{weight.animalTag ?? ""}</td>
+                  <td className="num">{weight.weightKg}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

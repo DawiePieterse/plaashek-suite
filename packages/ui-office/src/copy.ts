@@ -74,6 +74,20 @@ const af = {
   payoutDisclaimer:
     "Hierdie bedrag is wat die plaas se eie tarief uitwerk. Plaashek betaal niemand nie en toets nie of dit die minimumloon haal nie — daar is geen ure vir seisoenwerkers nie.",
 
+  kuddeHeading: "Kudde",
+  noAnimalsRegistered: "Nog geen diere geregistreer nie.",
+  camp: "Kamp",
+  headcount: "Getal",
+  unplacedAnimals: (count: number) => `${count} dier(e) nog nie na 'n kamp geskuif nie.`,
+  treatmentsHeading: "Behandelings",
+  noTreatments: "Nog geen behandelings vir hierdie seisoen nie.",
+  animalTag: "Oormerk",
+  treatmentType: "Tipe",
+  dose: "Dosis",
+  weightsHeading: "Gewigte",
+  noWeights: "Nog geen gewigte vir hierdie seisoen nie.",
+  weightKg: "Gewig (kg)",
+
   total: "Totaal",
 
   exportHeading: "Uitvoer",
@@ -85,6 +99,10 @@ const af = {
   exportWorkOrders: "Voer werkkaarte uit (CSV)",
   exportFuel: "Voer brandstof uit (CSV)",
   exportPiecework: "Voer stukwerk uit (CSV)",
+  exportAnimals: "Voer diere uit (CSV)",
+  exportMovements: "Voer bewegings uit (CSV)",
+  exportTreatments: "Voer behandelings uit (CSV)",
+  exportWeights: "Voer gewigte uit (CSV)",
 };
 
 const en: typeof af = {
@@ -153,6 +171,20 @@ const en: typeof af = {
   payoutDisclaimer:
     "This is what the farm's own rate works out to. Plaashek pays nobody and does not check it against the minimum wage — there are no hours for seasonal workers.",
 
+  kuddeHeading: "Kudde",
+  noAnimalsRegistered: "No animals registered yet.",
+  camp: "Camp",
+  headcount: "Head",
+  unplacedAnimals: (count: number) => `${count} animal(s) not yet moved to a camp.`,
+  treatmentsHeading: "Treatments",
+  noTreatments: "No treatments for this season yet.",
+  animalTag: "Tag",
+  treatmentType: "Type",
+  dose: "Dose",
+  weightsHeading: "Weights",
+  noWeights: "No weights for this season yet.",
+  weightKg: "Weight (kg)",
+
   total: "Total",
 
   exportHeading: "Export",
@@ -164,6 +196,10 @@ const en: typeof af = {
   exportWorkOrders: "Export work orders (CSV)",
   exportFuel: "Export fuel (CSV)",
   exportPiecework: "Export piece-work (CSV)",
+  exportAnimals: "Export animals (CSV)",
+  exportMovements: "Export movements (CSV)",
+  exportTreatments: "Export treatments (CSV)",
+  exportWeights: "Export weights (CSV)",
 };
 
 export type OfficeCopy = typeof af;

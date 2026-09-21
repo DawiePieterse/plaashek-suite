@@ -7,7 +7,19 @@ import { useOffice } from "../context.js";
  * one pile at the bottom of the page — the export for Boord belongs with
  * Boord.
  */
-export type ExportKind = "notes" | "harvest" | "attendance" | "stock" | "water" | "work-orders" | "fuel" | "piecework";
+export type ExportKind =
+  | "notes"
+  | "harvest"
+  | "attendance"
+  | "stock"
+  | "water"
+  | "work-orders"
+  | "fuel"
+  | "piecework"
+  | "animals"
+  | "movements"
+  | "treatments"
+  | "weights";
 
 /** Paths only — the file's name comes back on the response, from the one place that decides it. */
 const PATHS: Record<ExportKind, string> = {
@@ -19,6 +31,10 @@ const PATHS: Record<ExportKind, string> = {
   "work-orders": "/export/work-orders.csv",
   fuel: "/export/fuel.csv",
   piecework: "/export/piecework.csv",
+  animals: "/export/animals.csv",
+  movements: "/export/movements.csv",
+  treatments: "/export/treatments.csv",
+  weights: "/export/weights.csv",
 };
 
 export function Exports({ kinds }: { kinds: ExportKind[] }) {
@@ -34,6 +50,10 @@ export function Exports({ kinds }: { kinds: ExportKind[] }) {
     "work-orders": c.exportWorkOrders,
     fuel: c.exportFuel,
     piecework: c.exportPiecework,
+    animals: c.exportAnimals,
+    movements: c.exportMovements,
+    treatments: c.exportTreatments,
+    weights: c.exportWeights,
   };
 
   async function download(kind: ExportKind) {
