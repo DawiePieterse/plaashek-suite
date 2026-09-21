@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useFlush, useSavedToast } from "./capture.js";
 import { t } from "./copy.js";
-import { enqueue } from "./queue.js";
+import { enqueue, enqueueMany } from "./queue.js";
 import { readStored, writeStored } from "./storage.js";
 import { fetchAnimals, fetchCamps, type Claims } from "./ticket.js";
 
@@ -81,17 +81,18 @@ export function Kudde({ ticket, claims }: { ticket: string; claims: Claims }) {
 
     if (action === "move") {
       if (selectedAnimalIds.size === 0 || !toCampId) return;
-      let queue: ReturnType<typeof enqueue> = [];
-      for (const id of selectedAnimalIds) {
-        queue = enqueue({
-          entity: "movements",
-          entity_id: crypto.randomUUID(),
-          client_time: new Date().toISOString(),
-          season_id: claims.seasonId,
-          payload: { animal_id: id, to_camp_id: toCampId },
-        });
-      }
-      setPending(queue.length);
+      // One save, one moment: every animal in the group moved at the same time,
+      // so one client_time for the whole batch is more honest than a fresh
+      // timestamp per animal — and lets the server dedupe its per-batch lookup.
+      const clientTime = new Date().toISOString();
+      const ops = [...selectedAnimalIds].map((id) => ({
+        entity: "movements" as const,
+        entity_id: crypto.randomUUID(),
+        client_time: clientTime,
+        season_id: claims.seasonId,
+        payload: { animal_id: id, to_camp_id: toCampId },
+      }));
+      setPending(enqueueMany(ops).length);
       setSelectedAnimalIds(new Set());
     } else if (action === "treatment") {
       if (!animalId || !treatmentType.trim()) return;

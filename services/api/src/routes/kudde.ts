@@ -7,7 +7,7 @@ import { logAudit } from "../lib/audit.js";
 import { requireDeviceTicket } from "../lib/device-ticket.js";
 import { activeSeason } from "../lib/farm.js";
 import { conflict, notFound } from "../lib/errors.js";
-import { normaliseTagNumber } from "../lib/tag-number.js";
+import { normaliseWorkerNumber } from "../lib/worker-number.js";
 import { createAnimalRequestSchema, updateAnimalRequestSchema } from "../schemas/kudde.js";
 
 /**
@@ -53,7 +53,7 @@ export function registerKuddeRoutes(app: App, deps: AppDeps) {
   app.post("/animals", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
     const staff = request.staff!;
     const body = createAnimalRequestSchema.parse(request.body);
-    const tagNumber = body.tagNumber ? normaliseTagNumber(body.tagNumber) : null;
+    const tagNumber = body.tagNumber ? normaliseWorkerNumber(body.tagNumber) : null;
 
     if (tagNumber && (await tagTaken(deps.db, staff.farmId, tagNumber))) {
       throw conflict("tag_number_taken", `Another animal already has tag ${tagNumber}`);
@@ -84,7 +84,7 @@ export function registerKuddeRoutes(app: App, deps: AppDeps) {
 
     if (!(await farmAnimal(deps.db, staff.farmId, animalId))) throw notFound();
 
-    const tagNumber = body.tagNumber === undefined ? undefined : body.tagNumber ? normaliseTagNumber(body.tagNumber) : null;
+    const tagNumber = body.tagNumber === undefined ? undefined : body.tagNumber ? normaliseWorkerNumber(body.tagNumber) : null;
     if (tagNumber && (await tagTaken(deps.db, staff.farmId, tagNumber, animalId))) {
       throw conflict("tag_number_taken", `Another animal already has tag ${tagNumber}`);
     }

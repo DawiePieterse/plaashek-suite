@@ -363,64 +363,82 @@ export function KuddeRollup() {
         </>
       )}
 
-      <h3>
-        {c.treatmentsHeading} {data.season && <span className="pill on">{data.season.name}</span>}
-      </h3>
-      {!data.season ? (
-        <p className="empty">{c.noActiveSeason}</p>
-      ) : data.treatments.length === 0 ? (
-        <p className="empty">{c.noTreatments}</p>
-      ) : (
-        <div className="card">
-          <table>
-            <thead>
-              <tr>
-                <th>{c.animalTag}</th>
-                <th>{c.treatmentType}</th>
-                <th>{c.dose}</th>
+      <SeasonSection heading={c.treatmentsHeading} season={data.season} emptyText={c.noTreatments} isEmpty={data.treatments.length === 0}>
+        <table>
+          <thead>
+            <tr>
+              <th>{c.animalTag}</th>
+              <th>{c.treatmentType}</th>
+              <th>{c.dose}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.treatments.map((treatment) => (
+              <tr key={treatment.id}>
+                <td>{treatment.animalTag ?? ""}</td>
+                <td>{treatment.treatmentType}</td>
+                <td>{treatment.dose ?? ""}</td>
               </tr>
-            </thead>
-            <tbody>
-              {data.treatments.map((treatment) => (
-                <tr key={treatment.id}>
-                  <td>{treatment.animalTag ?? ""}</td>
-                  <td>{treatment.treatmentType}</td>
-                  <td>{treatment.dose ?? ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </SeasonSection>
 
-      <h3>
-        {c.weightsHeading} {data.season && <span className="pill on">{data.season.name}</span>}
-      </h3>
-      {!data.season ? (
-        <p className="empty">{c.noActiveSeason}</p>
-      ) : data.weights.length === 0 ? (
-        <p className="empty">{c.noWeights}</p>
-      ) : (
-        <div className="card">
-          <table>
-            <thead>
-              <tr>
-                <th>{c.animalTag}</th>
-                <th className="num">{c.weightKg}</th>
+      <SeasonSection heading={c.weightsHeading} season={data.season} emptyText={c.noWeights} isEmpty={data.weights.length === 0}>
+        <table>
+          <thead>
+            <tr>
+              <th>{c.animalTag}</th>
+              <th className="num">{c.weightKg}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.weights.map((weight) => (
+              <tr key={weight.id}>
+                <td>{weight.animalTag ?? ""}</td>
+                <td className="num">{weight.weightKg}</td>
               </tr>
-            </thead>
-            <tbody>
-              {data.weights.map((weight) => (
-                <tr key={weight.id}>
-                  <td>{weight.animalTag ?? ""}</td>
-                  <td className="num">{weight.weightKg}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </SeasonSection>
     </section>
+  );
+}
+
+/**
+ * `KuddeRollup`'s treatment and weight tables are both gated on the same
+ * "no active season" / "nothing captured yet" / "here's the table" three-way
+ * split — pulled out once a second table needed the identical scaffold.
+ */
+function SeasonSection({
+  heading,
+  season,
+  isEmpty,
+  emptyText,
+  children,
+}: {
+  heading: string;
+  season: { name: string } | null;
+  isEmpty: boolean;
+  emptyText: string;
+  children: React.ReactNode;
+}) {
+  const { c } = useOffice();
+
+  return (
+    <>
+      <h3>
+        {heading} {season && <span className="pill on">{season.name}</span>}
+      </h3>
+      {!season ? (
+        <p className="empty">{c.noActiveSeason}</p>
+      ) : isEmpty ? (
+        <p className="empty">{emptyText}</p>
+      ) : (
+        <div className="card">{children}</div>
+      )}
+    </>
   );
 }
 

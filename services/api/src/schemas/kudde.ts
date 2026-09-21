@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { nonEmptyUpdate } from "./catalog.js";
 
-/** Whatever the farm's tag says — see lib/tag-number.ts for the normalisation applied on the way in. */
+/** Whatever the farm's tag says — see lib/worker-number.ts's `normaliseWorkerNumber` for the normalisation applied on the way in (same treatment ADR 0011 gives a worker number). */
 const tagNumber = z.string().trim().min(1).max(32);
 /** Free text, never a picklist Plaashek maintains (docs/kudde-build-scope.md). */
 const sex = z.string().trim().min(1).max(32);

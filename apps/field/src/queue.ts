@@ -209,7 +209,18 @@ function writeQueue(ops: QueuedOp[]) {
 
 /** The save the picker sees: local and instant, never a network call (plan §8). */
 export function enqueue(op: QueuedOp): QueuedOp[] {
-  const ops = [...readQueue(), op];
+  return enqueueMany([op]);
+}
+
+/**
+ * Same as `enqueue`, for a screen that saves several ops in one action —
+ * Kudde's group move (docs/kudde-build-scope.md) can enqueue one op per
+ * animal in a herd. One read and one write for the whole batch rather than
+ * one of each per op, which would otherwise re-parse and re-stringify a
+ * growing outbox on every iteration.
+ */
+export function enqueueMany(newOps: QueuedOp[]): QueuedOp[] {
+  const ops = [...readQueue(), ...newOps];
   writeQueue(ops);
   return ops;
 }

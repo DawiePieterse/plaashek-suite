@@ -77,10 +77,34 @@ async function personAtSaveTime(db: Pick<Db, "select">, deviceId: string, client
   return earliest?.personId ?? null;
 }
 
-/** Every `apply*` below needs this same lookup-or-refuse — the device must have someone assigned at save time to attribute the capture to. */
+/**
+ * Every `apply*` below needs this same lookup-or-refuse — the device must have
+ * someone assigned at save time to attribute the capture to. Memoized per
+ * transaction (keyed by the `tx` object itself, so it needs no explicit
+ * per-request setup or teardown) and per device+moment: a batch that enqueues
+ * one op per animal — Kudde's group move (docs/kudde-build-scope.md) can be a
+ * hundred — shares one `client_time` for the whole save, so this collapses
+ * what would otherwise be one `device_assignments` lookup per op into one for
+ * the whole batch.
+ */
+const createdByCache = new WeakMap<object, Map<string, Promise<string>>>();
+
 async function requireCreatedBy(db: Pick<Db, "select">, deviceId: string, clientTime: Date): Promise<string> {
-  const createdBy = await personAtSaveTime(db, deviceId, clientTime);
-  if (!createdBy) throw forbidden("device_unassigned", "This device has no assigned person");
+  let cache = createdByCache.get(db);
+  if (!cache) {
+    cache = new Map();
+    createdByCache.set(db, cache);
+  }
+
+  const key = `${deviceId}|${clientTime.getTime()}`;
+  let createdBy = cache.get(key);
+  if (!createdBy) {
+    createdBy = personAtSaveTime(db, deviceId, clientTime).then((personId) => {
+      if (!personId) throw forbidden("device_unassigned", "This device has no assigned person");
+      return personId;
+    });
+    cache.set(key, createdBy);
+  }
   return createdBy;
 }
 
