@@ -159,6 +159,28 @@ else
   echo "==> Skipping seed (pass --seed to reseed the demo farm)"
 fi
 
+# Plaashek Management has no self-signup (staff-only console) — bootstrap one
+# login with services/api/scripts/create-staff.ts. The password is generated
+# once and kept in generated/staff-credentials.txt (git-ignored) so redeploys
+# don't rotate it out from under you; delete that file to force a new one.
+CREDS_FILE="$GEN_DIR/staff-credentials.txt"
+if [[ -f "$CREDS_FILE" ]]; then
+  # Existing file wins over $STAFF_EMAIL so a redeploy without that var set
+  # can't upsert a second, different account under the default email.
+  STAFF_EMAIL="$(sed -n 's/^email: //p' "$CREDS_FILE")"
+  STAFF_PASSWORD="$(sed -n 's/^password: //p' "$CREDS_FILE")"
+else
+  STAFF_EMAIL="${STAFF_EMAIL:-staff@plaashek.local}"
+  STAFF_PASSWORD="$(openssl rand -hex 12)"
+fi
+echo "==> Bootstrapping Plaashek Management login ($STAFF_EMAIL)"
+pnpm create-staff -- --email="$STAFF_EMAIL" --password="$STAFF_PASSWORD"
+cat > "$CREDS_FILE" <<EOF
+email: $STAFF_EMAIL
+password: $STAFF_PASSWORD
+EOF
+chmod 600 "$CREDS_FILE"
+
 # ---------------------------------------------------------------------------
 # 9. launchd: API service
 # ---------------------------------------------------------------------------
@@ -268,12 +290,12 @@ echo "  Field (phones)       http://$LAN_IP:$FIELD_PORT"
 echo "  Owner rollup         http://$LAN_IP:$OWNER_PORT"
 echo "  API                  $API_URL"
 echo
-if [[ "$SEED" == "true" || "${FIRST_RUN:-false}" == "true" ]]; then
-  echo "  Demo farm: Mooiplaas"
-  echo "  Admin login:  admin@mooiplaas.test / mooi1234"
-  echo "  Owner login:  eienaar@mooiplaas.test / mooi1234"
-  echo
-fi
+echo "  Management login:  $STAFF_EMAIL / $STAFF_PASSWORD"
+echo "  Demo farm: Mooiplaas"
+echo "  Admin login:        admin@mooiplaas.test / mooi1234"
+echo "  Owner login:        eienaar@mooiplaas.test / mooi1234"
+echo
+echo "Logins are also saved in $CREDS_FILE"
 echo "Logs: $GEN_DIR/logs/"
 echo "Status: infra/deploy/mac/status.sh"
 echo "==================================================================="

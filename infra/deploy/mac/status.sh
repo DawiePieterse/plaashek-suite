@@ -32,3 +32,11 @@ check "Owner"       "http://$LAN_IP:5175/"
 echo
 echo "Postgres:"
 pg_isready -q && echo "  up" || echo "  DOWN"
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+CREDS_FILE="$REPO_ROOT/infra/deploy/mac/generated/staff-credentials.txt"
+if [[ -f "$CREDS_FILE" ]]; then
+  echo
+  echo "Plaashek Management login ($CREDS_FILE):"
+  sed 's/^/  /' "$CREDS_FILE"
+fi
