@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Login, OfficeShell } from "@plaashek/ui-office";
 import { api, ApiError, clearSession, downloadCsv, loadSession, saveSession, type Session } from "./api.js";
+import { Coordinates } from "./Coordinates.js";
 import { setLang, t } from "./copy.js";
 import { Devices } from "./Devices.js";
 import { MasterData } from "./MasterData.js";
@@ -57,6 +58,7 @@ export function App() {
           <>
             <MasterData />
             <Devices />
+            <Coordinates />
           </>
         ),
       }}

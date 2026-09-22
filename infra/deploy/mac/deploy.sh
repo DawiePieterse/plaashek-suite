@@ -49,7 +49,10 @@ PG_BIN="$BREW_PREFIX/opt/postgresql@16/bin"
 export PATH="$PG_BIN:$PATH"
 
 echo "==> Starting Postgres"
-brew services start postgresql@16 >/dev/null
+# `|| true`: a Postgres already running outside this service (or a stale
+# launchd registration) makes the start command fail — the pg_isready loop
+# below is the real gate.
+brew services start postgresql@16 >/dev/null 2>&1 || true
 for i in $(seq 1 30); do
   pg_isready -q && break
   sleep 1

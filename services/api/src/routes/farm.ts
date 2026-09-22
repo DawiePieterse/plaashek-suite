@@ -3,8 +3,10 @@ import { and, asc, count, eq, isNull } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import { activeModuleCodes } from "../lib/entitlements.js";
+import { logAudit } from "../lib/audit.js";
 import { notFound } from "../lib/errors.js";
-import { listFarmBlocks } from "../lib/farm.js";
+import { coordsPair, listFarmBlocks } from "../lib/farm.js";
+import { coordinatesSchema } from "../lib/open-meteo.js";
 
 /** Everything the Farm Admin Tool needs to draw its pickers: farm name, stamp names, blocks/camps, licensed modules. */
 export function registerFarmRoutes(app: App, deps: AppDeps) {
@@ -12,7 +14,10 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
     const farmId = request.staff!.farmId;
 
     const [[farm], farmPeople, farmBlocks, farmCamps, farmAssets, modules, [held], withoutSeason] = await Promise.all([
-      deps.db.select({ id: farms.id, name: farms.name }).from(farms).where(eq(farms.id, farmId)),
+      deps.db
+        .select({ id: farms.id, name: farms.name, latitude: farms.latitude, longitude: farms.longitude })
+        .from(farms)
+        .where(eq(farms.id, farmId)),
       // Staff only: a seasonal picker carries a printed card, never a phone
       // (ADR 0009), so forty of them have no business in the device-assignment
       // list. The piece-work register is where they live.
@@ -55,7 +60,7 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
     const unstamped = withoutSeason.reduce((total, [row]) => total + row.n, 0);
 
     return {
-      farm,
+      farm: { id: farm.id, name: farm.name, coords: coordsPair(farm.latitude, farm.longitude) },
       people: farmPeople,
       blocks: farmBlocks,
       camps: farmCamps,
@@ -63,5 +68,18 @@ export function registerFarmRoutes(app: App, deps: AppDeps) {
       modules,
       waiting: { held: held.n, withoutSeason: unstamped },
     };
+  });
+
+  // Where the farm is, for the weather line (plan §8's stamps use the phone's
+  // own fix — this is the office's). Admin only: the owner reads, the office sets.
+  app.put("/farm/coordinates", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin"]) }, async (request) => {
+    const staff = request.staff!;
+    const { lat, lon } = coordinatesSchema.parse(request.body);
+
+    return deps.db.transaction(async (tx) => {
+      await tx.update(farms).set({ latitude: lat, longitude: lon }).where(eq(farms.id, staff.farmId));
+      await logAudit(tx, { actor: staff.farmMembershipId, action: "set_farm_coordinates", target: staff.farmId, farmId: staff.farmId });
+      return { coords: { lat, lon } };
+    });
   });
 }

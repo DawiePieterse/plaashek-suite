@@ -1,10 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { OfficeProvider, type OfficeSession } from "./context.js";
-import { officeCopy, type Lang } from "./copy.js";
+import { conditionLabel, officeCopy, officeLocale, type Lang } from "./copy.js";
 import { Exports } from "./panels/exports.js";
 import { FarmSummary } from "./panels/farm-summary.js";
 import type { FarmContext } from "./farm-context.js";
-import { AttendanceRollup, HarvestRollup, PieceworkPayout, StockRollup, WaterRollup, WorkOrderRollup } from "./panels/rollups.js";
+import { AttendanceRollup, HarvestRollup, NotesRollup, PieceworkPayout, StockRollup, WaterRollup, WorkOrderRollup } from "./panels/rollups.js";
 import { Seasons } from "./panels/seasons.js";
 import { FARM_SETTINGS_TAB, officeTabs, TabPanel, Tabs, useActiveTab, type ModuleTab } from "./tabs.js";
 
@@ -30,6 +30,7 @@ type Panel = (extra: ReactNode, payoutKey: number) => ReactNode;
 const MODULE_PANELS: Record<ModuleTab, Panel> = {
   veldnotas: (extra) => (
     <>
+      <NotesRollup />
       {extra}
       <Exports kinds={["notes"]} />
     </>
@@ -138,13 +139,24 @@ export function OfficeShell({
   const tabs = officeTabs(context?.modules ?? [], session.language);
   const [active, setActive] = useActiveTab(tabs, storageKey);
 
+  const weather = useFarmWeather(api, session.token, context?.farm.coords ?? null);
+
   return (
     <>
       <header className={`topbar${chrome}`}>
-        <span className="mark" aria-hidden="true">
-          P
-        </span>
-        <h1>{title}</h1>
+        <div className="topbar-id">
+          {/* The band answers "which farm, what day, which tool" at a glance —
+              the farm's name leads once /farm has answered; before that the
+              tool's own name holds the spot so the band never renders empty. */}
+          <h1>{context ? context.farm.name : title}</h1>
+          <BandClock lang={session.language} />
+          {context && <p className="who">{title}</p>}
+        </div>
+        {weather && (
+          <p className="topbar-weather">
+            {Math.round(weather.temp)}°C · {conditionLabel(c, weather.condition)} · {c.humidity(Math.round(weather.humidity))}
+          </p>
+        )}
         <button type="button" className="link" onClick={onSignOut}>
           {signOutLabel}
         </button>
@@ -188,4 +200,79 @@ export function OfficeShell({
       </main>
     </>
   );
+}
+
+/**
+ * The band's date-and-time line. Its own leaf component on purpose: the
+ * 1-second tick re-renders only this one <p>, not the shell and every panel
+ * under it.
+ */
+function BandClock({ lang }: { lang: Lang }) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const locale = officeLocale(lang);
+  return (
+    <p className="topbar-sub">
+      {now.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} ·{" "}
+      {now.toLocaleTimeString(locale)}
+    </p>
+  );
+}
+
+interface CurrentWeather {
+  temp: number;
+  humidity: number;
+  condition: string;
+}
+
+/** How long a weather reading stands before the band asks the server again. */
+const WEATHER_REFRESH_MS = 15 * 60 * 1000;
+
+/**
+ * The band's weather line, from the farm's stored coordinates via the
+ * server's Open-Meteo proxy. Decoration, not data: any failure — no
+ * coordinates set yet, Open-Meteo down, no connection, even an expired
+ * session (the next real call signs the office out) — just means no line,
+ * never an error the office has to dismiss. That is also why this is not
+ * `useRollup`: no error line, and it polls.
+ */
+function useFarmWeather(
+  api: <T>(path: string, init?: RequestInit & { token?: string }) => Promise<T>,
+  token: string,
+  coords: { lat: number; lon: number } | null,
+): CurrentWeather | null {
+  const [weather, setWeather] = useState<CurrentWeather | null>(null);
+
+  useEffect(() => {
+    if (!coords) {
+      setWeather(null);
+      return;
+    }
+
+    let stale = false;
+    async function load() {
+      try {
+        const fresh = await api<CurrentWeather>("/farm/weather", { token });
+        if (!stale) setWeather(fresh);
+      } catch {
+        // Stale beats gone mid-session; before the first reading there is nothing to keep showing.
+      }
+    }
+
+    void load();
+    const timer = setInterval(() => void load(), WEATHER_REFRESH_MS);
+    return () => {
+      stale = true;
+      clearInterval(timer);
+    };
+    // The panels' `refreshFarm` replaces `context` (a new coords object each
+    // time), so the effect keys on the values, not the object.
+  }, [coords?.lat, coords?.lon, token]);
+
+  return weather;
 }

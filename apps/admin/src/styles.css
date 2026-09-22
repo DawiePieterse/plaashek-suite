@@ -163,6 +163,10 @@ input.short {
   }
 }
 
+.coords-note a {
+  font-weight: 600;
+}
+
 /* A row of fields that sit on one line when there is room. */
 .fields-row {
   display: flex;

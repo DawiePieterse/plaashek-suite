@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { attendancePunches, blocks, devices, harvestEvents, people, seasons } from "@plaashek/schema";
+import { attendancePunches, blocks, devices, harvestEvents, notes, people, seasons } from "@plaashek/schema";
 import { signStaffSession } from "../auth/staff-jwt.js";
 import { buildTestApp } from "../test/app.js";
 import { withTestDb } from "../test/db.js";
@@ -57,6 +57,66 @@ test("GET /eienaar/harvest with no active season returns no rollup", async () =>
 
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.json(), { season: null, blocks: [] });
+  });
+});
+
+test("GET /eienaar/veldnotas lists the newest notes of the active season with author, block and weather", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, person, membership } = await seedFarm(db);
+
+    const [block] = await db.insert(blocks).values({ farmId: farm.id, name: "Blok A" }).returning();
+    const [device] = await db.insert(devices).values({ farmId: farm.id }).returning();
+
+    const [activeSeason] = await db
+      .insert(seasons)
+      .values({ farmId: farm.id, name: "Oes 2026/27", startsOn: "2026-11-01", endsOn: "2027-02-15", isActive: true })
+      .returning();
+    const [oldSeason] = await db
+      .insert(seasons)
+      .values({ farmId: farm.id, name: "Oes 2025/26", startsOn: "2025-11-01", endsOn: "2026-02-15" })
+      .returning();
+
+    const stamp = { farmId: farm.id, moduleCode: "veldnotas", createdBy: person.id, deviceId: device.id };
+    await db.insert(notes).values([
+      { ...stamp, seasonId: activeSeason.id, body: "Ou nota", blockId: block.id, createdAt: new Date("2026-11-02T06:00:00Z") },
+      { ...stamp, seasonId: activeSeason.id, body: "Nuwe nota", weatherTemp: 26.4, weatherCondition: "clear", createdAt: new Date("2026-11-03T06:00:00Z") },
+      // Last season's notes must not bleed into this season's summary.
+      { ...stamp, seasonId: oldSeason.id, body: "Verlede seisoen", createdAt: new Date("2026-01-02T06:00:00Z") },
+    ]);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "owner" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/eienaar/veldnotas", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    const body = response.json() as {
+      season: { name: string };
+      total: number;
+      notes: { body: string; personName: string; blockName: string | null; weatherTemp: number | null; weatherCondition: string | null }[];
+    };
+    assert.equal(body.season.name, "Oes 2026/27");
+    assert.equal(body.total, 2);
+    // Newest first, the field's own words, with the stamps as captured.
+    assert.deepEqual(
+      body.notes.map(({ body: text, personName, blockName, weatherTemp, weatherCondition }) => ({ body: text, personName, blockName, weatherTemp, weatherCondition })),
+      [
+        { body: "Nuwe nota", personName: "Person", blockName: null, weatherTemp: 26.4, weatherCondition: "clear" },
+        { body: "Ou nota", personName: "Person", blockName: "Blok A", weatherTemp: null, weatherCondition: null },
+      ],
+    );
+  });
+});
+
+test("GET /eienaar/veldnotas with no active season returns no rollup", async () => {
+  await withTestDb(async (db) => {
+    const { app, deps } = await buildTestApp(db);
+    const { farm, membership } = await seedFarm(db);
+
+    const token = await signStaffSession({ farmMembershipId: membership.id, farmId: farm.id, role: "admin" }, deps.env.staffSessionSecret);
+    const response = await app.inject({ method: "GET", url: "/eienaar/veldnotas", headers: { authorization: `Bearer ${token}` } });
+
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.json(), { season: null, total: 0, notes: [] });
   });
 });
 

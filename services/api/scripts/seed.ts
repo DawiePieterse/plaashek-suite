@@ -104,7 +104,11 @@ async function wipeDemoData() {
 
 async function seed() {
   const [org] = await db.insert(organisations).values({ name: ORG_NAME }).returning();
-  const [farm] = await db.insert(farms).values({ organisationId: org.id, name: FARM_NAME, language: LANGUAGE }).returning();
+  // Coordinates so the office band's weather line works out of the box — Nelspruit-ish, like the demo farm.
+  const [farm] = await db
+    .insert(farms)
+    .values({ organisationId: org.id, name: FARM_NAME, language: LANGUAGE, latitude: -25.569853, longitude: 31.605606 })
+    .returning();
 
   // Stamp names only — field workers never log in (plan §3.1).
   const staffNames = ["Anna April", "Piet Plaas", "Sannie Snyman", "Jan Jantjies"];
