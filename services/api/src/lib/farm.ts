@@ -12,6 +12,15 @@ export async function farmLanguage(db: Pick<Db, "select">, farmId: string): Prom
   return farm.language;
 }
 
+/**
+ * The one "both or neither" rule for the farm's stored point: a latitude
+ * without a longitude is no location at all. `GET /farm` and `/farm/weather`
+ * both answer through this.
+ */
+export function coordsPair(latitude: number | null, longitude: number | null): { lat: number; lon: number } | null {
+  return latitude != null && longitude != null ? { lat: latitude, lon: longitude } : null;
+}
+
 export interface ActiveSeason {
   id: string;
   name: string;

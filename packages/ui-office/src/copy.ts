@@ -8,6 +8,27 @@
  */
 export type Lang = "af" | "en";
 
+/** The one af/en → BCP-47 mapping for the office tools' date and number formatting. */
+export const officeLocale = (lang: Lang) => (lang === "af" ? "af-ZA" : "en-ZA");
+
+/** The condition keys `services/api/src/lib/weather-condition.ts` collapses Open-Meteo's codes to — keep the two lists together. */
+export type WeatherCondition =
+  | "clear"
+  | "mostly_clear"
+  | "partly_cloudy"
+  | "cloudy"
+  | "fog"
+  | "drizzle"
+  | "rain"
+  | "snow"
+  | "showers"
+  | "thunderstorm"
+  | "unknown";
+
+/** The one place an API condition string (untyped on the wire) meets the typed label table. */
+export const conditionLabel = (copy: OfficeCopy, condition: string) =>
+  copy.weatherCondition[condition as WeatherCondition] ?? copy.weatherCondition.unknown;
+
 const af = {
   loading: "Laai…",
   offline: "Kan nie aan die bediener koppel nie.",
@@ -36,6 +57,13 @@ const af = {
   block: "Blok",
   crates: "Kratte",
   kg: "kg",
+
+  notesHeading: "Veldnotas",
+  noNotes: "Nog geen notas vir hierdie seisoen nie.",
+  date: "Datum",
+  note: "Nota",
+  weatherCol: "Weer",
+  latestNotesOnly: (shown: number, total: number) => `Die nuutste ${shown} van ${total} notas — die CSV-uitvoer het almal.`,
 
   attendanceHeading: "Span",
   noAttendance: "Nog geen klokke vir hierdie seisoen nie.",
@@ -85,6 +113,22 @@ const af = {
   exportWorkOrders: "Voer werkkaarte uit (CSV)",
   exportFuel: "Voer brandstof uit (CSV)",
   exportPiecework: "Voer stukwerk uit (CSV)",
+
+  /** English keys in the API, the farm's language on screen (plan §6). Typed against the key union so af and en cannot drift. */
+  weatherCondition: {
+    clear: "Helder",
+    mostly_clear: "Meestal helder",
+    partly_cloudy: "Gedeeltelik bewolk",
+    cloudy: "Bewolk",
+    fog: "Mis",
+    drizzle: "Motreën",
+    rain: "Reën",
+    snow: "Sneeu",
+    showers: "Buie",
+    thunderstorm: "Donderweer",
+    unknown: "—",
+  } satisfies Record<WeatherCondition, string>,
+  humidity: (percent: number) => `${percent}% vog`,
 };
 
 const en: typeof af = {
@@ -111,6 +155,12 @@ const en: typeof af = {
   noActiveSeason: "No active season. Set one up under Farm settings.",
 
   harvestHeading: "Harvest",
+  notesHeading: "Veldnotas",
+  noNotes: "No notes for this season yet.",
+  date: "Date",
+  note: "Note",
+  weatherCol: "Weather",
+  latestNotesOnly: (shown: number, total: number) => `The latest ${shown} of ${total} notes — the CSV export has them all.`,
   noHarvest: "No harvest captured for this season yet.",
   block: "Block",
   crates: "Crates",
@@ -164,6 +214,21 @@ const en: typeof af = {
   exportWorkOrders: "Export work orders (CSV)",
   exportFuel: "Export fuel (CSV)",
   exportPiecework: "Export piece-work (CSV)",
+
+  weatherCondition: {
+    clear: "Clear",
+    mostly_clear: "Mostly clear",
+    partly_cloudy: "Partly cloudy",
+    cloudy: "Cloudy",
+    fog: "Fog",
+    drizzle: "Drizzle",
+    rain: "Rain",
+    snow: "Snow",
+    showers: "Showers",
+    thunderstorm: "Thunderstorm",
+    unknown: "—",
+  },
+  humidity: (percent: number) => `${percent}% humidity`,
 };
 
 export type OfficeCopy = typeof af;

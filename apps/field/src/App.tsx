@@ -73,6 +73,7 @@ export function App() {
   if (current) {
     return (
       <>
+        <Fieldbar title={moduleName(current)} />
         {current === "veldnotas" ? (
           <Notes ticket={ticket} claims={ticketClaims} />
         ) : current === "boord" ? (
@@ -98,26 +99,38 @@ export function App() {
   }
 
   return (
-    <main>
-      <ul className="modules">
-        {modules.map((code) => (
-          <li key={code}>
-            <button type="button" onClick={() => setOpen(code)}>
-              {moduleName(code)}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <footer>{c.deviceFooter(deviceId.slice(0, 8), expiresAt.toLocaleDateString(locale()))}</footer>
-    </main>
+    <>
+      <Fieldbar title="Plaashek" />
+      <main>
+        <ul className="modules">
+          {modules.map((code) => (
+            <li key={code}>
+              <button type="button" onClick={() => setOpen(code)}>
+                {moduleName(code)}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <footer>{c.deviceFooter(deviceId.slice(0, 8), expiresAt.toLocaleDateString(locale()))}</footer>
+      </main>
+    </>
+  );
+}
+
+/** The dark-green band that names the open screen — one place, so every screen wears the same one. */
+function Fieldbar({ title }: { title: string }) {
+  return (
+    <header className="fieldbar">
+      <h1>{title}</h1>
+    </header>
   );
 }
 
 function Screen({ title, body }: { title: string; body?: string }) {
   return (
-    <main>
-      <h1>{title}</h1>
-      {body && <p>{body}</p>}
-    </main>
+    <>
+      <Fieldbar title={title} />
+      <main>{body && <p>{body}</p>}</main>
+    </>
   );
 }

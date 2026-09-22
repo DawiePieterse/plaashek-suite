@@ -23,7 +23,8 @@ export interface Asset {
  * the type without importing each other.
  */
 export interface FarmContext {
-  farm: { id: string; name: string };
+  /** `coords` is null until the office sets them — the weather line simply stays away. */
+  farm: { id: string; name: string; coords: { lat: number; lon: number } | null };
   people: { id: string; name: string }[];
   blocks: Block[];
   camps: Camp[];

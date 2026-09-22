@@ -1,9 +1,12 @@
-import { attendancePunches, blocks, harvestEvents, people } from "@plaashek/schema";
-import { and, asc, count, eq, sum } from "drizzle-orm";
+import { attendancePunches, blocks, harvestEvents, notes, people } from "@plaashek/schema";
+import { and, asc, count, desc, eq, sum } from "drizzle-orm";
 import type { App, AppDeps } from "../app.js";
 import { requireStaff } from "../auth/require-staff.js";
 import { rollUpAttendance } from "../lib/attendance.js";
 import { activeSeason } from "../lib/farm.js";
+
+/** How many notes the veldnotas summary shows — the newest ones; the CSV export has them all. */
+const NOTES_PAGE = 50;
 
 /**
  * Eienaar's first screen (docs/boord-reuse-audit.md): crates + kg captured,
@@ -56,5 +59,42 @@ export function registerEienaarRoutes(app: App, deps: AppDeps) {
       .orderBy(asc(attendancePunches.createdAt));
 
     return { season: { id: season.id, name: season.name }, people: rollUpAttendance(punches) };
+  });
+
+  /**
+   * Veldnotas in summary form: the newest notes of the active season, with
+   * who wrote them, where, and the weather stamped at the moment of writing
+   * (ADR 0006 — append-only, so this is exactly what the field saw). Capped:
+   * the office reads the latest page here and exports the rest as CSV.
+   */
+  app.get("/eienaar/veldnotas", { preHandler: requireStaff(deps.env.staffSessionSecret, ["admin", "owner"]) }, async (request) => {
+    const farmId = request.staff!.farmId;
+
+    const season = await activeSeason(deps.db, farmId);
+    if (!season) return { season: null, total: 0, notes: [] };
+
+    const scope = and(eq(notes.farmId, farmId), eq(notes.seasonId, season.id));
+
+    const [[{ total }], rows] = await Promise.all([
+      deps.db.select({ total: count() }).from(notes).where(scope),
+      deps.db
+        .select({
+          id: notes.id,
+          body: notes.body,
+          at: notes.createdAt,
+          personName: people.name,
+          blockName: blocks.name,
+          weatherTemp: notes.weatherTemp,
+          weatherCondition: notes.weatherCondition,
+        })
+        .from(notes)
+        .innerJoin(people, eq(people.id, notes.createdBy))
+        .leftJoin(blocks, eq(blocks.id, notes.blockId))
+        .where(scope)
+        .orderBy(desc(notes.createdAt))
+        .limit(NOTES_PAGE),
+    ]);
+
+    return { season: { id: season.id, name: season.name }, total, notes: rows };
   });
 }

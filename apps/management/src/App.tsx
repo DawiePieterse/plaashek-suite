@@ -19,10 +19,10 @@ export function App() {
         <span className="mark" aria-hidden="true">
           P
         </span>
-        <h1>Plaashek Management</h1>
-        <span className="who">
-          {session.email}
-        </span>
+        <div className="topbar-id">
+          <h1>Plaashek Management</h1>
+          <p className="who">{session.email}</p>
+        </div>
         <button type="button" className="link" onClick={signOut}>
           Meld af
         </button>

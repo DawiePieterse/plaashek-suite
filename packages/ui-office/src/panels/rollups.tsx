@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useOffice, useOfficeLoader } from "../context.js";
+import { conditionLabel, officeLocale } from "../copy.js";
 import { rand } from "../money.js";
 
 /**
@@ -15,6 +16,20 @@ import { rand } from "../money.js";
 export interface HarvestSummary {
   season: { id: string; name: string } | null;
   blocks: { blockId: string; blockName: string; crates: number; kg: number }[];
+}
+
+export interface NotesSummary {
+  season: { id: string; name: string } | null;
+  total: number;
+  notes: {
+    id: string;
+    body: string;
+    at: string;
+    personName: string;
+    blockName: string | null;
+    weatherTemp: number | null;
+    weatherCondition: string | null;
+  }[];
 }
 
 export interface AttendanceSummary {
@@ -120,6 +135,60 @@ export function HarvestRollup() {
           </tfoot>
         </table>
       </div>
+    </section>
+  );
+}
+
+/**
+ * The newest veldnotas of the active season, as written — a note is never
+ * edited (ADR 0006), so the summary is the field's own words with the block
+ * and weather stamped at the moment of writing. Capped server-side; the CSV
+ * export is the full record.
+ */
+export function NotesRollup() {
+  const { c, lang } = useOffice();
+  const { data, error } = useRollup<NotesSummary>("/eienaar/veldnotas");
+
+  if (error) return <Empty heading={c.notesHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.notesHeading} message={c.loading} />;
+  if (!data.season) return <Empty heading={c.notesHeading} message={c.noActiveSeason} />;
+  if (data.notes.length === 0) return <Empty heading={c.notesHeading} message={c.noNotes} />;
+
+  const locale = officeLocale(lang);
+
+  return (
+    <section>
+      <h2>
+        {c.notesHeading} <span className="pill on">{data.season.name}</span>
+      </h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.date}</th>
+              <th>{c.person}</th>
+              <th>{c.block}</th>
+              <th>{c.note}</th>
+              <th>{c.weatherCol}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.notes.map((note) => (
+              <tr key={note.id}>
+                <td>{new Date(note.at).toLocaleDateString(locale)}</td>
+                <td>{note.personName}</td>
+                <td>{note.blockName ?? ""}</td>
+                <td>{note.body}</td>
+                <td className="muted">
+                  {note.weatherTemp !== null ? `${Math.round(note.weatherTemp)}° · ` : ""}
+                  {note.weatherCondition ? conditionLabel(c, note.weatherCondition) : ""}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {data.total > data.notes.length && <p className="muted">{c.latestNotesOnly(data.notes.length, data.total)}</p>}
     </section>
   );
 }
