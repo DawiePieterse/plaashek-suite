@@ -18,8 +18,9 @@ git clone <this repo> && cd plaashek-suite
 
 This installs Homebrew packages, starts Postgres, builds the API and all
 four PWAs, creates the `plaashek_demo` database, runs migrations, seeds a
-demo farm (**Mooiplaas**), and registers two launchd services so both the
-API and the static file server survive a reboot:
+demo farm (**Mooiplaas**), bootstraps a Plaashek Management staff login, and
+registers two launchd services so both the API and the static file server
+survive a reboot:
 
 - `com.plaashek.api` — the Fastify API (`services/api`), port 8080
 - `com.plaashek.caddy` — serves the four built PWAs as static files, one
@@ -34,10 +35,15 @@ At the end it prints the URLs and the demo logins. Typical output:
   Owner rollup         http://192.168.1.42:5175
   API                  http://192.168.1.42:8080
 
+  Management login:  staff@plaashek.local / 3f9a1c...
   Demo farm: Mooiplaas
-  Admin login:  admin@mooiplaas.test / mooi1234
-  Owner login:  eienaar@mooiplaas.test / mooi1234
+  Admin login:        admin@mooiplaas.test / mooi1234
+  Owner login:        eienaar@mooiplaas.test / mooi1234
 ```
+
+`infra/deploy/mac/status.sh` also prints the Management login on every run,
+so you don't have to scroll back through `deploy.sh` output to find it
+again.
 
 Pairing a phone to the field app: open the admin tool, generate a device
 pairing QR, and scan it with the phone's camera while it's on the same
@@ -45,6 +51,10 @@ Wi-Fi — the QR encodes `http://<lan-ip>:5174/pair/<token>`.
 
 If the Mac has more than one active network interface, or the script
 guesses the wrong one, override it: `LAN_IP=192.168.1.42 ./infra/deploy/mac/deploy.sh`.
+
+The Management email defaults to `staff@plaashek.local`; override it with
+`STAFF_EMAIL=you@example.com ./infra/deploy/mac/deploy.sh` (only takes
+effect the first time, i.e. before `generated/staff-credentials.txt` exists).
 
 ## Redeploying after code changes
 
@@ -83,8 +93,11 @@ infra/deploy/mac/start.sh    # bring them back without rebuilding
   secrets, which logs everyone out and invalidates any printed pairing
   QRs — not catastrophic, just annoying mid-demo).
 - Generated, machine-specific config: `infra/deploy/mac/generated/`
-  (git-ignored) — the rendered `Caddyfile` and service logs
-  (`generated/logs/api.log`, `caddy.log`, plus `.error.log` variants).
+  (git-ignored) — the rendered `Caddyfile`, service logs
+  (`generated/logs/api.log`, `caddy.log`, plus `.error.log` variants), and
+  `generated/staff-credentials.txt` (the Management login, `chmod 600`).
+  Deleting that file makes the next `deploy.sh` run generate a fresh
+  password and re-bootstrap the account under the same email.
 - launchd job definitions:
   `~/Library/LaunchAgents/com.plaashek.{api,caddy}.plist`.
 
