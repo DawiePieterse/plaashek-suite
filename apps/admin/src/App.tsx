@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Login, OfficeShell } from "@plaashek/ui-office";
 import { api, ApiError, clearSession, downloadCsv, loadSession, saveSession, type Session } from "./api.js";
+import { Bespuiting } from "./Bespuiting.js";
 import { setLang, t } from "./copy.js";
 import { Devices } from "./Devices.js";
 import { MasterData } from "./MasterData.js";
@@ -53,6 +54,7 @@ export function App() {
         boord: <Piecework onRateChanged={() => setPayoutKey((key) => key + 1)} />,
         stoor: <Stoor />,
         water: <Water />,
+        bespuiting: <Bespuiting />,
         farm: (
           <>
             <MasterData />

@@ -2,6 +2,7 @@ import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerBespuitingRoutes } from "./routes/bespuiting.js";
 import { registerBlockRoutes } from "./routes/blocks.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerEienaarRoutes } from "./routes/eienaar.js";
@@ -75,6 +76,7 @@ export function buildApp(deps: AppDeps) {
   registerStockRoutes(app, deps);
   registerWaterRoutes(app, deps);
   registerWerkswinkelRoutes(app, deps);
+  registerBespuitingRoutes(app, deps);
 
   return app;
 }

@@ -23,6 +23,7 @@ import {
   pairingTokens,
   people,
   pieceRates,
+  productRegistrations,
   seasons,
   stockItems,
   waterPoints,
@@ -42,7 +43,7 @@ const LANGUAGE = process.argv.find((arg) => arg.startsWith("--lang="))?.slice("-
 if (LANGUAGE !== "af" && LANGUAGE !== "en") throw new Error(`Unknown --lang: ${LANGUAGE} (af or en)`);
 
 /** Licensed, plus one deliberately left out so the unlicensed-QR-fails test has something to fail against. */
-const LICENSED = ["veldnotas", "boord", "span", "stoor", "water", "werkswinkel"];
+const LICENSED = ["veldnotas", "boord", "span", "stoor", "water", "werkswinkel", "bespuiting"];
 const UNLICENSED = "kudde";
 
 try {
@@ -90,6 +91,12 @@ async function wipeDemoData() {
     await db.delete(camps).where(inArray(camps.farmId, farmIds));
     await db.delete(blocks).where(inArray(blocks.farmId, farmIds));
     await db.delete(assets).where(inArray(assets.farmId, farmIds));
+    // Bespuiting's registrations reference stock_items (docs/bespuiting-build-scope.md)
+    // and are not in `captureTables` — they are edited-in-place catalog rows,
+    // not captures — so they must go before the catalogs below or the
+    // stock_items delete hits the same FK violation the water_points fix
+    // (plan changelog, 18 September 2026) already ran into once.
+    await db.delete(productRegistrations).where(inArray(productRegistrations.farmId, farmIds));
     // Catalogs (docs/stoor-build-scope.md, docs/water-build-scope.md) — their
     // moves/readings are already gone via `captureTables` above, so this is
     // safe to run now, before the farm itself goes.

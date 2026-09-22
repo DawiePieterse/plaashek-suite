@@ -1,5 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { auditLog } from "./tables/audit.js";
+import { productRegistrations, sprayApplications } from "./tables/bespuiting.js";
 import { farms, organisations } from "./tables/core.js";
 import { deviceAssignments, deviceModules, devices, pairingTokens } from "./tables/devices.js";
 import { entitlements } from "./tables/entitlements.js";
@@ -27,6 +28,7 @@ export * from "./tables/piecework.js";
 export * from "./tables/stock.js";
 export * from "./tables/water.js";
 export * from "./tables/werkswinkel.js";
+export * from "./tables/bespuiting.js";
 export * from "./tables/staff.js";
 export * from "./workspace-row.js";
 export * from "./capture-tables.js";
@@ -105,3 +107,9 @@ export const selectWorkOrder = createSelectSchema(workOrders);
 
 export const insertFuelLog = createInsertSchema(fuelLogs);
 export const selectFuelLog = createSelectSchema(fuelLogs);
+
+export const insertProductRegistration = createInsertSchema(productRegistrations);
+export const selectProductRegistration = createSelectSchema(productRegistrations);
+
+export const insertSprayApplication = createInsertSchema(sprayApplications);
+export const selectSprayApplication = createSelectSchema(sprayApplications);

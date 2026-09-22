@@ -34,6 +34,20 @@ export interface WerkswinkelSummary {
   assets: { assetId: string; assetName: string; jobs: { description: string | null; openedAt: string }[] }[];
 }
 
+export interface BespuitingSummary {
+  applications: {
+    applicationId: string;
+    at: string;
+    person: string | null;
+    block: string | null;
+    item: string | null;
+    unit: string | null;
+    quantity: number;
+    withholdingPeriod: string | null;
+    safeHarvestDate: string | null;
+  }[];
+}
+
 export interface PayoutSummary {
   season: { id: string; name: string } | null;
   from: string | null;
@@ -295,6 +309,56 @@ export function WorkOrderRollup() {
                 </tr>
               )),
             )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Applications, newest first (docs/bespuiting-build-scope.md) — a log, not a
+ * total: unlike Stoor's on-hand sum or Water's delta, there is nothing to
+ * aggregate here, only a compliance record per capture. The safe-harvest
+ * date is computed server-side at read time from the withholding period,
+ * same as every other derived number in this suite.
+ */
+export function BespuitingRollup() {
+  const { c } = useOffice();
+  const { data, error } = useRollup<BespuitingSummary>("/eienaar/bespuiting");
+
+  if (error) return <Empty heading={c.bespuitingHeading} message={error} kind="error" />;
+  if (!data) return <Empty heading={c.bespuitingHeading} message={c.loading} />;
+  if (data.applications.length === 0) return <Empty heading={c.bespuitingHeading} message={c.noBespuiting} />;
+
+  return (
+    <section>
+      <h2>{c.bespuitingHeading}</h2>
+      <div className="card">
+        <table>
+          <thead>
+            <tr>
+              <th>{c.dateLabel}</th>
+              <th>{c.block}</th>
+              <th>{c.item}</th>
+              <th className="num">{c.quantity}</th>
+              <th>{c.withholdingPeriod}</th>
+              <th>{c.safeHarvestDate}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.applications.map((application) => (
+              <tr key={application.applicationId}>
+                <td>{new Date(application.at).toLocaleDateString()}</td>
+                <td>{application.block}</td>
+                <td>{application.item}</td>
+                <td className="num">
+                  {application.quantity} {application.unit}
+                </td>
+                <td>{application.withholdingPeriod ?? ""}</td>
+                <td>{application.safeHarvestDate ?? ""}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

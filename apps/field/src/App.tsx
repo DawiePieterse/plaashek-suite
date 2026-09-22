@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Bespuiting } from "./Bespuiting.js";
 import { locale, setLang, t } from "./copy.js";
 import { Harvest } from "./Harvest.js";
 import { Notes } from "./Notes.js";
@@ -85,6 +86,8 @@ export function App() {
           <Water ticket={ticket} claims={ticketClaims} />
         ) : current === "werkswinkel" ? (
           <Werkswinkel ticket={ticket} claims={ticketClaims} />
+        ) : current === "bespuiting" ? (
+          <Bespuiting ticket={ticket} claims={ticketClaims} />
         ) : (
           <Screen title={moduleName(current)} body={c.shellNote} />
         )}

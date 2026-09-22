@@ -111,7 +111,45 @@ export interface FuelLogOp {
   };
 }
 
-export type QueuedOp = NoteOp | HarvestEventOp | AttendancePunchOp | StockMoveOp | MeterReadingOp | WorkOrderOp | FuelLogOp;
+/**
+ * Bespuiting capture (docs/bespuiting-build-scope.md): block, product, how
+ * much, plus the compliance fields Stoor never carries. `water_point_id`
+ * and `meter_reading` are only sent on a fertigation run through a Kraan.
+ * No operator field — "who" is the device's assigned person, same as every
+ * other module.
+ */
+export interface SprayApplicationOp {
+  entity: "spray_applications";
+  entity_id: string;
+  client_time: string;
+  season_id: string | null;
+  payload: {
+    block_id: string;
+    item_id: string;
+    quantity: number;
+    concentration?: string | null;
+    reason?: string | null;
+    method?: string | null;
+    water_point_id?: string | null;
+    meter_reading?: number | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    location_accuracy_m?: number | null;
+    weather_temp?: number | null;
+    weather_humidity?: number | null;
+    weather_condition?: string | null;
+  };
+}
+
+export type QueuedOp =
+  | NoteOp
+  | HarvestEventOp
+  | AttendancePunchOp
+  | StockMoveOp
+  | MeterReadingOp
+  | WorkOrderOp
+  | FuelLogOp
+  | SprayApplicationOp;
 
 const QUEUE_KEY = "plaashek.field.outbox";
 
