@@ -63,6 +63,8 @@ pnpm --filter @plaashek/field dev    # http://localhost:5174 — open /pair/<tok
 The seed prints the office logins. API tests need `DATABASE_URL` in the
 environment — they do not read `.env`.
 
+Deploying to a private demo server: `docs/deploy-mac.md`.
+
 ## Phase 1 exit checklist
 
 Closed 17 September 2026 — see §12 of the plan. Foundation (tickets, sync,

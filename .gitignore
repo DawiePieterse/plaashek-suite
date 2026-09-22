@@ -10,3 +10,4 @@ coverage/
 *.log
 /backups/
 *.dump
+/infra/deploy/mac/generated/
