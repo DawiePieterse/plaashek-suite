@@ -30,8 +30,8 @@ check "Field"       "http://$LAN_IP:5174/"
 check "Owner"       "http://$LAN_IP:5175/"
 
 echo
-echo "Postgres:"
-pg_isready -q && echo "  up" || echo "  DOWN"
+echo "MariaDB:"
+mysqladmin ping --silent 2>/dev/null && echo "  up" || echo "  DOWN"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 CREDS_FILE="$REPO_ROOT/infra/deploy/mac/generated/staff-credentials.txt"

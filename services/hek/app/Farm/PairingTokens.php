@@ -8,8 +8,10 @@ use Carbon\CarbonImmutable;
 /**
  * The printed QR slip is a bearer credential (plan §3.4, §10), good for 48 hours.
  *
- * A token is `<farm slug>.<random>`: the scan that redeems it carries no session, and the slug is how
- * it finds the farm's database (ADR 0015). The field app treats the whole thing as opaque.
+ * A token is `<farm slug>-<random>`: the scan that redeems it carries no session, and the slug is how
+ * it finds the farm's database (ADR 0015). A slug is only letters and digits, so the first hyphen ends
+ * it. Not a dot: a static server can take `/pair/farm.abc` for a file. The field app treats the whole
+ * thing as opaque.
  */
 final class PairingTokens
 {
@@ -17,15 +19,15 @@ final class PairingTokens
 
     public static function random(string $slug): string
     {
-        return $slug.'.'.SigningKeys::base64UrlEncode(random_bytes(24));
+        return $slug.'-'.SigningKeys::base64UrlEncode(random_bytes(24));
     }
 
     /** The slug a token starts with, or null if it has none. */
     public static function slugOf(string $token): ?string
     {
-        $dot = strpos($token, '.');
+        $end = strpos($token, '-');
 
-        return $dot > 0 ? substr($token, 0, $dot) : null;
+        return $end > 0 ? substr($token, 0, $end) : null;
     }
 
     public static function expiry(CarbonImmutable $now): CarbonImmutable

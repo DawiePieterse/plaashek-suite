@@ -130,20 +130,36 @@ function setEntitlement(session: Session, farmId: string, moduleCode: string, st
   });
 }
 
-function CreateFarmForm({ busy, onCreate }: { busy: boolean; onCreate: (body: { organisationName: string; farmName: string; language: "af" | "en" }) => void }) {
+/** On cPanel hosting the farm's own database is made first, in the Database Wizard (ADR 0015); its details go here. Left empty, a server that may make databases makes one itself. */
+interface FarmDatabase {
+  name: string;
+  username: string;
+  password: string;
+}
+
+function CreateFarmForm({
+  busy,
+  onCreate,
+}: {
+  busy: boolean;
+  onCreate: (body: { organisationName: string; farmName: string; language: "af" | "en"; database?: FarmDatabase }) => void;
+}) {
   const [organisationName, setOrganisationName] = useState("");
   const [farmName, setFarmName] = useState("");
   const [language, setLanguage] = useState<"af" | "en">("af");
+  const [database, setDatabase] = useState<FarmDatabase>({ name: "", username: "", password: "" });
+  const setDatabaseField = (field: keyof FarmDatabase) => (e: { target: { value: string } }) => setDatabase({ ...database, [field]: e.target.value });
 
   return (
     <form
       className="card"
       onSubmit={(event) => {
         event.preventDefault();
-        onCreate({ organisationName, farmName, language });
+        onCreate({ organisationName, farmName, language, ...(database.name ? { database } : {}) });
         setOrganisationName("");
         setFarmName("");
         setLanguage("af");
+        setDatabase({ name: "", username: "", password: "" });
       }}
     >
       <h3>Nuwe plaas</h3>
@@ -165,6 +181,21 @@ function CreateFarmForm({ busy, onCreate }: { busy: boolean; onCreate: (body: { 
             <option value="af">Afrikaans</option>
             <option value="en">English</option>
           </select>
+        </label>
+
+        <label>
+          Databasis (cPanel)
+          <input value={database.name} onChange={setDatabaseField("name")} placeholder="bowlsbg5n9w0_f_plaas" />
+        </label>
+
+        <label>
+          Databasis-gebruiker
+          <input value={database.username} onChange={setDatabaseField("username")} required={database.name !== ""} />
+        </label>
+
+        <label>
+          Databasis-wagwoord
+          <input type="password" value={database.password} onChange={setDatabaseField("password")} required={database.name !== ""} />
         </label>
 
         <button type="submit" disabled={busy}>

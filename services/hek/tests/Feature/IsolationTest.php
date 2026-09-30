@@ -69,7 +69,7 @@ it('gives one farm\'s staff a 404 for another farm\'s ids on every edit route', 
     $h = bearer(staffToken($a));
     $bId = fn (string $table, array $values) => row($b['db'], $table, ['farm_id' => $b['farm']['id'], ...$values])['id'];
 
-    $token = row($b['db'], 'pairing_tokens', ['device_id' => $b['device']['id'], 'module_code' => 'boord', 'token' => 'farm2.x', 'printed_by' => $b['membership']['id'], 'expires_at' => now()->addDay()->format('Y-m-d H:i:s')]);
+    $token = row($b['db'], 'pairing_tokens', ['device_id' => $b['device']['id'], 'module_code' => 'boord', 'token' => 'farm2-x', 'printed_by' => $b['membership']['id'], 'expires_at' => now()->addDay()->format('Y-m-d H:i:s')]);
 
     $this->postJson("/devices/{$b['device']['id']}/revoke", [], $h)->assertNotFound();
     $this->postJson("/pairing-tokens/{$token['id']}/cancel", [], $h)->assertNotFound();

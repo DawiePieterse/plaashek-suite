@@ -95,16 +95,16 @@ it('puts the farm slug in front of the token and the field app address in the QR
     $s = farmWithDevice();
     $token = $s['add']->json('pairingToken');
 
-    expect($token['token'])->toStartWith($s['farm']['slug'].'.')
+    expect($token['token'])->toStartWith($s['farm']['slug'].'-')
         ->and($token['qrUrl'])->toBe("http://localhost:5174/pair/{$token['token']}");
 });
 
 it('does not find a token by another farm\'s slug', function () {
     $s = farmWithDevice();
     $other = seedFarm();
-    [, $secret] = explode('.', $s['add']->json('pairingToken.token'), 2);
+    [, $secret] = explode('-', $s['add']->json('pairingToken.token'), 2);
 
-    $this->postJson("/pair/{$other['farm']['slug']}.{$secret}")->assertNotFound();
+    $this->postJson("/pair/{$other['farm']['slug']}-{$secret}")->assertNotFound();
     $this->postJson("/pair/{$secret}")->assertNotFound();
-    $this->postJson('/pair/nobody.'.$secret)->assertNotFound();
+    $this->postJson('/pair/nobody-'.$secret)->assertNotFound();
 });

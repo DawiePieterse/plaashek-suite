@@ -11,7 +11,7 @@ Open questions waiting for an ADR (plan §13):
 3. ~~Year-one billing — invoice on WhatsApp, or pay inside Plaashek Management~~ — [ADR 0004](0004-year-one-billing.md): WhatsApp invoice only, confirming the §2.1 non-goal
 4. ~~Kudde — real livestock model, or speculative~~ — [ADR 0005](0005-kudde.md): speculative, deferred with no build slot until a real livestock farm is under contract
 5. ~~The three offline windows — ticket life, revoke reach, licence grace~~ — [ADR 0003](0003-offline-windows.md): 21 / 21 / 14 days, confirmed as proposed
-6. ~~Sync engine — build or buy~~ — [ADR 0002](0002-sync-engine.md): buy (PowerSync, self-hosted)
+6. ~~Sync engine — build or buy~~ — [ADR 0002](0002-sync-engine.md): buy (PowerSync, self-hosted) — **superseded by [ADR 0014](0014-php-api-on-afrihost.md)**
 7. ~~Pilot farm's pick dates, so Phase 3 and 4 miss the season~~ — [ADR 0001](0001-pilot-farm.md)'s updates: originally no 2026 rollout, Phase 4 go-live 2027 (Jan-Aug window); both gates removed 17 September 2026 — go-live has no calendar restriction now
 
 Raised outside §13, during phase work:
@@ -24,3 +24,5 @@ Raised outside §13, during phase work:
 13. ~~Who owns the number on a worker's card — Plaashek generates it, or the farm types its own~~ — [ADR 0011](0011-worker-numbers-are-the-farms.md): the farm's own number, so it joins to the payment system; the card lifecycle goes with it, and the guessability that comes with a typed number is accepted and written down
 14. ~~Whether Span scoping could start before Bekfontein's Phase 4 gate closes~~ — [ADR 0012](0012-span-prep-early.md): yes, scoping only — **overtaken by events and superseded by [ADR 0013](0013-phase-5-build-ahead-of-phase-4.md)**: the next session built Span for real (ADR 0008–0011) while Phase 4 was still open, exceeding what this ADR authorized
 15. ~~Whether Phase 5's actual build (not just scoping) may proceed before Phase 4's remaining on-site checklist closes~~ — [ADR 0013](0013-phase-5-build-ahead-of-phase-4.md): yes, deliberately — Phase 4's remaining items are all on-site at the pilot farm, none of them code, so build work is not what stands between the farm and go-live
+16. ~~Where the API runs, given the Afrihost cPanel hosting that already runs Bowls Buddy and Budgeteer has no Node.js or Postgres~~ — [ADR 0014](0014-php-api-on-afrihost.md): rewritten in PHP (Laravel) on MariaDB and deployed there; **supersedes [ADR 0002](0002-sync-engine.md)'s PowerSync**, which cannot run on shared hosting — the field app's own outbox is the sync
+17. ~~Whether farms share one database kept apart by `farm_id` filters~~ — [ADR 0015](0015-one-database-per-farm.md): one database per farm, plus a central one for what spans farms; a query that forgets its filter can only see the farm it is in

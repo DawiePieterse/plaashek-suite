@@ -2,18 +2,12 @@
   "name": "plaashek-suite",
   "private": true,
   "version": "0.0.0",
-  "description": "Plaashek Suite — management, farm admin, owner and field PWAs",
+  "description": "Plaashek Suite — management, farm admin, owner and field PWAs. The API is services/hek (Laravel, see its composer.json).",
   "scripts": {
     "build": "pnpm -r build",
-    "seed": "pnpm --filter @plaashek/api seed",
-    "create-staff": "pnpm --filter @plaashek/api create-staff --",
     "prepare": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
-    "db:generate": "pnpm --filter @plaashek/schema exec drizzle-kit generate",
-    "migrate": "pnpm --filter @plaashek/schema exec drizzle-kit migrate",
-    "backup": "bash infra/backup/backup.sh",
-    "restore": "bash infra/backup/restore.sh"
+    "typecheck": "pnpm -r typecheck"
   },
   "engines": {
     "node": ">=20"

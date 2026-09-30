@@ -1,7 +1,7 @@
 # ADR 0002 — Sync engine: build or buy
 
 **Date:** 16 September 2026
-**Status:** accepted
+**Status:** superseded by [ADR 0014](0014-php-api-on-afrihost.md) — PowerSync cannot run on the shared hosting the API moved to; the field app's own outbox is the sync
 
 ## Question
 

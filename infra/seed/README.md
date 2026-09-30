@@ -5,18 +5,22 @@
 so the Phase 1 exit checklist can be re-run in a minute instead of clicked
 through. Not real Bekfontein data — none exists yet.
 
-    pnpm seed
+    cd services/hek
+    php artisan plaashek:seed            # --lang=en for an English farm
 
-Lives in `services/api/scripts/seed.ts` — that is where the Postgres client,
-the Drizzle schema and the password hasher already are, so the seed needs no
-dependency wiring of its own. Re-running wipes and recreates everything under
-the demo organisation, so it is safe to run repeatedly.
+Lives in `services/hek/app/Console/Commands/Seed.php`. Like every farm,
+Mooiplaas has its own database (ADR 0015). The first run creates the farm and
+its database: made automatically where `FARM_DB_AUTO_CREATE=true` (local, a
+VPS), or on cPanel make it in the Database Wizard first and pass
+`--db-name=... --db-user=... --db-password=...`. Re-running empties only the
+Mooiplaas database and fills it again, so it is safe to run repeatedly and can
+never touch another farm.
 
 Creates:
 
-- One organisation, one farm
+- One organisation, one farm, with its own database
 - A few people (no logins — names to stamp with)
 - One admin login, one owner login
-- Blocks, camps, one active season
-- Entitlements for two modules, and one module deliberately NOT licensed
-  (so the unlicensed-QR-fails test has something to fail against)
+- Blocks, camps, two assets, one active season
+- Licences for six modules, and one module deliberately NOT licensed
+  (`kudde`, so the unlicensed-QR-fails test has something to fail against)

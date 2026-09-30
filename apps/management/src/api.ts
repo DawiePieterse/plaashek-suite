@@ -31,6 +31,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   forbidden: "Jy het nie regte vir hierdie aksie nie.",
   not_found: "Nie gevind nie.",
   validation_error: "Ongeldige inset.",
+  email_taken: "Hierdie e-pos het reeds 'n aanmelding.",
+  farm_database_required: "Maak eers die plaas se databasis in cPanel en vul die databasis, gebruiker en wagwoord in.",
+  farm_database_unreachable: "Kan nie die plaas se databasis bereik of opstel nie. Kyk die naam, gebruiker en wagwoord.",
   unknown: "Iets het verkeerd geloop. Probeer weer.",
 };
 

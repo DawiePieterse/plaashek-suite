@@ -2,8 +2,8 @@
 
 **Brand:** Plaashek · [plaashek.co.za](https://plaashek.co.za)
 **What this file is:** The only working plan. Greenfield build of Plaashek Management, Farm Admin Tool, Owner Module, field PWAs, and shared sync.
-**Status:** v1.22
-**Date:** 18 September 2026
+**Status:** v1.23
+**Date:** 30 September 2026
 **Earlier drafts:** Retired. Do not use suite v0.2, the migration draft, or field-login / seat-cap models.
 
 **Changes from v1.1:** licence lifecycle restored (§5); offline windows defined and made a Phase 0 decision (§3.6); pairing token hardened (§3.4); PWA update/migration added (§8); tech stack restored (§9); backup, offboarding and audit log added (§11); explicit non-goals (§2.1); seasons defined as farm-owned master data, stamped on every record (§4.2, §6).
@@ -45,6 +45,8 @@
 **Changes from v1.20:** `stoor` built (§11 order 5) — [docs/stoor-build-scope.md](stoor-build-scope.md): a farm-defined catalog (`stock_items`) and a move on each item, `in` or `out` (`stock_moves`), captured on `apps/field/src/Stoor.tsx` with an optional block on a `used` move and no weather or GPS (a stock move is not an observation). One deliberate break from Harvest's and Span's pattern: `GET /eienaar/stock` sums every move ever made, not just the active season's — a shed does not empty itself at a season boundary. Catalog management (`apps/admin/src/Stoor.tsx`) is admin-only, same visibility as Piecework and MasterData; the on-hand rollup and `GET /export/stock.csv` are shared with the Owner Module like every other rollup. Proven end to end against the demo farm on 18 September 2026: an item added in the Farm Admin Tool, received and used through the field screen (a receipt with no block, a use tied to Blok A), the on-hand total correct in both office tools after each move.
 
 **Changes from v1.21:** `water` and `werkswinkel` built (§11 order 7) — [docs/water-build-scope.md](water-build-scope.md), [docs/werkswinkel-build-scope.md](werkswinkel-build-scope.md), both season-less per §6/§8. Water: a catalog of points (`water_points`) and a reading capture (`meter_readings`); `GET /eienaar/water` reports the **latest reading and the delta since the one before it**, not a running total — the opposite call from Stoor's on-hand sum, because a reading replaces the current state rather than accumulating. Werkswinkel: a job's open/closed lifecycle is **two paired append-only events** (`work_orders`, Span's shape, not a status column), plus a plain `fuel_logs` capture; any paired phone can close a job a different one opened, so the phone reads open jobs back from the server (`GET /work-orders/open`) rather than trusting local state. Found and closed a real gap first: `assets` had a schema table since Phase 1 but no route at all — `POST /assets` and a "Bates" card in `MasterData.tsx` now exist, the same add-only treatment people/blocks/camps got in Phase 4. Also fixed a latent bug the Stoor work left behind: the demo seed's wipe never deleted `stock_items`, so a second re-seed after any manual testing failed on a foreign-key violation — `wipeDemoData` now clears `stock_items` and `water_points` too. Proven end to end against the demo farm on 18 September 2026: a water point read twice (500 then unchanged), a work order opened on one paired phone and closed on a second, a fuel log recorded — the office and owner rollups matched after each step.
+
+**Changes from v1.22:** the API moves to **PHP (Laravel 12) on MariaDB, on the Afrihost cPanel hosting** that already runs Bowls Buddy and Budgeteer, with **one database per farm** — [ADR 0014](decisions/0014-php-api-on-afrihost.md), [ADR 0015](decisions/0015-one-database-per-farm.md). `services/api` (Fastify, Postgres), `services/migrations`, `packages/schema`, `packages/tickets` and `packages/sync` are gone; `services/hek` replaces them with the same paths and JSON, so the four apps did not change (bar database fields on Management's "Nuwe plaas" form). A central database holds organisations, farms, licences, Plaashek staff and a login directory; each farm's own database holds everything it captures or keeps, so a query that forgets its farm filter can only see the farm it is in. PowerSync is dropped (it cannot run on shared hosting): the field app's own outbox, which already did the work, is the sync from now on. Every Node test was ported to Pest (139 tests, MariaDB, a real database per farm) and a full walkthrough — Management creates a farm and its database, the office prints a QR, a phone pairs, captures and syncs, the owner reads it, a second farm sees none of it — passed on 30 September 2026. Hosts are now fixed on `plaashek.co.za` (§4). No data existed yet, so nothing was migrated.
 
 ---
 
@@ -205,7 +207,7 @@ The honest statement to a farm: *a phone that never sees signal cannot be switch
   Eienaar (office)            + custom PWAs
 ```
 
-Hosts (proposed):
+Hosts (all on the Afrihost account, [docs/deploy-afrihost.md](deploy-afrihost.md)):
 
 | Surface | Host |
 |---|---|
@@ -213,6 +215,8 @@ Hosts (proposed):
 | Plaashek Management | `hek.plaashek.co.za` |
 | Farm Admin Tool | `admin.plaashek.co.za` |
 | Field apps + pair URL | `app.plaashek.co.za` |
+| Owner Module | `eienaar.plaashek.co.za` |
+| API | `api.plaashek.co.za` |
 
 Do not share cookies across `hek` and `admin`.
 
@@ -425,16 +429,16 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 | Layer | Choice | Why |
 |---|---|---|
 | PWA | TypeScript + Vite, React or Svelte | Small bundle, good PWA tooling |
-| Local store | SQLite via PowerSync client SDK (OPFS-backed in browser) | Decided — ADR 0002 |
-| API | Node or Go behind Caddy | Simple to host and reason about |
-| DB | Postgres, ZA region | Farms, entitlements, tickets, sync cursors |
+| Local store | The field app's own outbox (`apps/field/src/queue.ts`) | ADR 0014 — PowerSync (ADR 0002) cannot run on shared hosting |
+| API | PHP 8.3, Laravel 12 (`services/hek`) | Runs on the hosting already paid for — ADR 0014 |
+| DB | MariaDB 10.11: one central database, one per farm | Farm data kept apart by the database, not by a filter — ADR 0015 |
 | Media | S3-compatible in ZA (af-south-1 or local) | Photos and voice notes |
 | Tickets | Signed JWT — farm modules (ceiling) + device modules (floor) | Verifiable offline |
 | Messaging | WhatsApp Business API for office notices | How farms already talk. Approval + per-message cost is a Phase 0 line item |
-| Hosting | One VPS with backups; k8s only if scale demands | Matches current scale |
+| Hosting | Afrihost Bronze Pro cPanel (with Bowls Buddy and Budgeteer), `plaashek.co.za` | Paid for, in South Africa; a VPS only if a farm outgrows it |
 | Observability | Errors carry `farm_id` and `device_id`, never field note content | Support without reading the farm's day |
 
-**Build vs buy — decided (ADR 0002):** buying PowerSync (self-hosted, `af-south-1`) rather than a from-scratch outbox/cursor engine. Conflict logic (LWW on scalars, append-only on events), revoke, and the lazy photo/voice channel stay ours regardless — PowerSync only removes the queue/cursor/local-storage plumbing.
+**Build vs buy — reversed (ADR 0014, superseding ADR 0002):** PowerSync needs its own always-on service next to the database, which shared hosting cannot run. The field app's outbox (queue locally, flush on signal, drop only what the server accepted) posting to `POST /sync/upload`, plus the cached lists the phone reads (`/blocks`, `/pickers`, the catalogs), is the sync. Conflict logic (append-only captures, idempotent by id), revoke and the lazy photo/voice channel were always ours. Its ceiling is localStorage's ~5 MB: fine for text, wrong for photos, so moving the queue to IndexedDB comes with the photo channel.
 
 ---
 
@@ -450,10 +454,10 @@ One developer, part-time, ZA hosting, long-lived farm data. Decisions, not relig
 
 **Backup and restore** — missing from v1.1, and Stoor holds chemical records with legal weight:
 
-- Nightly Postgres backup, off the app server, retained 30 days.
+- Nightly dump of the central and every farm database, one file each, off the server, retained 30 days (`php artisan plaashek:backup`, [infra/backup](../infra/backup/README.md)). Afrihost's Afrires keeps 14 days as well.
 - Media bucket versioned.
 - **Restore tested quarterly.** An untested backup is a rumour.
-- Document recovery time honestly. A one-VPS setup means hours, not minutes. Say so before a farm asks.
+- Document recovery time honestly. Shared hosting means hours, not minutes. Say so before a farm asks.
 
 **Offboarding:** on cancellation, deliver a full Excel export of every module, confirm receipt, then delete within the agreed window. Write the window into the order form so it is not negotiated under pressure.
 
@@ -548,7 +552,7 @@ Exit:
 
 - [x] Excel export shipped from the office tools — `GET /export/notes.csv` and `GET /export/harvest.csv` (`services/api/src/routes/export.ts`), staff-auth-gated the same way `/farm` and `/eienaar/harvest` are, one button each in the Farm Admin Tool and `apps/owner`. CSV, not a binary `.xlsx` — Excel opens it natively, so no dependency was added for a two-table export.
 - [x] CI green on `main` (`.github/workflows/ci.yml`: build, migrate, typecheck, test on every push/PR). Branch protection requiring the `test` check is configured but not enforced — GitHub gates private-repo enforcement behind a Team/Enterprise org account; left inert as a solo/part-time project, free to activate the moment a collaborator joins or the repo moves org-side.
-- [x] Bekfontein created as a real organisation + farm row, replacing no seed data (ADR 0001: genuine first deployment, not a migration). Created 17 September 2026 via Plaashek Management (`POST /management/farms`) — organisation "Laughing Waters", farm "Bekfontein", `af`. Lives in the local dev database (no production VPS exists yet, plan §9) — move it when real hosting is provisioned.
+- [x] Bekfontein created as a real organisation + farm row, replacing no seed data (ADR 0001: genuine first deployment, not a migration). Created 17 September 2026 via Plaashek Management (`POST /management/farms`) — organisation "Laughing Waters", farm "Bekfontein", `af`. Lived in the local dev database only; with the move to Afrihost and a database per farm (ADR 0014, 0015) nothing is carried over — create it again in production Plaashek Management once the hosting is set up ([docs/deploy-afrihost.md](deploy-afrihost.md)), its database made first in cPanel.
 - [x] Real entitlements set for exactly `veldnotas`, `boord`, `eienaar` — no `span`, no `kudde`. Set 17 September 2026 via `PUT /management/farms/:id/entitlements`.
 - [ ] Bekfontein's litchi season(s) entered in the Farm Admin Tool with real dates (peak picking runs 1 Sep–31 Dec, ADR 0001) — informational now that go-live isn't gated to avoid that window, but the season still has to be right for captures to stamp correctly.
 - [ ] Real people, blocks, camps entered for the farm — not the fake-farm fixtures from `infra/seed`. The Farm Admin Tool can now do this (`POST /people`, `/blocks`, `/camps`, a "Mense/Blokke/Kampe" card alongside Devices/Seasons) — before this, the only way to create a person was as a side effect of an office login, and blocks/camps had no create path at all, which is why no device could be paired for Bekfontein. Still open until the real farm's data is actually entered.
@@ -645,7 +649,7 @@ permanent employees only. It extends Boord rather than adding a module code
 | 3 | Year-one billing | WhatsApp invoice, manual EFT, no in-app payment | [0004](decisions/0004-year-one-billing.md) |
 | 4 | Kudde: real or speculative | Deferred — no build slot until a real livestock farm is contracted | [0005](decisions/0005-kudde.md) |
 | 5 | The three offline windows (§3.6) | Confirmed as proposed — 21 / 21 / 14 days | [0003](decisions/0003-offline-windows.md) |
-| 6 | Sync engine: build or buy | Buy — self-hosted PowerSync | [0002](decisions/0002-sync-engine.md) |
+| 6 | Sync engine: build or buy | Buy — self-hosted PowerSync; **reversed** by ADR 0014: the field app's own outbox | [0002](decisions/0002-sync-engine.md), [0014](decisions/0014-php-api-on-afrihost.md) |
 | 7 | Build scheduling against the pilot's pick | Originally pushed to Jan–Aug 2027, no 2026 rollout; both gates removed 17 September 2026 — go live whenever the checklist closes | [0001](decisions/0001-pilot-farm.md) |
 
 ---
@@ -684,7 +688,7 @@ permanent employees only. It extends Boord rather than adding a module code
 4. Phase 2 (`veldnotas`) — **done, exit checklist closed (§12).** GPS + weather stamp, offline badge, correction model. Build Phase 3 (`boord` + `eienaar`) next — check the pilot farm's season first (§12 note under Phase 3).
 5. Boord + Eienaar reuse audit for Phase 3 — **done**, see [docs/boord-reuse-audit.md](boord-reuse-audit.md). Worker/team attribution closed — [ADR 0007](decisions/0007-boord-no-worker-attribution.md): dropped. Build scope ready.
 6. Phase 3 (`boord` + `eienaar`) — **done, exit checklist closed (§12).** `harvest_events`, field capture screen, generalised sync, `/blocks`, and `apps/owner`'s harvest rollup. Map the pilot farm's season (§12 note) before starting Phase 4 next.
-7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists, and the Farm Admin Tool can now create the farm's own people/blocks/camps with either office role. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built, plus standing up real hosting (plan §9 — no production VPS exists yet). Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
+7. Phase 4 (Bekfontein go-live) — exit checklist written (§12), Excel export and CI green closed, Plaashek Management built (v1.12) so the console to create the real org/farm/entitlements now exists, and the Farm Admin Tool can now create the farm's own people/blocks/camps with either office role. Everything left is real-farm setup and on-site proving of what Phases 1–3 already built, plus standing up the Afrihost hosting (plan §9, [docs/deploy-afrihost.md](deploy-afrihost.md)) and creating Bekfontein there. Go-live has no calendar gate (ADR 0001, updated 17 September 2026) — ready to proceed as soon as the remaining checklist items close. **Still open** — running Phase 5 in parallel does not close any of it.
 8. Phase 5 (remaining modules, §11 order) — checklist written per module (§12). `span` **done**: [build scope](span-build-scope.md), [ADR 0008](decisions/0008-span-self-clocking.md), `attendance_punches`, the clock screen, sync routing, Eienaar's hours rollup and the CSV export. Built ahead of Phase 4's close — see [ADR 0013](decisions/0013-phase-5-build-ahead-of-phase-4.md), which supersedes the earlier scoping-only [ADR 0012](decisions/0012-span-prep-early.md).
 9. Seasonal piece-work **done** (out of §11's order, raised by the farm): [build scope](piecework-build-scope.md), [ADR 0009](decisions/0009-piecework-picker-attribution.md), [ADR 0010](decisions/0010-piecework-pay-boundary.md), worker cards scanned at the scale, tiered pay, the admin section and the payroll CSV.
 10. `stoor` **done**: [build scope](stoor-build-scope.md), `stock_items`/`stock_moves`, the field capture screen, sync routing, the on-hand rollup (a running total, not season-scoped — the one deliberate break from Harvest's and Span's pattern), the Farm Admin Tool catalog section and the CSV export.

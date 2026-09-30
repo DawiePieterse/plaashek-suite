@@ -14,7 +14,7 @@ for plist in "$API_PLIST" "$CADDY_PLIST"; do
   fi
 done
 
-brew services start postgresql@16 >/dev/null
+brew services start mariadb >/dev/null
 
 launchctl bootstrap "gui/$(id -u)" "$API_PLIST" 2>/dev/null || true
 launchctl kickstart -k "gui/$(id -u)/com.plaashek.api"

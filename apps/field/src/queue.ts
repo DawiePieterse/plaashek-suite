@@ -1,11 +1,10 @@
 /**
- * ponytail: a localStorage outbox, not the real sync engine. ADR 0002 buys
- * PowerSync (SQLite/OPFS, CRUD queue, cursor pull) and that needs the service
- * running; this holds the same shape — queue locally, flush when there is
- * signal, keep what the server did not accept — so swapping it for
- * `createPlaashekConnector` in @plaashek/sync is a transport change, not a
- * redesign. Ceiling: localStorage is ~5MB and synchronous, so it is fine for
- * text notes and wrong for photos.
+ * The phone's outbox, and the sync (ADR 0014 — PowerSync cannot run on the
+ * shared hosting, so this is no longer a stand-in): queue locally, flush when
+ * there is signal, keep what the server did not accept. Every capture carries
+ * its own id, so a retried upload lands once. Ceiling: localStorage is ~5MB
+ * and synchronous, so it is fine for text captures and wrong for photos —
+ * move it to IndexedDB with the photo channel (plan §7).
  */
 export interface NoteOp {
   entity: "notes";

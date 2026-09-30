@@ -15,19 +15,21 @@ a screen or a data shape by copying it in and adapting it to outbox +
 | `apps/management` | Staff only. `hek.plaashek.co.za` |
 | `apps/admin` | Farm office. `admin.plaashek.co.za` |
 | `apps/field` | The phones: pairing shell + Veldnotas, Boord, Span. `app.plaashek.co.za` |
-| `apps/owner` | Owner module (`eienaar`). Read-only rollups |
-| `packages/*` | Shared schema, sync, tickets, and the office tools' shared UI |
-| `services/api` | hek-api + sync-api |
-| `services/migrations` | Postgres migrations, numbered, checked in |
+| `apps/owner` | Owner module (`eienaar`). Read-only rollups. `eienaar.plaashek.co.za` |
+| `packages/ui-office` | The office tools' shared UI |
+| `services/hek` | The API (hek-api + sync-api): Laravel 12 on MariaDB, one database per farm. `api.plaashek.co.za` |
+| `services/hek/database/migrations` | `central/` and `farm/` — the two schemas (ADR 0015) |
+| `scripts/build-afrihost.sh` | The zips to upload to Afrihost |
 | `infra/seed` | Fake farm for Phase 1 exit tests |
-| `infra/backup` | Nightly script + quarterly restore drill |
+| `infra/backup` | Nightly dump per database + quarterly restore drill |
 
 No scaffolding for a phase that hasn't started: a module gets a table, a
 screen and a route when it is being built, not before.
 
 ## Rules that are easy to break later
 
-- No cross-farm foreign keys. Ever.
+- No cross-farm foreign keys. Ever. Each farm has its own database (ADR 0015):
+  farm data goes through `FarmDatabase::db()`, never the central connection.
 - Every workspace row carries `farm_id`, `module_code`, `season_id`,
   `created_by`, `device_id`.
 - `season_id` resolves **on the device** from its synced copy, not on the
@@ -49,21 +51,33 @@ screen and a route when it is being built, not before.
 
 ## Getting started
 
-```
-pnpm install
-cp .env.example .env     # fill it in
-pnpm migrate             # apply services/migrations
-pnpm seed                # fake farm for testing (--lang=en for an English farm)
+Needs PHP 8.2+ (with `sodium`, `pdo_mysql`, `intl`), Composer, MariaDB 10.11
+(or MySQL 8), Node 20+ and pnpm.
 
-pnpm --filter @plaashek/api dev      # http://localhost:8080
+```
+cd services/hek
+composer install
+cp .env.example .env                 # DB_* for a user that may create databases
+php artisan key:generate
+php artisan plaashek:keys            # ticket key + session secrets
+php artisan migrate                  # the central database
+php artisan plaashek:seed            # demo farm in its own database (--lang=en for English)
+php artisan plaashek:staff-create    # a Plaashek Management login
+php artisan serve --port=8080        # http://localhost:8080
+
+cd ../..
+pnpm install
 pnpm --filter @plaashek/admin dev    # http://localhost:5173
 pnpm --filter @plaashek/field dev    # http://localhost:5174 — open /pair/<token>
 ```
 
-The seed prints the office logins. API tests need `DATABASE_URL` in the
-environment — they do not read `.env`.
+The seed prints the office logins. Checks: `composer check` in `services/hek`
+(Pint, Larastan, Pest; tests use the `plaashek_test` database and make
+`plaashek_test_f_*` ones, see `phpunit.xml`), and `pnpm typecheck && pnpm test`
+for the apps.
 
-Deploying to a private demo server: `docs/deploy-mac.md`.
+Deploying to Afrihost: `docs/deploy-afrihost.md`. To a private demo server:
+`docs/deploy-mac.md`.
 
 ## Phase 1 exit checklist
 

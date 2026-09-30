@@ -3,26 +3,28 @@
 Scripts in `infra/deploy/mac/`. Everything runs natively — no Docker, no
 domain/DNS required. The API and each PWA are served over the Mac's LAN IP,
 so any phone or laptop on the same Wi-Fi can open them during a demo. This
-is not a production setup (`infra/backup/README.md` assumes production is a
-VPS); it's for controlled demos off a machine you control.
+is not a production setup (production is Afrihost: `docs/deploy-afrihost.md`);
+it's for controlled demos off a machine you control.
 
 ## One-time setup
 
 Prerequisites: [Homebrew](https://brew.sh) installed. Everything else
-(Node, Postgres, Caddy) is installed by the script.
+(Node, PHP, Composer, MariaDB, Caddy) is installed by the script.
 
 ```
 git clone <this repo> && cd plaashek-suite
 ./infra/deploy/mac/deploy.sh
 ```
 
-This installs Homebrew packages, starts Postgres, builds the API and all
-four PWAs, creates the `plaashek_demo` database, runs migrations, seeds a
-demo farm (**Mooiplaas**), bootstraps a Plaashek Management staff login, and
-registers two launchd services so both the API and the static file server
-survive a reboot:
+This installs Homebrew packages, starts MariaDB, installs the API's PHP
+packages and builds all four PWAs, creates the `plaashek` central database and
+a `plaashek` MariaDB user allowed to make farm databases, runs migrations,
+seeds a demo farm (**Mooiplaas**, in its own `plaashek_f_mooiplaas` database),
+bootstraps a Plaashek Management staff login, and registers two launchd
+services so both the API and the static file server survive a reboot:
 
-- `com.plaashek.api` — the Fastify API (`services/api`), port 8080
+- `com.plaashek.api` — the Laravel API (`services/hek`) on PHP's built-in
+  server with four workers, port 8080
 - `com.plaashek.caddy` — serves the four built PWAs as static files, one
   port each
 
@@ -63,8 +65,9 @@ git pull
 ./infra/deploy/mac/deploy.sh
 ```
 
-Safe to re-run: it reuses the existing `.env` and database, rebuilds
-everything, re-runs migrations, and restarts both services. It does **not**
+Safe to re-run: it reuses the existing `services/hek/.env` and databases,
+rebuilds everything, re-runs migrations (central, then every farm database),
+and restarts both services. It does **not**
 reseed by default (so demo data you've entered survives a redeploy). To
 reset back to the clean demo farm:
 
@@ -72,22 +75,22 @@ reset back to the clean demo farm:
 ./infra/deploy/mac/deploy.sh --seed
 ```
 
-`pnpm seed` (what `--seed` runs) only ever wipes and recreates the
-**Mooiplaas demo org** — it can't touch a different farm.
+`php artisan plaashek:seed` (what `--seed` runs) only ever empties and refills
+the **Mooiplaas** database — it can't touch a different farm.
 
 ## Before/after a demo
 
 ```
-infra/deploy/mac/status.sh   # check both services + Postgres are up
-infra/deploy/mac/stop.sh     # pack away — stops the API and Caddy (Postgres stays up)
+infra/deploy/mac/status.sh   # check both services + MariaDB are up
+infra/deploy/mac/stop.sh     # pack away — stops the API and Caddy (MariaDB stays up)
 infra/deploy/mac/start.sh    # bring them back without rebuilding
 ```
 
 ## Where things live
 
-- App code: builds go to each `apps/*/dist` (git-ignored) and
-  `services/api/dist`.
-- Secrets: `.env` at the repo root, generated once by `deploy.sh` and never
+- App code: builds go to each `apps/*/dist` (git-ignored); the API runs
+  straight from `services/hek`.
+- Secrets: `services/hek/.env`, generated once by `deploy.sh` and never
   overwritten by a redeploy. Back it up somewhere if you'd hate to
   regenerate it (regenerating just issues new session/ticket-signing
   secrets, which logs everyone out and invalidates any printed pairing
@@ -111,9 +114,10 @@ infra/deploy/mac/start.sh    # bring them back without rebuilding
 - **`launchctl bootstrap` fails with "service already loaded".** Harmless —
   `deploy.sh` always `bootout`s first; if you see this outside the script,
   run `infra/deploy/mac/stop.sh` then `start.sh`.
-- **Postgres won't start.** `brew services list` to check its state, then
-  `tail -f $(brew --prefix)/var/log/postgresql@16.log`.
-- **API crash-looped.** `tail -f infra/deploy/mac/generated/logs/api.error.log`.
+- **MariaDB won't start.** `brew services list` to check its state, then
+  look in `$(brew --prefix)/var/mysql/*.err`.
+- **API errors.** `tail -f services/hek/storage/logs/laravel.log`, and
+  `infra/deploy/mac/generated/logs/api.error.log` if it will not start.
   `KeepAlive` means launchd restarts it automatically, so a persistent crash
   shows up as the API port refusing connections in `status.sh`.
 - **Need a real domain / HTTPS instead of `IP:port`.** Point DNS records at

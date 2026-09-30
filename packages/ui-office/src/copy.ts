@@ -11,7 +11,7 @@ export type Lang = "af" | "en";
 /** The one af/en → BCP-47 mapping for the office tools' date and number formatting. */
 export const officeLocale = (lang: Lang) => (lang === "af" ? "af-ZA" : "en-ZA");
 
-/** The condition keys `services/api/src/lib/weather-condition.ts` collapses Open-Meteo's codes to — keep the two lists together. */
+/** The condition keys `services/hek/app/Weather/OpenMeteo.php` collapses Open-Meteo's codes to — keep the two lists together. */
 export type WeatherCondition =
   | "clear"
   | "mostly_clear"
