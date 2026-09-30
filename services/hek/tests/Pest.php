@@ -9,6 +9,7 @@ use App\Farm\FarmProvisioner;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 uses(TestCase::class)->in('Feature', 'Unit');
@@ -125,4 +126,45 @@ function managementToken(array $staff): string
 function bearer(string $token): array
 {
     return ['authorization' => "Bearer {$token}"];
+}
+
+/** A sync op for any entity. */
+function op(string $entity, array $payload, string $clientTime = '2026-06-01T07:30:00.000Z', ?string $seasonId = null): array
+{
+    return ['entity' => $entity, 'entity_id' => uuid(), 'client_time' => $clientTime, 'season_id' => $seasonId, 'payload' => $payload];
+}
+
+function noteOp(string $body, string $clientTime, array $payload = []): array
+{
+    return ['entity' => 'notes', 'entity_id' => uuid(), 'client_time' => $clientTime, 'season_id' => null, 'payload' => ['body' => $body, ...$payload]];
+}
+
+function upload(string $ticket, array $ops): TestResponse
+{
+    return test()->postJson('/sync/upload', ['ops' => $ops], bearer($ticket));
+}
+
+/**
+ * A capture row as if a phone had synced it: stamped with the farm, `$s['person']` and a device.
+ *
+ * @param  array<string, mixed>  $values
+ * @return array<string, mixed>
+ */
+function capture(array $s, string $table, string $moduleCode, array $values): array
+{
+    $deviceId = $s['device']['id'] ?? ($s['db']->table('devices')->value('id') ?? row($s['db'], 'devices', ['farm_id' => $s['farm']['id']])['id']);
+
+    return row($s['db'], $table, [
+        'farm_id' => $s['farm']['id'],
+        'module_code' => $moduleCode,
+        'created_by' => $s['person']['id'],
+        'device_id' => $deviceId,
+        ...$values,
+    ]);
+}
+
+/** An active (or not) season on the farm. */
+function season(array $s, string $name, string $startsOn, string $endsOn, bool $active = true): array
+{
+    return row($s['db'], 'seasons', ['farm_id' => $s['farm']['id'], 'name' => $name, 'starts_on' => $startsOn, 'ends_on' => $endsOn, 'is_active' => $active]);
 }

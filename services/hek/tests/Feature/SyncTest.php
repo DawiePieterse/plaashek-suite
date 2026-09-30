@@ -5,16 +5,6 @@ use App\Support\Rows;
 use Carbon\CarbonImmutable;
 use Tests\TestCase;
 
-function noteOp(string $body, string $clientTime, array $payload = []): array
-{
-    return ['entity' => 'notes', 'entity_id' => uuid(), 'client_time' => $clientTime, 'season_id' => null, 'payload' => ['body' => $body, ...$payload]];
-}
-
-function upload(string $ticket, array $ops)
-{
-    return test()->postJson('/sync/upload', ['ops' => $ops], bearer($ticket));
-}
-
 it('uploads an offline note, stamped with the farm, device and assigned person', function () {
     $p = pairedPhone('veldnotas');
     $ticket = ticketFor($p['farm'], $p['device'], ['veldnotas']);
